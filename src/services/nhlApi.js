@@ -1,9 +1,10 @@
 // Docs: https://gitlab.com/dword4/nhlapi/-/blob/master/new-api.md
 
 import axios from 'axios';
+import { DateTime } from 'luxon';
 
 const apiClient = axios.create({
-  baseURL: 'https://api-web.nhle.com/v1', // Use the base URL of the NHL API
+  baseURL: '/nhl-api', // Use the proxy path instead of the original URL
   withCredentials: false,
   headers: {
     Accept: 'application/json',
@@ -13,12 +14,25 @@ const apiClient = axios.create({
 
 export default {
   getSchedule() {
-    return apiClient.get('/schedule/now');
+    const getToday = DateTime.now().toFormat('yyyy-MM-dd');
+    return apiClient.get(`/schedule/${getToday}`);
   },
   getStandings() {
     return apiClient.get('/standings/now');
   },
   getScores() {
     return apiClient.get('/score/now');
-  }
+  },
+  getTeams() {
+    return apiClient.get('/team');
+  },
+  getTeam(teamId) {
+    return apiClient.get(`/team/${teamId}`);
+  },
+  getTeamId(teamName) {
+    return apiClient.get(`/team/${teamName}`);
+  },
+  getResult(gameId) {
+    return apiClient.get(`/gamecenter/${gameId}/boxscore`);
+  },
 };
