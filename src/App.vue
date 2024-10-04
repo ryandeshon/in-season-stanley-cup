@@ -4,9 +4,11 @@
     <v-app-bar app color="primary" dark>
       <v-toolbar-title>In Season Stanley Cup</v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn text to="/">Home</v-btn>
-      <v-btn text to="/standings">Standings</v-btn>
-      <v-btn text to="/about">About</v-btn>
+      <div class="flex gap-1">
+        <v-btn text to="/">Home</v-btn>
+        <v-btn text to="/standings">Standings</v-btn>
+        <v-btn text to="/about">About</v-btn>
+      </div>
     </v-app-bar>
 
     <!-- Main Content -->
