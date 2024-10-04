@@ -1,14 +1,30 @@
 <template>
-  Chris Cooper eats poop. 
+  <v-app>
+    <!-- App Bar / Navigation Bar -->
+    <v-app-bar app color="primary" dark>
+      <v-toolbar-title>In Season Stanley Cup</v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-btn text to="/">Home</v-btn>
+      <v-btn text to="/standings">Standings</v-btn>
+      <v-btn text to="/about">About</v-btn>
+    </v-app-bar>
+
+    <!-- Main Content -->
+    <v-main>
+      <router-view></router-view>
+    </v-main>
+
+    <!-- Footer (Optional) -->
+    <v-footer app color="primary" dark>
+      <span class="mx-auto">© 2024 In Season Stanley Cup</span>
+    </v-footer>
+  </v-app>
 </template>
 
 <script>
-
 export default {
   name: 'App',
-  components: {
-  }
-}
+};
 </script>
 
 <style>
