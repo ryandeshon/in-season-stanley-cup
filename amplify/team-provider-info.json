@@ -1,0 +1,15 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-inseasonstanleycup-dev-cf9e5-authRole",
+      "UnauthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-dev-cf9e5-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-dev-cf9e5-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-inseasonstanleycup-dev-cf9e5-deployment",
+      "UnauthRoleName": "amplify-inseasonstanleycup-dev-cf9e5-unauthRole",
+      "StackName": "amplify-inseasonstanleycup-dev-cf9e5",
+      "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-dev-cf9e5/e73c7ae0-8280-11ef-b643-0affebcbdce5",
+      "AmplifyAppId": "d29uj9rezmm1cl"
+    }
+  }
+}
