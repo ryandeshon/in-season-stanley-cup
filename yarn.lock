@@ -1093,6 +1093,11 @@
   resolved "https://registry.npmjs.org/@leichtgewicht/ip-codec/-/ip-codec-2.0.5.tgz"
   integrity sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==
 
+"@mdi/font@^7.4.47":
+  version "7.4.47"
+  resolved "https://registry.yarnpkg.com/@mdi/font/-/font-7.4.47.tgz#2ae522867da3a5c88b738d54b403eb91471903af"
+  integrity sha512-43MtGpd585SNzHZPcYowu/84Vz2a2g31TvPMTm9uTiCSWzaheQySUcSyUH/46fPnuPQWof2yd0pGBtzee/IQWw==
+
 "@nicolo-ribaudo/eslint-scope-5-internals@5.1.1-v1":
   version "5.1.1-v1"
   resolved "https://registry.npmjs.org/@nicolo-ribaudo/eslint-scope-5-internals/-/eslint-scope-5-internals-5.1.1-v1.tgz"
@@ -2306,6 +2311,13 @@ chokidar@^3.5.3:
     readdirp "~3.6.0"
   optionalDependencies:
     fsevents "~2.3.2"
+
+chokidar@^4.0.0:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-4.0.1.tgz#4a6dff66798fb0f72a94f616abbd7e1a19f31d41"
+  integrity sha512-n8enUVCED/KVRQlab1hr3MVpcVMvxtZjmEa956u+4YijlmQED223XMSYj2tLuKvr4jcCTzNNMpQDUer72MMmzA==
+  dependencies:
+    readdirp "^4.0.1"
 
 chrome-trace-event@^1.0.2:
   version "1.0.4"
@@ -3771,6 +3783,11 @@ ignore@^5.2.0:
   resolved "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz"
   integrity sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==
 
+immutable@^4.0.0:
+  version "4.3.7"
+  resolved "https://registry.yarnpkg.com/immutable/-/immutable-4.3.7.tgz#c70145fc90d89fb02021e65c84eb0226e4e5a381"
+  integrity sha512-1hqclzwYwjRDFLjcFxOM5AYkkG0rpFPpr1RLPMEuGczoS7YA8gLhy8SWXYRAA/XwfEHpfo3cw5JGioS32fnMRw==
+
 import-fresh@^3.0.0, import-fresh@^3.2.1:
   version "3.3.0"
   resolved "https://registry.npmjs.org/import-fresh/-/import-fresh-3.3.0.tgz"
@@ -5170,6 +5187,11 @@ readable-stream@^3.0.6, readable-stream@^3.4.0:
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
 
+readdirp@^4.0.1:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/readdirp/-/readdirp-4.0.2.tgz#388fccb8b75665da3abffe2d8f8ed59fe74c230a"
+  integrity sha512-yDMz9g+VaZkqBYS/ozoBJwaBhTbZo3UNYQHNRw1D3UFQB8oHB4uS/tAODO+ZLjGWmUbKnIlOWO+aaIiAxrUWHA==
+
 readdirp@~3.6.0:
   version "3.6.0"
   resolved "https://registry.npmjs.org/readdirp/-/readdirp-3.6.0.tgz"
@@ -5336,6 +5358,15 @@ safe-buffer@5.2.1, safe-buffer@>=5.1.0, safe-buffer@^5.1.0, safe-buffer@~5.2.0:
   version "2.1.2"
   resolved "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz"
   integrity sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==
+
+sass@^1.79.4:
+  version "1.79.4"
+  resolved "https://registry.yarnpkg.com/sass/-/sass-1.79.4.tgz#f9c45af35fbeb53d2c386850ec842098d9935267"
+  integrity sha512-K0QDSNPXgyqO4GZq2HO5Q70TLxTH6cIT59RdoCHMivrC8rqzaTw5ab9prjz9KUN1El4FLXrBXJhik61JR4HcGg==
+  dependencies:
+    chokidar "^4.0.0"
+    immutable "^4.0.0"
+    source-map-js ">=0.6.2 <2.0.0"
 
 schema-utils@^2.6.5:
   version "2.7.1"
@@ -5556,7 +5587,7 @@ sockjs@^0.3.24:
     uuid "^8.3.2"
     websocket-driver "^0.7.4"
 
-source-map-js@^1.2.0, source-map-js@^1.2.1:
+"source-map-js@>=0.6.2 <2.0.0", source-map-js@^1.2.0, source-map-js@^1.2.1:
   version "1.2.1"
   resolved "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz"
   integrity sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==
@@ -6071,7 +6102,7 @@ vue@^3.2.13:
 
 vuetify@^3.7.0-beta.1:
   version "3.7.0-beta.1"
-  resolved "https://registry.npmjs.org/vuetify/-/vuetify-3.7.0-beta.1.tgz"
+  resolved "https://registry.yarnpkg.com/vuetify/-/vuetify-3.7.0-beta.1.tgz#a3c58cf170fd44c17427555390e7b88c6d3602a4"
   integrity sha512-F6a+pSG7dLrU28sGlR8r4WMuBsLMprOsDpaywGopNrGk351Hs4AAhx/y88ROGUEf28yAPShSM86bPnD30xNyDw==
 
 watchpack@^2.4.0, watchpack@^2.4.1:
