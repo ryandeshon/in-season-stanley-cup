@@ -2,29 +2,30 @@
   <v-container>
     <h1 class="text-4xl font-bold mb-4">Welcome to the In Season Stanley Cup</h1>
     <p>Track the champion and standings of the NHL teams as they compete for the cup.</p>
-    <p>Is The Champ Playing today? <strong>{{ isGameToday }}</strong></p>
 
+    <template v-if="isGameToday">
     <div class="grid grid-cols-3 gap-4 w-full my-4">
-      <v-card>
-        <v-card-title>Champion</v-card-title>
-        <v-card-text>
-          <p>{{ playerChampion?.name }}</p>
-          <p>{{ playerChampion?.fullTeamName }}</p>
-          <img :src="playerChampion?.logo" alt="Challenger Team Logo" />
-          <!-- <pre>{{ playerChampion }}</pre> -->
-        </v-card-text>
-      </v-card>
-      <div class="flex justify-center align-center"><strong>VS</strong></div>
-      <v-card>
-        <v-card-title>Challenger</v-card-title>
-        <v-card-text>
-          <p>{{ playerChallenger?.name }}</p>
-          <p>{{ playerChallenger?.fullTeamName }}</p>
-          <img :src="playerChallenger?.logo" alt="Challenger Team Logo" />
-          <!-- <pre>{{ playerChallenger }}</pre> -->
-        </v-card-text>
-      </v-card>
-    </div>
+        <v-card>
+          <v-card-title>Champion</v-card-title>
+          <v-card-text>
+            <p>{{ playerChampion?.name }}</p>
+            <p>{{ playerChampion?.fullTeamName }}</p>
+            <img :src="playerChampion?.logo" alt="Challenger Team Logo" />
+            <!-- <pre>{{ playerChampion }}</pre> -->
+          </v-card-text>
+        </v-card>
+        <div class="flex justify-center align-center"><strong>VS</strong></div>
+        <v-card>
+          <v-card-title>Challenger</v-card-title>
+          <v-card-text>
+            <p>{{ playerChallenger?.name }}</p>
+            <p>{{ playerChallenger?.fullTeamName }}</p>
+            <img :src="playerChallenger?.logo" alt="Challenger Team Logo" />
+            <!-- <pre>{{ playerChallenger }}</pre> -->
+          </v-card-text>
+        </v-card>
+      </div>
+    </template>
   </v-container>
 </template>
 
