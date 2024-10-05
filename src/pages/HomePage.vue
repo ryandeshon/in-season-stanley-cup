@@ -9,13 +9,19 @@
         <v-card-title>Champion</v-card-title>
         <v-card-text>
           <p>{{ playerChampion?.name }}</p>
+          <p>{{ playerChampion?.fullTeamName }}</p>
+          <img :src="playerChampion?.logo" alt="Challenger Team Logo" />
+          <!-- <pre>{{ playerChampion }}</pre> -->
         </v-card-text>
       </v-card>
-      <div><strong>VS</strong></div>
+      <div class="flex justify-center align-center"><strong>VS</strong></div>
       <v-card>
         <v-card-title>Challenger</v-card-title>
         <v-card-text>
-          <p>{{ playerChallenge?.name }}</p>
+          <p>{{ playerChallenger?.name }}</p>
+          <p>{{ playerChallenger?.fullTeamName }}</p>
+          <img :src="playerChallenger?.logo" alt="Challenger Team Logo" />
+          <!-- <pre>{{ playerChallenger }}</pre> -->
         </v-card-text>
       </v-card>
     </div>
@@ -33,8 +39,8 @@ export default {
       currentChampion: 'FLA',
       todaysGames: [],
       allPlayersData: null,
-      playerChampion: null,
-      playerChallenge: null,
+      playerChampion: {},
+      playerChallenger: {},
       isGameToday: false,
       gameID: null,
     };
@@ -44,19 +50,28 @@ export default {
       this.allPlayersData = await getAllPlayers();
       const response = await nhlApi.getSchedule();
       this.todaysGames = response.data.gameWeek[0]?.games;
+
+      // find the player who is the current champion
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+      // find the player who is challenging the current champion
+      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(this.todaysGames[0].homeTeam.abbrev) || player.teams.includes(this.todaysGames[0].awayTeam.abbrev));
       
       this.todaysGames.forEach(game => {
         const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
         if (isChampionPlaying) {
           this.isGameToday = true;
           this.gameID = game.id;
+
+          this.playerChampion.todaysTeam = this.playerChampion.teams.find(team => team === game.homeTeam.abbrev || team === game.awayTeam.abbrev);
+          this.playerChallenger.todaysTeam = this.playerChallenger.teams.find(team => team === game.homeTeam.abbrev || team === game.awayTeam.abbrev);
+
+          const championTeam = game.homeTeam.abbrev === this.playerChampion.todaysTeam ? game.homeTeam : game.awayTeam;
+          this.playerChampion.logo = championTeam.logo;
+          const challengerTeam = game.homeTeam.abbrev === this.playerChallenger.todaysTeam ? game.homeTeam : game.awayTeam;
+          this.playerChallenger.logo = challengerTeam.logo;
         }
       });
 
-      // find the player who is the current champion
-      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-      // find the player who is challenging the current champion
-      this.playerChallenge = this.allPlayersData.find(player => player.teams.includes(this.todaysGames[0].homeTeam.abbrev) || player.teams.includes(this.todaysGames[0].awayTeam.abbrev));
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
     }
