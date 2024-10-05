@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Ryan",
+    "teams": ["BOS", "NYR", "WIN", "NSH", "PHI", "PIT", "OTT", "SJS"],
+    "daysAsChampion": 0,
+    "championships": 0
+  },
+  {
+    "name": "Chris",
+    "teams": ["FLA", "TOR", "DAL", "MIN", "SEA", "UTA", "WSH", "STL"],
+    "daysAsChampion": 0,
+    "championships": 0
+  },
+  {
+    "name": "Terry",
+    "teams": ["VAN", "COL", "DET", "NJD", "CHI", "MTL", "ANA", "CGY"],
+    "daysAsChampion": 0,
+    "championships": 0
+  },
+  {
+    "name": "Boz",
+    "teams": ["EDM", "VGK", "CAR", "TBL", "NYI", "LAK", "BUF", "CBJ"],
+    "daysAsChampion": 0,
+    "championships": 0
+  }
+]
