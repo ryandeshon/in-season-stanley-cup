@@ -9,9 +9,9 @@
           <v-card-title>Champion</v-card-title>
           <v-card-text>
             <p>{{ playerChampion?.name }}</p>
-            <p>{{ playerChampion?.fullTeamName }}</p>
-            <img :src="playerChampion?.logo" alt="Challenger Team Logo" />
-            <!-- <pre>{{ playerChampion }}</pre> -->
+            <p>{{ playerChampion?.team?.placeName.default }}</p>
+            <img :src="playerChampion?.team?.logo" alt="Challenger Team Logo" />
+            <!-- <pre class="text-left">{{ playerChampion }}</pre> -->
           </v-card-text>
         </v-card>
         <div class="flex justify-center align-center"><strong>VS</strong></div>
@@ -19,8 +19,8 @@
           <v-card-title>Challenger</v-card-title>
           <v-card-text>
             <p>{{ playerChallenger?.name }}</p>
-            <p>{{ playerChallenger?.fullTeamName }}</p>
-            <img :src="playerChallenger?.logo" alt="Challenger Team Logo" />
+            <p>{{ playerChallenger?.team?.placeName.default }}</p>
+            <img :src="playerChallenger?.team.logo" alt="Challenger Team Logo" />
             <!-- <pre>{{ playerChallenger }}</pre> -->
           </v-card-text>
         </v-card>
@@ -32,17 +32,21 @@
 <script>
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
+import { DateTime } from 'luxon';
 
 export default {
   name: 'HomePage',
   data() {
     return {
       currentChampion: 'FLA',
+      todaysDate: DateTime.now().plus({ days: 2 }).toFormat('yyyy-MM-dd'),
       todaysGames: [],
+      todaysWinner: null,
       allPlayersData: null,
       playerChampion: {},
       playerChallenger: {},
       isGameToday: false,
+      isGameOver: false,
       gameID: null,
     };
   },
@@ -50,12 +54,11 @@ export default {
     try {
       this.allPlayersData = await getAllPlayers();
       const response = await nhlApi.getSchedule();
-      this.todaysGames = response.data.gameWeek[0]?.games;
+      const gameWeek = response.data.gameWeek;
+      const todaysGames = gameWeek.find(day => day.date === this.todaysDate);
+      this.todaysGames = todaysGames ? todaysGames.games : [];
+      console.log("🚀 ~ created ~ this.todaysGames:", this.todaysGames)
 
-      // find the player who is the current champion
-      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-      // find the player who is challenging the current champion
-      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(this.todaysGames[0].homeTeam.abbrev) || player.teams.includes(this.todaysGames[0].awayTeam.abbrev));
       
       this.todaysGames.forEach(game => {
         const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
@@ -63,18 +66,33 @@ export default {
           this.isGameToday = true;
           this.gameID = game.id;
 
-          this.playerChampion.todaysTeam = this.playerChampion.teams.find(team => team === game.homeTeam.abbrev || team === game.awayTeam.abbrev);
-          this.playerChallenger.todaysTeam = this.playerChallenger.teams.find(team => team === game.homeTeam.abbrev || team === game.awayTeam.abbrev);
+          this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+          this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && player.teams.includes(game.homeTeam.abbrev) || player.teams.includes(game.awayTeam.abbrev));
 
-          const championTeam = game.homeTeam.abbrev === this.playerChampion.todaysTeam ? game.homeTeam : game.awayTeam;
-          this.playerChampion.logo = championTeam.logo;
-          const challengerTeam = game.homeTeam.abbrev === this.playerChallenger.todaysTeam ? game.homeTeam : game.awayTeam;
-          this.playerChallenger.logo = challengerTeam.logo;
+          this.playerChampion.team = this.findPlayerTeam(game, this.playerChampion);
+          this.playerChallenger.team = this.findPlayerTeam(game, this.playerChallenger);
         }
       });
 
+      // this.isGameOver = await nhlApi.getResult(this.gameID);
+      // console.log("🚀 ~ created ~ this.isGameOver:", this.isGameOver)
+
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
+    }
+    
+  },
+  methods: {
+    findPlayerTeam(game, player) {
+      const homeTeamAbbrev = game.homeTeam.abbrev;
+      const awayTeamAbbrev = game.awayTeam.abbrev;
+
+      if (player.teams.includes(homeTeamAbbrev)) {
+        return game.homeTeam;
+      }
+      if (player.teams.includes(awayTeamAbbrev)) {
+        return game.awayTeam;
+      }
     }
   },
 };
