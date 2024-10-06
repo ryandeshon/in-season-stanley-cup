@@ -74,8 +74,8 @@ export default {
         }
       });
 
-      // this.isGameOver = await nhlApi.getResult(this.gameID);
-      // console.log("🚀 ~ created ~ this.isGameOver:", this.isGameOver)
+      this.isGameOver = await nhlApi.getResult(this.gameID);
+      console.log("🚀 ~ created ~ this.isGameOver:", this.isGameOver)
 
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
