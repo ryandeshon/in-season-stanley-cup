@@ -2,9 +2,8 @@
   <v-container>
     <h1 class="text-4xl font-bold mb-4">Welcome to the In Season Stanley Cup</h1>
     <p>Track the champion and standings of the NHL teams as they compete for the cup.</p>
-
     <template v-if="isGameToday">
-    <div class="grid grid-cols-3 gap-4 w-full my-4">
+      <div class="grid grid-cols-3 gap-4 w-full my-4">
         <v-card>
           <v-card-title>Champion</v-card-title>
           <v-card-text>
@@ -26,6 +25,10 @@
         </v-card>
       </div>
     </template>
+
+    <template v-else>
+      <p>No games today.</p>
+    </template>
   </v-container>
 </template>
 
@@ -39,7 +42,7 @@ export default {
   data() {
     return {
       currentChampion: 'FLA',
-      todaysDate: DateTime.now().plus({ days: 2 }).toFormat('yyyy-MM-dd'),
+      todaysDate: DateTime.now().plus({days: 1}).toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysWinner: null,
       allPlayersData: null,
@@ -79,8 +82,8 @@ export default {
         }
       });
 
-      this.isGameOver = await nhlApi.getResult(this.gameID);
-      console.log("🚀 ~ created ~ this.isGameOver:", this.isGameOver)
+      // this.isGameOver = await nhlApi.getResult(this.gameID);
+      // console.log("🚀 ~ created ~ this.isGameOver:", this.isGameOver)
 
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
