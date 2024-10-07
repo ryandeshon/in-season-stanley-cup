@@ -7,5 +7,7 @@ AWS.config.update({
   secretAccessKey: process.env.VUE_APP_AWS_SECRET_ACCESS_KEY,
 });
 
+console.log('AWS Config:', AWS.config);
+
 // Export the configured AWS object
 export default AWS;

@@ -11,5 +11,8 @@
       "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-dev-cf9e5/e73c7ae0-8280-11ef-b643-0affebcbdce5",
       "AmplifyAppId": "dgll3ubwnxkqv"
     }
+  },
+  "main": {
+    "awscloudformation": {}
   }
 }
