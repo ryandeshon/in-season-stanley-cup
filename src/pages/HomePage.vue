@@ -42,8 +42,9 @@ export default {
   data() {
     return {
       currentChampion: 'FLA',
-      todaysDate: DateTime.now().plus({days: 1}).toFormat('yyyy-MM-dd'),
+      todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
+      todaysGame: null,
       todaysWinner: null,
       allPlayersData: null,
       playerChampion: {},
@@ -66,8 +67,6 @@ export default {
       const todaysGames = gameWeek.find(day => day.date === this.todaysDate);
       this.todaysGames = todaysGames ? todaysGames.games : [];
       console.log("🚀 ~ created ~ this.todaysGames:", this.todaysGames)
-
-      
       this.todaysGames.forEach(game => {
         const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
         if (isChampionPlaying) {
@@ -78,12 +77,14 @@ export default {
           this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && player.teams.includes(game.homeTeam.abbrev) || player.teams.includes(game.awayTeam.abbrev));
 
           this.playerChampion.team = this.findPlayerTeam(game, this.playerChampion);
-          this.playerChallenger.team = this.findPlayerTeam(game, this.playerChallenger);
+          this.playerChallenger.team = this.findPlayerTeam(game, this.playerChallenger); 
         }
       });
 
-      // this.isGameOver = await nhlApi.getResult(this.gameID);
-      // console.log("🚀 ~ created ~ this.isGameOver:", this.isGameOver)
+      if (this.isGameToday) {
+        this.todaysGame = await nhlApi.getResult(this.gameID).then(response => response.data);
+        this.isGameOver = this.todaysGame.gameState === 'END';
+      }
 
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
