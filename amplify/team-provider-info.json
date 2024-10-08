@@ -10,6 +10,11 @@
       "StackName": "amplify-inseasonstanleycup-main-31987",
       "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-main-31987/66b40b30-8420-11ef-9b85-0affcc3fac61",
       "AmplifyAppId": "dgll3ubwnxkqv"
+    },
+    "categories": {
+      "api": {
+        "inseasonstanleycup": {}
+      }
     }
   },
   "dev": {
