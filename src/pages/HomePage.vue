@@ -59,10 +59,11 @@ export default {
       this.allPlayersData = await getAllPlayers();
       const response = await nhlApi.getSchedule();
       const gameWeek = response.data.gameWeek;
+      console.log("🚀 ~ created ~ gameWeek:", gameWeek)
       console.log("🚀 ~ created ~ this.todaysDate:", this.todaysDate)
-      const todaysGames = gameWeek.find(day => day.date === this.todaysDate);
-      this.todaysGames = todaysGames ? todaysGames.games : [];
+      const todaysGames = gameWeek?.find(day => day.date === this.todaysDate);
       console.log("🚀 ~ created ~ this.todaysGames:", this.todaysGames)
+      this.todaysGames = todaysGames ? todaysGames.games : [];
       this.todaysGames.forEach(game => {
         const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
         if (isChampionPlaying) {
