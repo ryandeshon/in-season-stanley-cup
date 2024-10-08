@@ -56,14 +56,10 @@ export default {
   },
   async created() {
     try {
-
-      console.log('AWS Region:', process.env.VUE_APP_AWS_REGION);
-      console.log('AWS Access Key ID:', process.env.VUE_APP_AWS_ACCESS_KEY_ID);
-      console.log('AWS Secret Access Key:', process.env.VUE_APP_AWS_SECRET_ACCESS_KEY);
-
       this.allPlayersData = await getAllPlayers();
       const response = await nhlApi.getSchedule();
       const gameWeek = response.data.gameWeek;
+      console.log("🚀 ~ created ~ this.todaysDate:", this.todaysDate)
       const todaysGames = gameWeek.find(day => day.date === this.todaysDate);
       this.todaysGames = todaysGames ? todaysGames.games : [];
       console.log("🚀 ~ created ~ this.todaysGames:", this.todaysGames)
