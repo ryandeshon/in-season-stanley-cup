@@ -4,7 +4,7 @@ import axios from 'axios';
 import { DateTime } from 'luxon';
 
 const apiClient = axios.create({
-  baseURL: '/nhl-api', // Use the proxy path instead of the original URL
+  baseURL: process.env.VUE_APP_NHL_API_URL,
   withCredentials: false,
   headers: {
     Accept: 'application/json',

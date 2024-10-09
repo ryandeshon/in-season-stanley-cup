@@ -45,7 +45,6 @@ export default {
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
-      weeksGames: [],
       todaysWinner: null,
       allPlayersData: null,
       playerChampion: {},
