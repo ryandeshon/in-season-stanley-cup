@@ -45,6 +45,7 @@ export default {
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
+      weeksGames: [],
       todaysWinner: null,
       allPlayersData: null,
       playerChampion: {},
@@ -57,31 +58,18 @@ export default {
   async created() {
     try {
       this.allPlayersData = await getAllPlayers();
-      const response = await nhlApi.getSchedule();
-      const gameWeek = response.data.gameWeek;
-      console.log("🚀 ~ created ~ gameWeek:", gameWeek)
-      console.log("🚀 ~ created ~ this.todaysDate:", this.todaysDate)
-      const todaysGames = gameWeek?.find(day => day.date === this.todaysDate);
-      console.log("🚀 ~ created ~ this.todaysGames:", this.todaysGames)
-      this.todaysGames = todaysGames ? todaysGames.games : [];
-      this.todaysGames.forEach(game => {
-        const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
-        if (isChampionPlaying) {
-          this.isGameToday = true;
-          this.gameID = game.id;
-
-          this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-          this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && player.teams.includes(game.homeTeam.abbrev) || player.teams.includes(game.awayTeam.abbrev));
-
-          this.playerChampion.team = this.findPlayerTeam(game, this.playerChampion);
-          this.playerChallenger.team = this.findPlayerTeam(game, this.playerChallenger); 
-        }
+      nhlApi.getSchedule().then(response => {
+        console.log('Schedule response:', response);
+        const gameWeek = response.data.gameWeek;
+        const todaysGames = gameWeek?.find(day => day.date === this.todaysDate);
+        this.todaysGames = todaysGames ? todaysGames.games : [];
+      })
+      .catch(error => {
+        console.error('Error fetching schedule:', error);
+      })
+      .finally(() => {
+        this.getGameInfo();
       });
-
-      if (this.isGameToday) {
-        this.todaysGame = await nhlApi.getResult(this.gameID).then(response => response.data);
-        this.isGameOver = this.todaysGame.gameState === 'END';
-      }
 
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
@@ -99,6 +87,36 @@ export default {
       if (player.teams.includes(awayTeamAbbrev)) {
         return game.awayTeam;
       }
+    },
+    getGameInfo() {
+      this.todaysGames.forEach(game => {
+        console.log("🚀 ~ game:", game);
+
+        const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
+        if (isChampionPlaying) {
+          this.isGameToday = true;
+          this.gameID = game.id;
+
+          this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+          this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(game.homeTeam.abbrev) || player.teams.includes(game.awayTeam.abbrev)));
+
+          this.playerChampion.team = this.findPlayerTeam(game, this.playerChampion);
+          this.playerChallenger.team = this.findPlayerTeam(game, this.playerChallenger);
+
+          // If a game is found, no need to continue checking other games
+          return;
+        }
+
+        // If there is a game today, fetch the game result
+        if (this.isGameToday) {
+          nhlApi.getResult(this.gameID).then(result => {
+            this.todaysGame = result.data;
+            this.isGameOver = this.todaysGame.gameState === 'END';
+          }).catch(error => {
+            console.error('Error fetching game result:', error);
+          });
+        }
+      });
     }
   },
 };
