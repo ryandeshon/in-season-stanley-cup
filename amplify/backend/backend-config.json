@@ -16,5 +16,30 @@
       "providerPlugin": "awscloudformation",
       "service": "AppSync"
     }
+  },
+  "function": {
+    "nhlApiProxy": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_nhlApiProxy_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "nhlApiProxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_nhlApiProxy_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "nhlApiProxy"
+        }
+      ]
+    }
   }
 }
