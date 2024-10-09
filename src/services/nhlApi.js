@@ -11,6 +11,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+  console.log("🚀 ~ process.env.VUE_APP_NHL_API_URL:", process.env.VUE_APP_NHL_API_URL)
 
 export default {
   getSchedule() {
