@@ -18,7 +18,7 @@
       "function": {
         "nhlApiProxy": {
           "deploymentBucketName": "amplify-inseasonstanleycup-main-31987-deployment",
-          "s3Key": "amplify-builds/nhlApiProxy-457a6e6b74545a636a41-build.zip"
+          "s3Key": "amplify-builds/nhlApiProxy-3758306a6b783877415a-build.zip"
         }
       }
     }
