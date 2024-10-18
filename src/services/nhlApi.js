@@ -4,14 +4,13 @@ import axios from 'axios';
 import { DateTime } from 'luxon';
 
 const apiClient = axios.create({
-  baseURL: process.env.VUE_APP_NHL_API_URL,
+  baseURL: '/nhl-api', // Use the proxy defined in vue.config.js
   withCredentials: false,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },
 });
-  console.log("🚀 ~ process.env.VUE_APP_NHL_API_URL:", process.env.VUE_APP_NHL_API_URL)
 
 export default {
   getSchedule() {
