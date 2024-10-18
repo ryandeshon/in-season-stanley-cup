@@ -61,6 +61,12 @@
       },
       "api": {
         "inseasonstanleycup": {}
+      },
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "dm7o24ucghmq4",
+          "type": "cicd"
+        }
       }
     }
   }
