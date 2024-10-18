@@ -4,12 +4,18 @@
       "dependsOn": [],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [],
+          "additionalAuthenticationProviders": [
+            {
+              "apiKeyConfig": {
+                "apiKeyExpirationDate": "2025-10-18T21:15:02.448Z",
+                "apiKeyExpirationDays": 365,
+                "description": ""
+              },
+              "authenticationType": "API_KEY"
+            }
+          ],
           "defaultAuthentication": {
-            "apiKeyConfig": {
-              "apiKeyExpirationDays": 7
-            },
-            "authenticationType": "API_KEY"
+            "authenticationType": "AWS_IAM"
           }
         }
       },
@@ -19,6 +25,11 @@
   },
   "function": {
     "nhlApiProxy": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "nhlProxy": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
@@ -38,6 +49,22 @@
         {
           "category": "function",
           "resourceName": "nhlApiProxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_nhlProxy_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "nhlProxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_nhlProxy_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "nhlProxy"
         }
       ]
     }

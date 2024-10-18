@@ -4,8 +4,16 @@
     "apiName": "inseasonstanleycup",
     "serviceName": "AppSync",
     "defaultAuthType": {
-      "mode": "API_KEY",
-      "expirationTime": 7
-    }
+      "mode": "AWS_IAM"
+    },
+    "conflictResolution": {},
+    "additionalAuthTypes": [
+      {
+        "mode": "API_KEY",
+        "expirationTime": 365,
+        "apiKeyExpirationDate": "2025-10-18T21:15:02.448Z",
+        "keyDescription": ""
+      }
+    ]
   }
 }

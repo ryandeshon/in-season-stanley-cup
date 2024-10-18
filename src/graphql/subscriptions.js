@@ -2,13 +2,11 @@
 // this is an auto generated file. This will be overwritten
 
 export const onCreatePlayer = /* GraphQL */ `
-  subscription OnCreatePlayer($filter: ModelSubscriptionPlayerFilterInput) {
-    onCreatePlayer(filter: $filter) {
+  subscription OnCreatePlayer {
+    onCreatePlayer {
       id
       name
-      teams
-      daysAsChampion
-      championships
+      team
       createdAt
       updatedAt
       __typename
@@ -16,13 +14,11 @@ export const onCreatePlayer = /* GraphQL */ `
   }
 `;
 export const onUpdatePlayer = /* GraphQL */ `
-  subscription OnUpdatePlayer($filter: ModelSubscriptionPlayerFilterInput) {
-    onUpdatePlayer(filter: $filter) {
+  subscription OnUpdatePlayer {
+    onUpdatePlayer {
       id
       name
-      teams
-      daysAsChampion
-      championships
+      team
       createdAt
       updatedAt
       __typename
@@ -30,13 +26,11 @@ export const onUpdatePlayer = /* GraphQL */ `
   }
 `;
 export const onDeletePlayer = /* GraphQL */ `
-  subscription OnDeletePlayer($filter: ModelSubscriptionPlayerFilterInput) {
-    onDeletePlayer(filter: $filter) {
+  subscription OnDeletePlayer {
+    onDeletePlayer {
       id
       name
-      teams
-      daysAsChampion
-      championships
+      team
       createdAt
       updatedAt
       __typename
