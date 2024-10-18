@@ -2,22 +2,22 @@
   {
     "name": "Ryan",
     "teams": ["BOS", "NYR", "WIN", "NSH", "PHI", "PIT", "OTT", "SJS"],
-    "daysAsChampion": 0,
-    "titleDefenses": 0,
+    "daysAsChampion": 6,
+    "titleDefenses": 3,
     "championships": 0
   },
   {
-    "name": "Chris",
+    "name": "Cooper",
     "teams": ["FLA", "TOR", "DAL", "MIN", "SEA", "UTA", "WSH", "STL"],
-    "daysAsChampion": 0,
-    "titleDefenses": 0,
+    "daysAsChampion": 2,
+    "titleDefenses": 1,
     "championships": 0
   },
   {
     "name": "Terry",
     "teams": ["VAN", "COL", "DET", "NJD", "CHI", "MTL", "ANA", "CGY"],
-    "daysAsChampion": 0,
-    "titleDefenses": 0,
+    "daysAsChampion": 2,
+    "titleDefenses": 1,
     "championships": 0
   },
   {
