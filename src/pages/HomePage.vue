@@ -58,6 +58,7 @@ export default {
     try {
       this.allPlayersData = await getAllPlayers();
       nhlApi.getSchedule().then(response => {
+        console.log("🚀 ~ nhlApi.getSchedule ~ response:", response)
         const gameWeek = response.data.gameWeek;
         const todaysGames = gameWeek?.find(day => day.date === this.todaysDate);
         this.todaysGames = todaysGames ? todaysGames.games : [];
