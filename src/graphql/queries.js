@@ -6,7 +6,10 @@ export const getPlayer = /* GraphQL */ `
     getPlayer(id: $id) {
       id
       name
-      team
+      teams
+      daysAsChampion
+      titleDefenses
+      championships
       createdAt
       updatedAt
       __typename
