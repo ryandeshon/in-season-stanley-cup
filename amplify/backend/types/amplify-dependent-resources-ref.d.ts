@@ -6,13 +6,6 @@ export type AmplifyDependentResourcesAttributes = {
     }
   },
   "function": {
-    "nhlApiProxy": {
-      "Arn": "string",
-      "LambdaExecutionRole": "string",
-      "LambdaExecutionRoleArn": "string",
-      "Name": "string",
-      "Region": "string"
-    },
     "nhlProxy": {
       "Arn": "string",
       "LambdaExecutionRole": "string",

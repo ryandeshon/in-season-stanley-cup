@@ -24,11 +24,6 @@
     }
   },
   "function": {
-    "nhlApiProxy": {
-      "build": true,
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
-    },
     "nhlProxy": {
       "build": true,
       "providerPlugin": "awscloudformation",
@@ -43,22 +38,6 @@
     }
   },
   "parameters": {
-    "AMPLIFY_function_nhlApiProxy_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "nhlApiProxy"
-        }
-      ]
-    },
-    "AMPLIFY_function_nhlApiProxy_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "nhlApiProxy"
-        }
-      ]
-    },
     "AMPLIFY_function_nhlProxy_deploymentBucketName": {
       "usedBy": [
         {
