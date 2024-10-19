@@ -41,7 +41,7 @@ export default {
   name: 'HomePage',
   data() {
     return {
-      currentChampion: 'PIT',
+      currentChampion: 'CAR',
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
