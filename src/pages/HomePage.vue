@@ -60,6 +60,7 @@ export default {
       nhlApi.getSchedule().then(response => {
         console.log("🚀 ~ nhlApi.getSchedule ~ response:", response)
         const gameWeek = response.data.gameWeek;
+        console.log("🚀 ~ nhlApi.getSchedule ~ gameWeek:", gameWeek)
         const todaysGames = gameWeek?.find(day => day.date === this.todaysDate);
         this.todaysGames = todaysGames ? todaysGames.games : [];
       })

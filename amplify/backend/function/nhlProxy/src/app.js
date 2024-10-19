@@ -18,6 +18,7 @@ app.get('/nhl-api/*', async (req, res) => {
     console.log(`Proxying request to: ${apiUrl}`);
 
     const response = await axios.get(apiUrl);
+    console.log("🚀 ~ app.get ~ response:", response.data)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.json(response.data);
   } catch (error) {
