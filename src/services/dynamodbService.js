@@ -3,7 +3,7 @@ import dynamodb from '../dynamodb-client';
 // Function to get a player's data by name
 export const getPlayerData = async (playerName) => {
   const params = {
-    TableName: 'PlayerTeams',
+    TableName: 'Players',
     Key: { name: playerName }
   };
 
@@ -20,7 +20,7 @@ export const getPlayerData = async (playerName) => {
 // Function to get all players
 export const getAllPlayers = async () => {
   const params = {
-    TableName: 'PlayerTeams'
+    TableName: 'Players'
   };
 
   try {
@@ -52,7 +52,7 @@ export const updatePlayerAttributes = async (playerName, updatedAttributes) => {
 
   // Define the DynamoDB update parameters
   const params = {
-    TableName: 'PlayerTeams',
+    TableName: 'Players',
     Key: { name: playerName },
     UpdateExpression: `SET ${updateExpression}`,
     ExpressionAttributeNames: expressionAttributeNames,
