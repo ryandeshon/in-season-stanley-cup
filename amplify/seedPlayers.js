@@ -15,33 +15,33 @@ const players = [
   {
     id: "0",
     name: "Ryan",
-    teams: ["BOS", "NYR", "WIN", "NSH", "PHI", "PIT", "OTT", "SJS"],
-    daysAsChampion: 6,
-    titleDefenses: 3,
+    teams: ["BOS", "NYR", "WPG", "NSH", "PHI", "PIT", "OTT", "SJS"],
+    daysAsChampion: 0,
+    titleDefenses: 0,
     championships: 0
   },
   {
     id: "1",
     name: "Cooper",
     teams: ["FLA", "TOR", "DAL", "MIN", "SEA", "UTA", "WSH", "STL"],
-    daysAsChampion: 2,
-    titleDefenses: 1,
+    daysAsChampion: 0,
+    titleDefenses: 0,
     championships: 0
   },
   {
     id: "2",
     name: "Terry",
     teams: ["VAN", "COL", "DET", "NJD", "CHI", "MTL", "ANA", "CGY"],
-    daysAsChampion: 2,
-    titleDefenses: 1,
+    daysAsChampion: 0,
+    titleDefenses: 0,
     championships: 0
   },
   {
     id: "3",
     name: "Boz",
     teams: ["EDM", "VGK", "CAR", "TBL", "NYI", "LAK", "BUF", "CBJ"],
-    daysAsChampion: 1,
-    titleDefenses: 1,
+    daysAsChampion: 0,
+    titleDefenses: 0,
     championships: 0
   }
 ];
