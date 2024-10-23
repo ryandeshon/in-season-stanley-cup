@@ -41,8 +41,8 @@ export default {
   name: 'HomePage',
   data() {
     return {
-      currentChampion: 'STL',
-      todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
+      currentChampion: 'WPG', // Set the current champion team abbreviation
+      todaysDate: DateTime.now().plus({days: 1}).toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
       todaysWinner: null,
