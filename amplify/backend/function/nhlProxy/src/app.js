@@ -14,7 +14,7 @@ app.use((req, res, next) => {
 // Handle GET requests and proxy to the NHL API
 app.get('/nhl-api/*', async (req, res) => {
   try {
-    const apiUrl = `https://api-web.nhle.com${req.originalUrl.replace('/nhl-api', '')}`;
+    const apiUrl = process.env.VUE_APP_NHL_API_URL;
     console.log(`Proxying request to: ${apiUrl}`);
 
     const response = await axios.get(apiUrl, {
