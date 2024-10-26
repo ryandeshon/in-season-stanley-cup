@@ -7,12 +7,14 @@
       <tr>
         <th class="text-left">Player</th>
         <th class="text-left">Days as Champion</th>
+        <th class="text-left">Title Defenses</th>
       </tr>
       </thead>
       <tbody>
       <tr v-for="standing in allPlayersData" :key="standing.name">
         <td class="text-left">{{ standing.name }}</td>
         <td class="text-left">{{ standing.daysAsChampion }}</td>
+        <td class="text-left">{{ standing.titleDefenses }}</td>
       </tr>
       </tbody>
     </v-table>
@@ -32,8 +34,6 @@ export default {
   },
   async created() {
     this.allPlayersData = await getAllPlayers();
-
-    
   },
 };
 </script>
