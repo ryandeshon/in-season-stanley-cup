@@ -12,6 +12,15 @@ const apiClient = axios.create({
   },
 });
 
+// Use the full API URL for production and ensure requests are routed correctly
+axios.get(`${process.env.VUE_APP_NHL_API_URL}/schedule/2024-10-26`)
+  .then(response => {
+    console.log("AXIOS.get:", response.data);
+  })
+  .catch(error => {
+    console.error("AXIOS.error:", error);
+  });
+
 export default {
   getSchedule() {
     const getToday = DateTime.now().toFormat('yyyy-MM-dd');
