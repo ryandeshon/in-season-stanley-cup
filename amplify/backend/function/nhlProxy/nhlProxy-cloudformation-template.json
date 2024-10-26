@@ -52,7 +52,7 @@
               "Fn::Join": [
                 "",
                 [
-                  "nhlProxy",
+                  "nhlApiProxy",
                   "-",
                   {
                     "Ref": "env"

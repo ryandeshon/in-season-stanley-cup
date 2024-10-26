@@ -26,6 +26,7 @@
   "function": {
     "nhlProxy": {
       "build": true,
+      "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     }
