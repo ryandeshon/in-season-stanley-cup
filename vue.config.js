@@ -7,8 +7,8 @@ module.exports = defineConfig({
 
   devServer: {
     https: {
-      key: fs.readFileSync(path.resolve(__dirname, 'certs/key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'certs/cert.pem')),
+      key: process.env.SSL_KEY ? Buffer.from(process.env.SSL_KEY, 'base64') : fs.readFileSync(path.resolve(__dirname, 'certs/key.pem')),
+      cert: process.env.SSL_CERT ? Buffer.from(process.env.SSL_CERT, 'base64') : fs.readFileSync(path.resolve(__dirname, 'certs/cert.pem')),
     },
     proxy: {
       '/nhl-api': {
