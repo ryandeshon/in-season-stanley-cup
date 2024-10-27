@@ -2,7 +2,17 @@
   <v-container>
     <h1 class="text-4xl font-bold mb-4">Welcome to the In Season Stanley Cup</h1>
     <p>Track the champion and standings of the NHL teams as they compete for the cup.</p>
-    <template v-if="isGameToday">
+
+    <template v-if="isGameOver">
+      <div class="flex flex-col justify-center align-center">
+        <h2 class="text-2xl font-bold mb-4">Game Over</h2>
+        <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
+        <p>Winner: {{ todaysWinner.name }}</p>
+        <img :src="todaysWinner.team.logo" class="w-28 mt-4" alt="Winner Team Logo" />
+      </div>
+    </template>
+
+    <template v-else-if="isGameToday">
       <div class="grid grid-cols-3 gap-4 w-full my-4">
         <v-card>
           <v-card-title>Champion</v-card-title>
@@ -13,7 +23,7 @@
             <!-- <pre class="text-left">{{ playerChampion }}</pre> -->
           </v-card-text>
         </v-card>
-        <div class="flex justify-center align-center"><strong>VS</strong></div>
+        <div class="flex justify-center align-middle"><strong>VS</strong></div>
         <v-card>
           <v-card-title>Challenger</v-card-title>
           <v-card-text>
@@ -45,7 +55,7 @@ export default {
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
-      todaysWinner: null,
+      todaysWinner: {},
       allPlayersData: null,
       playerChampion: {},
       playerChallenger: {},
@@ -58,11 +68,11 @@ export default {
     try {
       this.allPlayersData = await getAllPlayers();
       nhlApi.getSchedule().then(response => {
-        console.log("🚀 ~ nhlApi.getSchedule ~ response:", response)
         const gameWeek = response.data.gameWeek;
         console.log("🚀 ~ nhlApi.getSchedule ~ gameWeek:", gameWeek)
         const todaysGames = gameWeek?.find(day => day.date === this.todaysDate);
         this.todaysGames = todaysGames ? todaysGames.games : [];
+        console.log("🚀 ~ nhlApi.getSchedule ~ this.todaysGames:", this.todaysGames)
       })
       .catch(error => {
         console.error('Error fetching schedule:', error);
@@ -70,7 +80,6 @@ export default {
       .finally(() => {
         this.getGameInfo();
       });
-
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
     }
@@ -90,8 +99,6 @@ export default {
     },
     getGameInfo() {
       this.todaysGames.forEach(game => {
-        console.log("🚀 ~ game:", game);
-
         const isChampionPlaying = game.homeTeam.abbrev === this.currentChampion || game.awayTeam.abbrev === this.currentChampion;
         if (isChampionPlaying) {
           this.isGameToday = true;
@@ -111,7 +118,21 @@ export default {
         if (this.isGameToday) {
           nhlApi.getResult(this.gameID).then(result => {
             this.todaysGame = result.data;
-            this.isGameOver = this.todaysGame.gameState === 'END';
+            this.isGameOver = result.data.gameState === 'OFF';
+            // find score and winner
+            if (this.isGameOver) {
+                const homeTeam = result.data.homeTeam;
+                const awayTeam = result.data.awayTeam;
+                if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
+                  this.playerChampion.team.score = homeTeam?.score;
+                  this.playerChallenger.team.score = awayTeam?.score;
+                  this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
+                } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
+                  this.playerChampion.team.score = awayTeam?.score;
+                  this.playerChallenger.team.score = homeTeam?.score;
+                  this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
+                }
+            }
           }).catch(error => {
             console.error('Error fetching game result:', error);
           });
