@@ -20,7 +20,6 @@
             <p>{{ playerChampion?.name }}</p>
             <p>{{ playerChampion?.team?.placeName.default }}</p>
             <img :src="playerChampion?.team?.logo" alt="Challenger Team Logo" />
-            <!-- <pre class="text-left">{{ playerChampion }}</pre> -->
           </v-card-text>
         </v-card>
         <div class="flex justify-center align-middle"><strong>VS</strong></div>
@@ -30,7 +29,6 @@
             <p>{{ playerChallenger?.name }}</p>
             <p>{{ playerChallenger?.team?.placeName.default }}</p>
             <img :src="playerChallenger?.team.logo" alt="Challenger Team Logo" />
-            <!-- <pre>{{ playerChallenger }}</pre> -->
           </v-card-text>
         </v-card>
       </div>
@@ -51,7 +49,7 @@ export default {
   name: 'HomePage',
   data() {
     return {
-      currentChampion: 'WPG', // Set the current champion team abbreviation
+      currentChampion: 'TOR', // Set the current champion team abbreviation
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
