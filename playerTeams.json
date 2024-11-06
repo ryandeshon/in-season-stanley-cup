@@ -19,16 +19,16 @@
     "id": 2,
     "name": "Terry",
     "teams": ["VAN", "COL", "DET", "NJD", "CHI", "MTL", "ANA", "CGY"],
-    "daysAsChampion": 2,
-    "titleDefenses": 1,
+    "daysAsChampion": 4,
+    "titleDefenses": 2,
     "championships": 0
   },
   {
     "id": 3,
     "name": "Boz",
     "teams": ["EDM", "VGK", "CAR", "TBL", "NYI", "LAK", "BUF", "CBJ"],
-    "daysAsChampion": 1,
-    "titleDefenses": 0,
+    "daysAsChampion": 20,
+    "titleDefenses": 9,
     "championships": 0
   }
 ]
