@@ -32,7 +32,7 @@ export default {
   getTeamId(teamName) {
     return apiClient.get(`/team/${teamName}`);
   },
-  getResult(gameId) {
+  getGameInfo(gameId) {
     return apiClient.get(`/gamecenter/${gameId}/boxscore`);
   },
 };
