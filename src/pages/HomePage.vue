@@ -22,7 +22,7 @@
             <img :src="playerChampion?.team?.logo" alt="Challenger Team Logo" />
           </v-card-text>
         </v-card>
-        <div class="flex justify-center align-middle"><strong>VS</strong></div>
+        <div class="flex justify-center items-center"><strong>VS</strong></div>
         <v-card>
           <v-card-title>Challenger</v-card-title>
           <v-card-text>
@@ -49,7 +49,7 @@ export default {
   name: 'HomePage',
   data() {
     return {
-      currentChampion: 'TOR', // Set the current champion team abbreviation
+      currentChampion: 'CAR', // Set the current champion team abbreviation
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
