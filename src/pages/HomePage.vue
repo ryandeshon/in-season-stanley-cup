@@ -2,7 +2,6 @@
   <v-container>
     <h1 class="text-4xl font-bold mb-4">Welcome to the In Season Stanley Cup</h1>
     <p>Track the champion and standings of the NHL teams as they compete for the cup.</p>
-
     <template v-if="isGameOver">
       <div class="flex flex-col justify-center align-center">
         <h2 class="text-2xl font-bold mb-4">Game Over</h2>
@@ -43,13 +42,14 @@
 <script>
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
+import { getCurrentChampion } from '../services/championServices';
 import { DateTime } from 'luxon';
 
 export default {
   name: 'HomePage',
   data() {
     return {
-      currentChampion: 'CAR', // Set the current champion team abbreviation
+      currentChampion: null, // Set the current champion team abbreviation
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGames: [],
       todaysGame: null,
@@ -64,7 +64,9 @@ export default {
   },
   async created() {
     try {
+      this.currentChampion = await getCurrentChampion();
       this.allPlayersData = await getAllPlayers();
+      
       nhlApi.getSchedule().then(response => {
         const gameWeek = response.data.gameWeek;
         console.log("🚀 ~ nhlApi.getSchedule ~ gameWeek:", gameWeek)
@@ -116,6 +118,7 @@ export default {
         if (this.isGameToday) {
           nhlApi.getResult(this.gameID).then(result => {
             this.todaysGame = result.data;
+            console.log("🚀 ~ nhlApi.getResult ~ this.todaysGame:", this.todaysGame)
             this.isGameOver = result.data.gameState === 'OFF';
             // find score and winner
             if (this.isGameOver) {
