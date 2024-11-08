@@ -4,13 +4,20 @@ import dynamodb from '../dynamodb-client';
 export const getPlayerData = async (playerName) => {
   const params = {
     TableName: 'Players',
-    Key: { name: playerName }
+    IndexName: 'NameIndex',
+    KeyConditionExpression: '#n = :name', // Use a placeholder for `name`
+    ExpressionAttributeNames: {
+      '#n': 'name',                       // Define `#n` as the placeholder for `name`
+    },
+    ExpressionAttributeValues: {
+      ':name': playerName,                // Bind the playerName parameter to `:name`
+    },
   };
 
   try {
-    const data = await dynamodb.get(params).promise();
-    console.log('Player data:', data.Item);
-    return data.Item;
+    const data = await dynamodb.query(params).promise();
+    console.log('Player data:', data.Items[0]); // Log and return the first matched item
+    return data.Items[0];                       // Assuming `name` is unique, return the first result
   } catch (error) {
     console.error('Error fetching player data:', error);
     throw error;

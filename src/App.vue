@@ -3,7 +3,7 @@
     <!-- App Bar / Navigation Bar -->
     <v-app-bar app color="primary" dark class="px-2">
       <v-toolbar-title>
-        <a href="/"><img :src="logo" alt="In Season Stanley Cup Logo" class="hover:cursor-pointer mr-2 h-10"></a>
+        <a href="/"><img :src="logo" alt="In Season Cup Logo" class="hover:cursor-pointer mr-2 h-10"></a>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <div class="flex gap-1">
@@ -19,7 +19,7 @@
 
     <!-- Footer (Optional) -->
     <v-footer app color="primary" dark>
-      <span class="mx-auto">© 2024 In Season Stanley Cup</span>
+      <span class="mx-auto">© {{ new Date().getFullYear() }} In Season Cup</span>
     </v-footer>
   </v-app>
 </template>

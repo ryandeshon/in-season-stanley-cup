@@ -1,8 +1,6 @@
 <template>
   <v-container>
-    <h1 class="text-4xl font-bold mb-4">Welcome to the In Season Stanley Cup</h1>
-    <p>Track the champion and standings of the NHL teams as they compete for the cup.</p>
-
+    <h1 class="text-4xl font-bold mb-4">In Season Cup</h1>
     <template v-if="loading">
       <div class="flex justify-center items-center mt-10">
         <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -17,7 +15,7 @@
           <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
           <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
           <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
-            <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
+            <router-link :to="`/player/${todaysWinner.name}`"><img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" /></router-link>
             <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
               <img :src="todaysWinner?.team?.logo" alt="Winner Team Logo" />
             </div>
@@ -31,7 +29,7 @@
           <v-card class="pb-3 md:min-w-52">
             <v-card-title>Champion</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
-              <h2>{{ playerChampion?.name }}</h2>
+              <router-link :to="`/player/${playerChampion.name}`"><h2 class="text-lg font-bold">{{ playerChampion?.name }}</h2></router-link>
               <p>{{ playerChampion?.team?.placeName.default }}</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
@@ -45,7 +43,7 @@
           <v-card class="pb-3 md:min-w-52">
             <v-card-title>Challenger</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
-              <h2>{{ playerChallenger?.name }}</h2>
+              <router-link :to="`/player/${playerChallenger.name}`"><h2 class="text-lg font-bold">{{ playerChallenger?.name }}</h2></router-link>
               <p>{{ playerChallenger?.team?.placeName.default }}</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
@@ -62,7 +60,7 @@
       <template v-else>
         <div class="flex flex-col justify-center align-center my-4">
           <v-card class="pb-3">
-            <v-card-title>Champion {{ playerChampion?.name }}</v-card-title>
+            <v-card-title><router-link :to="`/player/${playerChampion.name}`">Champion {{ playerChampion?.name }}</router-link></v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <p>is not Defending the Championship Today</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
