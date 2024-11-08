@@ -82,7 +82,9 @@ export default {
     this.isGameToday = this.gameID !== null;
     if (this.isGameToday) {
       this.getGameInfo();
-    }    
+    } else {
+      this.loading = false;
+    }  
   },
   methods: {
     findPlayerTeam(game, player) {
@@ -123,7 +125,6 @@ export default {
               this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
             }
         }
-
         this.loading = false;
       });
     }

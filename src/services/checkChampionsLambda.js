@@ -90,6 +90,8 @@ export const handler = async (event) => {
       await saveGameIDToDatabase(gameID);
       console.log(`Game ID ${gameID} saved for champion ${champion}`);
     } else {
+      // Set todays gameID to null
+      await saveGameIDToDatabase(null);
       console.log(`No game scheduled for champion ${champion} today`);
     }
 
