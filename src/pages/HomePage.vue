@@ -2,6 +2,14 @@
   <v-container>
     <h1 class="text-4xl font-bold mb-4">Welcome to the In Season Stanley Cup</h1>
     <p>Track the champion and standings of the NHL teams as they compete for the cup.</p>
+
+    <template v-if="loading">
+      <div class="flex justify-center items-center mt-10">
+        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+      </div>
+    </template>
+
+    <template v-else>
       <template v-if="isGameOver">
         <div class="flex flex-col justify-center align-center">
           <h2 class="text-2xl font-bold mb-4">Game Over</h2>
@@ -36,6 +44,7 @@
       <template v-else>
         <p>No games today.</p>
       </template>
+    </template>
   </v-container>
 </template>
 
@@ -49,6 +58,7 @@ export default {
   name: 'HomePage',
   data() {
     return {
+      loading: true,
       currentChampion: null, // Set the current champion team abbreviation
       todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGame: null,
@@ -114,6 +124,7 @@ export default {
         this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(this.todaysGame.homeTeam.abbrev) || player.teams.includes(this.todaysGame.awayTeam.abbrev)));
         this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
         this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
+        this.loading = false;
       });
     }
   },
