@@ -3,7 +3,7 @@
     <!-- App Bar / Navigation Bar -->
     <v-app-bar app color="primary" dark class="px-2">
       <v-toolbar-title>
-        <a href="/"><img :src="logo" alt="In Season Stanley Cup Logo" style="height: 40px; margin-right: 10px;"></a>
+        <a href="/" class="hover:cursor-pointer"><img :src="logo" alt="In Season Stanley Cup Logo" style="height: 40px; margin-right: 10px;"></a>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <div class="flex gap-1">
