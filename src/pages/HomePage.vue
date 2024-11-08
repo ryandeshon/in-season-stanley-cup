@@ -45,7 +45,8 @@
         <div class="flex flex-col justify-center align-center my-4">
           <v-card>
             <v-card-title>Champion <strong>{{ playerChampion?.name }}</strong></v-card-title>
-            <v-card-text>
+            <v-card-text class="flex flex-col justify-center align-center text-center">
+              <img :src="winnerImage" class="w-36 my-2" />
               is not Defending the Title Today
             </v-card-text>
           </v-card>
@@ -59,7 +60,7 @@
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
-import { DateTime } from 'luxon';
+import bozWinnerImage from '@/assets/boz-winner.png'; // Import the image
 
 export default {
   name: 'HomePage',
@@ -67,7 +68,6 @@ export default {
     return {
       loading: true,
       currentChampion: null, // Set the current champion team abbreviation
-      todaysDate: DateTime.now().toFormat('yyyy-MM-dd'),
       todaysGame: null,
       todaysWinner: {},
       allPlayersData: null,
@@ -76,6 +76,7 @@ export default {
       isGameToday: false,
       isGameOver: false,
       gameID: null,
+      bozWinnerImage,
     };
   },
   async created() {
@@ -94,6 +95,11 @@ export default {
       this.getChampionInfo();
       this.loading = false;
     }  
+  },
+  computed: {
+    winnerImage() {
+      return this.playerChampion?.name === 'Boz' ? this.bozWinnerImage : null;
+    },
   },
   methods: {
     findPlayerTeam(game, player) {
