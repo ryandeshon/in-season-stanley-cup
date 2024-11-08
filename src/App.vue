@@ -1,11 +1,12 @@
 <template>
   <v-app>
     <!-- App Bar / Navigation Bar -->
-    <v-app-bar app color="primary" dark>
-      <v-toolbar-title>In Season Stanley Cup</v-toolbar-title>
+    <v-app-bar app color="primary" dark class="px-2">
+      <v-toolbar-title>
+        <a href="/"><img :src="logo" alt="In Season Stanley Cup Logo" style="height: 40px; margin-right: 10px;"></a>
+      </v-toolbar-title>
       <v-spacer></v-spacer>
       <div class="flex gap-1">
-        <v-btn text to="/">Home</v-btn>
         <v-btn text to="/standings">Standings</v-btn>
         <v-btn text to="/about">About</v-btn>
       </div>
@@ -26,6 +27,11 @@
 <script>
 export default {
   name: 'App',
+  data() {
+    return {
+      logo: require('@/assets/in-season-logo.png')
+    };
+  }
 };
 </script>
 

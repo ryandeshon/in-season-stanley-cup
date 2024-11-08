@@ -25,7 +25,6 @@ export const getAllPlayers = async () => {
 
   try {
     const data = await dynamodb.scan(params).promise();
-    console.log('All players:', data.Items);
     return data.Items;
   } catch (error) {
     console.error('Error fetching all players:', error);

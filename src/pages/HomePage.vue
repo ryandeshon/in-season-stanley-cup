@@ -11,10 +11,10 @@
 
     <template v-else>
       <template v-if="isGameOver">
-        <div class="flex flex-col justify-center align-center">
+        <div class="flex flex-col justify-center align-center my-4">
           <h2 class="text-2xl font-bold mb-4">Game Over</h2>
           <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
-          <p>Winner: {{ todaysWinner.name }}</p>
+          <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
           <img :src="todaysWinner?.team?.logo" class="w-28 mt-4" alt="Winner Team Logo" />
         </div>
       </template>
@@ -99,14 +99,20 @@ export default {
     getGameInfo() {
       // If there is a game today, fetch the game result
       nhlApi.getGameInfo(this.gameID).then(result => {
-        console.log("🚀 ~ nhlApi.getGameInfo ~ result:", result)
         this.todaysGame = result.data;
-        console.log("🚀 ~ nhlApi.getGameInfo ~ this.todaysGame:", this.todaysGame)
-        this.isGameOver = result.data.gameState === 'OFF';
+        this.isGameOver = result.data.gameState === 'FINAL';
+      }).catch(error => {
+        console.error('Error fetching game result:', error);
+      }).finally(() => {
+        this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+        this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(this.todaysGame.homeTeam.abbrev) || player.teams.includes(this.todaysGame.awayTeam.abbrev)));
+        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
+        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
+
         // find score and winner
         if (this.isGameOver) {
-            const homeTeam = result.data.homeTeam;
-            const awayTeam = result.data.awayTeam;
+            const homeTeam = this.todaysGame.homeTeam;
+            const awayTeam = this.todaysGame.awayTeam;
             if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
               this.playerChampion.team.score = homeTeam?.score;
               this.playerChallenger.team.score = awayTeam?.score;
@@ -117,13 +123,7 @@ export default {
               this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
             }
         }
-      }).catch(error => {
-        console.error('Error fetching game result:', error);
-      }).finally(() => {
-        this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-        this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(this.todaysGame.homeTeam.abbrev) || player.teams.includes(this.todaysGame.awayTeam.abbrev)));
-        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
-        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
+
         this.loading = false;
       });
     }

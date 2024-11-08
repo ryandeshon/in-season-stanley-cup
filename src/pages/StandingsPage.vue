@@ -12,7 +12,6 @@
       </thead>
       <tbody>
       <tr v-for="standing in allPlayersData" :key="standing.name" class="py-2">
-        
         <td class="text-left font-bold">{{ standing.name }}</td>
         <th class="flex flex-wrap justify-center align-center">
           <div v-for="team in standing.teams" :key="team">
@@ -37,8 +36,13 @@ export default {
       allPlayersData: null,
     };
   },
-  async created() {
-    this.allPlayersData = await getAllPlayers();
+  async mounted() {
+    try {
+      const data = await getAllPlayers();
+      this.allPlayersData = data.sort((a, b) => b.titleDefenses - a.titleDefenses);
+    } catch (error) {
+      console.error('Error fetching player data:', error);
+    }
   },
 };
 </script>

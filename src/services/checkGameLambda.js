@@ -39,7 +39,7 @@ async function checkGameResult(gameID) {
         const awayTeam = gameData.awayTeam;
 
         // Check if the game is completed
-        if (gameData.gameState === "OFF") {
+        if (gameData.gameState === "FINAL") {
           // Determine the winner
           const winner = homeTeam.score > awayTeam.score ? homeTeam.abbrev : awayTeam.abbrev;
           resolve(winner);
