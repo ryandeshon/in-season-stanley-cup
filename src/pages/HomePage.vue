@@ -42,7 +42,14 @@
       </template>
 
       <template v-else>
-        <p>No games today.</p>
+        <div class="flex flex-col justify-center align-center my-4">
+          <v-card>
+            <v-card-title>Champion <strong>{{ playerChampion?.name }}</strong></v-card-title>
+            <v-card-text>
+              is not Defending the Title Today
+            </v-card-text>
+          </v-card>
+        </div>
       </template>
     </template>
   </v-container>
@@ -83,6 +90,8 @@ export default {
     if (this.isGameToday) {
       this.getGameInfo();
     } else {
+      // If there is no game today, fetch the current champion info
+      this.getChampionInfo();
       this.loading = false;
     }  
   },
@@ -106,9 +115,9 @@ export default {
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
-        this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-        this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(this.todaysGame.homeTeam.abbrev) || player.teams.includes(this.todaysGame.awayTeam.abbrev)));
+        this.getChampionInfo();
         this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
+        this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(this.todaysGame.homeTeam.abbrev) || player.teams.includes(this.todaysGame.awayTeam.abbrev)));
         this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
 
         // find score and winner
@@ -127,7 +136,10 @@ export default {
         }
         this.loading = false;
       });
-    }
+    },
+    getChampionInfo() {
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+    },
   },
 };
 </script>
