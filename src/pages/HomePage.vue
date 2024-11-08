@@ -10,24 +10,25 @@
     </template>
 
     <template v-else>
+      <!-- Winner for tonight -->
       <template v-if="isGameOver">
         <div class="flex flex-col justify-center align-center my-4">
           <h2 class="text-2xl font-bold mb-4">Game Over</h2>
           <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
           <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
-          <div class="relative">
-            <img :src="winnerImage" class="w-36 my-2" :alt="`${todaysWinner?.name} Avatar`" />
-            <div class="absolute bottom-0 left-0 w-16 bg-white rounded-full">
-              <img :src="todaysWinner?.team?.logo" alt="Champion Team Logo" />
+          <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
+            <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
+            <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
+              <img :src="todaysWinner?.team?.logo" alt="Winner Team Logo" />
             </div>
           </div>
-          <img :src="todaysWinner?.team?.logo" class="w-28 mt-4" alt="Winner Team Logo" />
         </div>
       </template>
 
+      <!-- Game day -->
       <template v-else-if="todaysGame">
         <div class="grid grid-cols-3 gap-4 w-full my-4">
-          <v-card>
+          <v-card class="pb-3">
             <v-card-title>Champion</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <h2>{{ playerChampion?.name }}</h2>
@@ -41,10 +42,10 @@
             </v-card-text>
           </v-card>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
-          <v-card>
+          <v-card class="pb-3">
             <v-card-title>Challenger</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
-              <p>{{ playerChallenger?.name }}</p>
+              <h2>{{ playerChallenger?.name }}</h2>
               <p>{{ playerChallenger?.team?.placeName.default }}</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
@@ -57,16 +58,19 @@
         </div>
       </template>
 
+      <!-- Champion is not defending -->
       <template v-else>
         <div class="flex flex-col justify-center align-center my-4">
-          <v-card>
-            <v-card-title>Champion <strong>{{ playerChampion?.name }}</strong></v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center text-center">
-              is not Defending the Championship Today
-              <img :src="championImage" class="w-36 my-2" :alt="`${playerChampion?.name} Avatar`" />
+          <v-card class="pb-3">
+            <v-card-title>Champion {{ playerChampion?.name }}</v-card-title>
+            <v-card-text class="flex flex-col justify-center align-center">
+              <p>is not Defending the Championship Today</p>
+              <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
+                <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                 <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
-                  <img :src="playerChampion?.team?.logo" alt="Challenger Team Logo" />
+                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" alt="Challenger Team Logo" />
                 </div>
+              </div>
             </v-card-text>
           </v-card>
         </div>
@@ -78,12 +82,12 @@
 <script>
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
-// import { getCurrentChampion } from '../services/championServices';
+import { getCurrentChampion, getGameId } from '../services/championServices';
 import bozWinnerImage from '@/assets/boz-winner.png';
 import terryWinnerImage from '@/assets/terry-winner.png';
 import cooperWinnerImage from '@/assets/cooper-winner.png';
 import ryanWinnerImage from '@/assets/ryan-winner.png';
-// import bozChallengerImage from '@/assets/boz-challenger.png';
+import bozChallengerImage from '@/assets/boz-challenger.png';
 import terryChallengerImage from '@/assets/terry-challenger.png';
 import cooperChallengerImage from '@/assets/cooper-challenger.png';
 import ryanChallengerImage from '@/assets/ryan-challenger.png';
@@ -106,7 +110,7 @@ export default {
       terryWinnerImage,
       cooperWinnerImage,
       ryanWinnerImage,
-      // bozChallengerImage,
+      bozChallengerImage,
       terryChallengerImage,
       cooperChallengerImage,
       ryanChallengerImage,
@@ -114,11 +118,11 @@ export default {
   },
   async created() {
     try {
-      // this.currentChampion = await getCurrentChampion();
-      this.currentChampion = "BOS";
+      this.currentChampion = await getCurrentChampion();
+      this.gameID = await getGameId();
+      // this.currentChampion = "BOS";
+      // this.gameID = '2024020208';
       this.allPlayersData = await getAllPlayers();
-      // this.gameID = await getGameId();
-      this.gameID = '2024020208';
     } catch (error) {
       console.error('Error fetching getSchedule:', error);
     }
@@ -143,7 +147,7 @@ export default {
     },
     challengerImage() {
       const challengerImages = {
-        // Boz: this.bozChallengerImage,
+        Boz: this.bozChallengerImage,
         Terry: this.terryChallengerImage,
         Cooper: this.cooperChallengerImage,
         Ryan: this.ryanChallengerImage,
