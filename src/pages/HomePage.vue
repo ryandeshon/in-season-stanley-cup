@@ -27,8 +27,8 @@
 
       <!-- Game day -->
       <template v-else-if="todaysGame">
-        <div class="grid grid-cols-3 gap-4 w-full my-4">
-          <v-card class="pb-3">
+        <div class="flex flex-col md:flex-row gap-4 justify-center align-center w-full my-4">
+          <v-card class="pb-3 md:min-w-52">
             <v-card-title>Champion</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <h2>{{ playerChampion?.name }}</h2>
@@ -42,7 +42,7 @@
             </v-card-text>
           </v-card>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
-          <v-card class="pb-3">
+          <v-card class="pb-3 md:min-w-52">
             <v-card-title>Challenger</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <h2>{{ playerChallenger?.name }}</h2>
