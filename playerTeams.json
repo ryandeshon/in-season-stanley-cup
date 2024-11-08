@@ -3,7 +3,6 @@
     "id": 0,
     "name": "Ryan",
     "teams": ["BOS", "NYR", "WIN", "NSH", "PHI", "PIT", "OTT", "SJS"],
-    "daysAsChampion": 6,
     "titleDefenses": 3,
     "championships": 0
   },
@@ -11,7 +10,6 @@
     "id": 1,
     "name": "Cooper",
     "teams": ["FLA", "TOR", "DAL", "MIN", "SEA", "UTA", "WSH", "STL"],
-    "daysAsChampion": 2,
     "titleDefenses": 1,
     "championships": 0
   },
@@ -27,7 +25,6 @@
     "id": 3,
     "name": "Boz",
     "teams": ["EDM", "VGK", "CAR", "TBL", "NYI", "LAK", "BUF", "CBJ"],
-    "daysAsChampion": 20,
     "titleDefenses": 9,
     "championships": 0
   }
