@@ -47,7 +47,7 @@
             <v-card-title>Champion <strong>{{ playerChampion?.name }}</strong></v-card-title>
             <v-card-text class="flex flex-col justify-center align-center text-center">
               <img :src="winnerImage" class="w-36 my-2" />
-              is not Defending the Title Today
+              is not Defending the Championship Today
             </v-card-text>
           </v-card>
         </div>
@@ -60,7 +60,10 @@
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
-import bozWinnerImage from '@/assets/boz-winner.png'; // Import the image
+import bozWinnerImage from '@/assets/boz-winner.png';
+import terryWinnerImage from '@/assets/terry-winner.png';
+import cooperWinnerImage from '@/assets/cooper-winner.png';
+import ryanWinnerImage from '@/assets/ryan-winner.png';
 
 export default {
   name: 'HomePage',
@@ -77,6 +80,9 @@ export default {
       isGameOver: false,
       gameID: null,
       bozWinnerImage,
+      terryWinnerImage,
+      cooperWinnerImage,
+      ryanWinnerImage,
     };
   },
   async created() {
@@ -98,8 +104,14 @@ export default {
   },
   computed: {
     winnerImage() {
-      return this.playerChampion?.name === 'Boz' ? this.bozWinnerImage : null;
-    },
+      const winnerImages = {
+        Boz: this.bozWinnerImage,
+        Terry: this.terryWinnerImage,
+        Cooper: this.cooperWinnerImage,
+        Ryan: this.ryanWinnerImage,
+      };
+      return winnerImages[this.playerChampion?.name] || null;
+    }
   },
   methods: {
     findPlayerTeam(game, player) {
