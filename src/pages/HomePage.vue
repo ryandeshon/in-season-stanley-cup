@@ -89,6 +89,10 @@ import bozChallengerImage from '@/assets/boz-challenger.png';
 import terryChallengerImage from '@/assets/terry-challenger.png';
 import cooperChallengerImage from '@/assets/cooper-challenger.png';
 import ryanChallengerImage from '@/assets/ryan-challenger.png';
+import bozSadImage from '@/assets/boz-sad.png';
+import terrySadImage from '@/assets/terry-sad.png';
+import cooperSadImage from '@/assets/cooper-sad.png';
+import ryanSadImage from '@/assets/ryan-sad.png';
 
 export default {
   name: 'HomePage',
@@ -112,6 +116,10 @@ export default {
       terryChallengerImage,
       cooperChallengerImage,
       ryanChallengerImage,
+      bozSadImage,
+      terrySadImage,
+      cooperSadImage,
+      ryanSadImage,
     };
   },
   async created() {
