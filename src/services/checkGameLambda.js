@@ -40,9 +40,12 @@ async function checkGameResult(gameID) {
 
         // Check if the game is completed
         if (gameData.gameState === "FINAL") {
-          // Determine the winner
-          const winner = homeTeam.score > awayTeam.score ? homeTeam.abbrev : awayTeam.abbrev;
-          resolve(winner);
+            // Determine the winner and loser
+            const winner = homeTeam.score > awayTeam.score ? homeTeam.abbrev : awayTeam.abbrev;
+            const loser = homeTeam.score > awayTeam.score ? awayTeam.abbrev : homeTeam.abbrev;
+            const winnerScore = homeTeam.score > awayTeam.score ? homeTeam.score : awayTeam.score;
+            const loserScore = homeTeam.score > awayTeam.score ? awayTeam.score : homeTeam.score;
+            resolve({ winner, winnerScore, loser, loserScore });
         } else {
           console.log(`Game ${gameID}: ${homeTeam.abbrev} vs. ${awayTeam.abbrev} has not finished yet. (Status: ${gameData.gameState})`);
           resolve(null); // Game hasn't finished
@@ -95,6 +98,22 @@ async function incrementTitleDefense(playerId) {
   await dynamoDB.update(params).promise();
 }
 
+// Function to save the game stats into GameRecords table
+async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
+  const params = {
+    TableName: 'GameRecords',
+    Item: {
+      id: gameID,
+      wTeam,
+      wScore,
+      lTeam,
+      lScore
+    },
+  };
+
+  await dynamoDB.put(params).promise();
+}
+
 // Main handler
 export const handler = async (event) => {
   try {
@@ -103,20 +122,23 @@ export const handler = async (event) => {
     if (!gameID) return;
 
     // Check the game result
-    const winner = await checkGameResult(gameID);
+    const result = await checkGameResult(gameID);
 
-    if (winner) {
+    if (result) {
       // Save the winner to DynamoDB
-      await saveWinnerToDatabase(winner);
-      console.log(`Winner ${winner} saved to the database`);
+      const { wTeam, wScore, lTeam, lScore } = result;
+      await saveWinnerToDatabase(wTeam);
+      console.log(`Winner ${wTeam} saved to the database`);
+      // Save the game stats
+      await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
       // Find the player who has the winning team
-      const playerId = await findPlayerWithTeam(winner);
+      const playerId = await findPlayerWithTeam(wTeam);
       if (playerId) {
         // Increment the titleDefenses for the player
         await incrementTitleDefense(playerId);
-        console.log(`Incremented titleDefenses for player ${playerId} with team ${winner}`);
+        console.log(`Incremented titleDefenses for player ${playerId} with team ${wTeam}`);
       } else {
-        console.log(`No player found with the team ${winner}`);
+        console.log(`No player found with the team ${wTeam}`);
       }
     } else {
       console.log(`Game ${gameID} has not finished yet, no winner saved`);
@@ -125,7 +147,7 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: winner ? `Winner ${winner} saved` : `Game ${gameID} saved` }),
+      body: JSON.stringify({ message: result.wTeam ? `Winner ${result.wTeam} saved` : `Game ${gameID} saved` }),
     };
   } catch (error) {
     console.error('Error:', error);
