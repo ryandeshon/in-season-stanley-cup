@@ -99,9 +99,8 @@ async function incrementTitleDefense(playerId) {
 export const handler = async (event) => {
   try {
     const gameID = await getGameID();
-    if (!gameID) {
-      throw new Error("No game ID found in the database");
-    }
+    // If there is no game stop checking
+    if (!gameID) return;
 
     // Check the game result
     const winner = await checkGameResult(gameID);
@@ -121,11 +120,12 @@ export const handler = async (event) => {
       }
     } else {
       console.log(`Game ${gameID} has not finished yet, no winner saved`);
+      return;
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: winner ? `Winner ${winner} saved` : `Game ${gameID} not finished yet` }),
+      body: JSON.stringify({ message: winner ? `Winner ${winner} saved` : `Game ${gameID} saved` }),
     };
   } catch (error) {
     console.error('Error:', error);
