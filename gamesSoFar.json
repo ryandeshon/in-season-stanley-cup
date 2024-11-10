@@ -1,0 +1,113 @@
+{
+  "id": 2024020004,
+  "wTeam": "FLA",
+  "wScore": 6,
+  "lTeam": "BOS",
+  "lScore": 4
+},
+{
+  "id": 2024020013,
+  "wTeam": "OTT",
+  "wScore": 3,
+  "lTeam": "FLA",
+  "lScore": 1
+},
+{
+  "id": 2024020027,
+  "wTeam": "MTL",
+  "wScore": 4,
+  "lTeam": "OTT",
+  "lScore": 1
+},
+{
+  "id": 2024020046,
+  "wTeam": "PIT",
+  "wScore": 6,
+  "lTeam": "MTL",
+  "lScore": 3
+},
+{
+  "id": 2024020057,
+  "wTeam": "PIT",
+  "wScore": 6,
+  "lTeam": "BUF",
+  "lScore": 5
+},
+{
+  "id": 2024020072,
+  "wTeam": "CAR",
+  "wScore": 4,
+  "lTeam": "PIT",
+  "lScore": 1
+},
+{
+  "id": 2024020084,
+  "wTeam": "STL",
+  "wScore": 4,
+  "lTeam": "CAR",
+  "lScore": 3
+},
+{
+  "id": 2024020099,
+  "wTeam": "WPG",
+  "wScore": 3,
+  "lTeam": "STL",
+  "lScore": 2
+},
+{
+  "id": 2024020116,
+  "wTeam": "WPG",
+  "wScore": 4,
+  "lTeam": "SEA",
+  "lScore": 3
+},
+{
+  "id": 2024020129,
+  "wTeam": "WPG",
+  "wScore": 5,
+  "lTeam": "CGY",
+  "lScore": 3
+},
+{
+  "id": 2024020143,
+  "wTeam": "TOR",
+  "wScore": 6,
+  "lTeam": "WPG",
+  "lScore": 4
+},
+{
+  "id": 2024020161,
+  "wTeam": "TOR",
+  "wScore": 4,
+  "lTeam": "SEA",
+  "lScore": 1
+},
+{
+  "id": 2024020181,
+  "wTeam": "STL",
+  "wScore": 4,
+  "lTeam": "TOR",
+  "lScore": 2
+},
+{
+  "id": 2024020199,
+  "wTeam": "STL",
+  "wScore": 3,
+  "lTeam": "TBL",
+  "lScore": 2
+},
+{
+  "id": 2024020215,
+  "wTeam": "UTA",
+  "wScore": 4,
+  "lTeam": "STL",
+  "lScore": 2
+},
+{
+  "id": 2024020232,
+  "wTeam": "NSH",
+  "wScore": 4,
+  "lTeam": "UTA",
+  "lScore": 0
+},
+  
