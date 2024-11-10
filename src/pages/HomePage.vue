@@ -14,19 +14,41 @@
           <h2 class="text-2xl font-bold mb-4">Game Over</h2>
           <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
           <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
-          <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
-            <router-link :to="`/player/${todaysWinner.name}`"><img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" /></router-link>
-            <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
-              <img :src="todaysWinner?.team?.logo" alt="Winner Team Logo" />
-            </div>
-          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center align-center w-full my-4">
+          <v-card class="pb-3 sm:min-w-52">
+            <v-card-title>Champion</v-card-title>
+            <v-card-text class="flex flex-col justify-center align-center">
+              <router-link :to="`/player/${playerChampion.name}`"><h2 class="text-lg font-bold">{{ todaysWinner?.name }}</h2></router-link>
+              <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
+                <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
+                <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
+                  <img :src="todaysWinner?.team?.logo" alt="Champion Team Logo" />
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+          <div class="flex justify-center items-center"><strong>VS</strong></div>
+          <v-card class="pb-3 sm:min-w-52">
+            <v-card-title>Loser</v-card-title>
+            <v-card-text class="flex flex-col justify-center align-center">
+              <router-link :to="`/player/${todaysLoser.name}`"><h2 class="text-lg font-bold">{{ todaysLoser?.name }}</h2></router-link>
+              <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
+                <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
+                <div class="absolute flex align-middle justify-center -bottom-3 -left-4 w-16 h-16 bg-white rounded-full border-2">
+                  <img :src="todaysLoser?.team?.logo" alt="Losing Team Logo" />
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
         </div>
       </template>
 
       <!-- Game day -->
       <template v-else-if="todaysGame">
-        <div class="flex flex-col md:flex-row gap-4 justify-center align-center w-full my-4">
-          <v-card class="pb-3 md:min-w-52">
+        <div class="flex flex-col sm:flex-row gap-4 justify-center align-center w-full my-4">
+          <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Champion</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <router-link :to="`/player/${playerChampion.name}`"><h2 class="text-lg font-bold">{{ playerChampion?.name }}</h2></router-link>
@@ -40,7 +62,7 @@
             </v-card-text>
           </v-card>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
-          <v-card class="pb-3 md:min-w-52">
+          <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Challenger</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <router-link :to="`/player/${playerChallenger.name}`"><h2 class="text-lg font-bold">{{ playerChallenger?.name }}</h2></router-link>
@@ -99,10 +121,11 @@ export default {
   data() {
     return {
       loading: true,
-      currentChampion: null, // Set the current champion team abbreviation
-      todaysGame: null,
+      currentChampion: null,
+      todaysGame: {},
       todaysWinner: {},
-      allPlayersData: null,
+      todaysLoser: {},
+      allPlayersData: {},
       playerChampion: {},
       playerChallenger: {},
       isGameToday: false,
@@ -159,7 +182,16 @@ export default {
         Ryan: this.ryanChallengerImage,
       };
       return challengerImages[this.playerChallenger?.name] || null;
-    }
+    },
+    sadImage() {
+      const sadImages = {
+        Boz: this.bozSadImage,
+        Terry: this.terrySadImage,
+        Cooper: this.cooperSadImage,
+        Ryan: this.ryanSadImage,
+      };
+      return sadImages[this.todaysLoser?.name] || null;
+    },
   },
   methods: {
     findPlayerTeam(game, player) {
@@ -195,10 +227,12 @@ export default {
               this.playerChampion.team.score = homeTeam?.score;
               this.playerChallenger.team.score = awayTeam?.score;
               this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
+              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
             } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
               this.playerChampion.team.score = awayTeam?.score;
               this.playerChallenger.team.score = homeTeam?.score;
               this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
+              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
             }
         }
         this.loading = false;
