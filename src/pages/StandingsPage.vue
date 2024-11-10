@@ -11,7 +11,7 @@
       </tr>
       </thead>
       <tbody>
-      <tr v-for="standing in allPlayersData" :key="standing.name" class="py-2">
+      <tr v-for="(standing, index) in allPlayersData" :key="standing.name" :class="{'bg-amber-200': index === 0}" class="py-2">
         <td class="text-left font-bold">
           <router-link :to="`/player/${standing.name}`">{{ standing.name }}</router-link>
         </td>
