@@ -46,7 +46,7 @@
       </template>
 
       <!-- Game day -->
-      <template v-else-if="todaysGame">
+      <template v-else-if="isGameToday">
         <div class="flex flex-col sm:flex-row gap-4 justify-center align-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Champion</v-card-title>
