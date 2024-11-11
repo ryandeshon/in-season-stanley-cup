@@ -2,7 +2,12 @@
   <v-container>
     <h1 class="text-4xl font-bold mb-4">Standings</h1>
     <p>View the standings of the players based on their teams' cup reigns.</p>
-    <v-table v-if="allPlayersData">
+    <template v-if="loading">
+      <div class="flex justify-center items-center mt-10">
+        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+      </div>
+    </template>
+    <v-table v-else>
       <thead>
       <tr>
         <th class="text-left">Player</th>
@@ -35,6 +40,7 @@ export default {
   name: 'StandingsPage',
   data() {
     return {
+      loading: true,
       allPlayersData: null,
     };
   },
@@ -42,6 +48,7 @@ export default {
     try {
       const data = await getAllPlayers();
       this.allPlayersData = data.sort((a, b) => b.titleDefenses - a.titleDefenses);
+      this.loading = false;
     } catch (error) {
       console.error('Error fetching player data:', error);
     }
