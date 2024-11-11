@@ -39,6 +39,20 @@ export const getAllPlayers = async () => {
   }
 };
 
+export const getGameRecords = async () => {
+  const params = {
+    TableName: 'GameRecords'
+  };
+
+  try {
+    const data = await dynamodb.scan(params).promise();
+    return data.Items;
+  } catch (error) {
+    console.error('Error fetching game records:', error);
+    throw error;
+  }
+};
+
 // Function to update a player's attributes dynamically
 export const updatePlayerAttributes = async (playerName, updatedAttributes) => {
   // Construct the UpdateExpression and ExpressionAttributeValues dynamically
