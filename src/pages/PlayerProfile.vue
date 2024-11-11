@@ -63,10 +63,10 @@
 <script>
 import { getPlayerData, getGameRecords } from '../services/dynamodbService';
 
-import bozWinnerImage from '@/assets/boz-winner.png';
-import terryWinnerImage from '@/assets/terry-winner.png';
-import cooperWinnerImage from '@/assets/cooper-winner.png';
-import ryanWinnerImage from '@/assets/ryan-winner.png';
+import bozWinnerImage from '@/assets/players/boz-winner.png';
+import terryWinnerImage from '@/assets/players/terry-winner.png';
+import cooperWinnerImage from '@/assets/players/cooper-winner.png';
+import ryanWinnerImage from '@/assets/players/ryan-winner.png';
 
 export default {
   name: 'PlayerProfile',

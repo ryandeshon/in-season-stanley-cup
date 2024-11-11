@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container class="max-w-screen-md min-h-32">
     <h1 class="text-4xl font-bold mb-4">In Season Cup</h1>
     <template v-if="loading">
       <div class="flex justify-center items-center mt-10">
@@ -103,18 +103,18 @@
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
-import bozWinnerImage from '@/assets/boz-winner.png';
-import terryWinnerImage from '@/assets/terry-winner.png';
-import cooperWinnerImage from '@/assets/cooper-winner.png';
-import ryanWinnerImage from '@/assets/ryan-winner.png';
-import bozChallengerImage from '@/assets/boz-challenger.png';
-import terryChallengerImage from '@/assets/terry-challenger.png';
-import cooperChallengerImage from '@/assets/cooper-challenger.png';
-import ryanChallengerImage from '@/assets/ryan-challenger.png';
-import bozSadImage from '@/assets/boz-sad.png';
-import terrySadImage from '@/assets/terry-sad.png';
-import cooperSadImage from '@/assets/cooper-sad.png';
-import ryanSadImage from '@/assets/ryan-sad.png';
+import bozWinnerImage from '@/assets/players/boz-winner.png';
+import terryWinnerImage from '@/assets/players/terry-winner.png';
+import cooperWinnerImage from '@/assets/players/cooper-winner.png';
+import ryanWinnerImage from '@/assets/players/ryan-winner.png';
+import bozChallengerImage from '@/assets/players/boz-challenger.png';
+import terryChallengerImage from '@/assets/players/terry-challenger.png';
+import cooperChallengerImage from '@/assets/players/cooper-challenger.png';
+import ryanChallengerImage from '@/assets/players/ryan-challenger.png';
+import bozSadImage from '@/assets/players/boz-sad.png';
+import terrySadImage from '@/assets/players/terry-sad.png';
+import cooperSadImage from '@/assets/players/cooper-sad.png';
+import ryanSadImage from '@/assets/players/ryan-sad.png';
 
 export default {
   name: 'HomePage',
