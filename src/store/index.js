@@ -25,8 +25,21 @@ export const useCupStore = defineStore('cup', {
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
+import { createGtag } from 'vue-gtag-next';
+
 
 const app = createApp(App);
+
+// Set up Google Analytics with vue-gtag
+app.use(
+  createGtag, {
+    property: {
+      id: 'G-KPL5ZVDJC7'  // Replace with your actual Measurement ID
+    }
+  },
+  router // Optional: pass router to track page views automatically
+);
+
 app.use(createPinia());
 app.use(router);
 app.mount('#app');
