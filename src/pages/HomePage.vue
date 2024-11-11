@@ -28,7 +28,7 @@
               <div class="avatar">
                 <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
                 <div class="team-logo">
-                  <img :src="todaysWinner?.team?.logo" alt="Champion Team Logo" />
+                  <img :src="todaysWinner?.team?.logo" :alt="`${todaysWinner?.team?.placeName.default} Team Logo`" />
                 </div>
               </div>
             </v-card-text>
@@ -40,7 +40,7 @@
               <div class="avatar">
                 <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
                 <div class="team-logo">
-                  <img :src="todaysLoser?.team?.logo" alt="Losing Team Logo" />
+                  <img :src="todaysLoser?.team?.logo" :alt="`${todaysLoser?.team?.placeName.default} Team Logo`" />
                 </div>
               </div>
             </v-card-text>
@@ -50,7 +50,7 @@
 
       <!-- Game day -->
       <template v-else-if="isGameToday">
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full my-4">
+        <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Champion</v-card-title>
             <v-card-text class="flex flex-col justify-center items-center">
@@ -59,7 +59,7 @@
               <div class="avatar">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                 <div class="team-logo">
-                  <img :src="playerChampion?.team?.logo" alt="Champion Team Logo" />
+                  <img :src="playerChampion?.team?.logo" :alt="`${playerChampion?.team?.placeName.default} Team Logo`" />
                 </div>
               </div>
             </v-card-text>
@@ -73,7 +73,7 @@
               <div class="avatar">
                 <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
                 <div class="team-logo">
-                  <img :src="playerChallenger?.team?.logo" alt="Challenger Team Logo" />
+                  <img :src="playerChallenger?.team?.logo" :alt="`${playerChallenger?.team?.placeName.default} Team Logo`" />
                 </div>
               </div>
             </v-card-text>
@@ -91,7 +91,7 @@
               <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                 <div class="team-logo">
-                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" alt="Challenger Team Logo" />
+                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${playerChampion?.team?.placeName.default} Logo`" />
                 </div>
               </div>
             </v-card-text>
