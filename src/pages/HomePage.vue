@@ -166,34 +166,41 @@ export default {
   },
   computed: {
     championImage() {
-      const winnerImages = {
-        Boz: this.bozWinnerImage,
-        Terry: this.terryWinnerImage,
-        Cooper: this.cooperWinnerImage,
-        Ryan: this.ryanWinnerImage,
-      };
-      return winnerImages[this.playerChampion?.name] || null;
+      return this.getImage(this.playerChampion?.name, 'Winner');
     },
     challengerImage() {
-      const challengerImages = {
-        Boz: this.bozChallengerImage,
-        Terry: this.terryChallengerImage,
-        Cooper: this.cooperChallengerImage,
-        Ryan: this.ryanChallengerImage,
-      };
-      return challengerImages[this.playerChallenger?.name] || null;
+      return this.getImage(this.playerChallenger?.name, 'Challenger');
     },
     sadImage() {
-      const sadImages = {
-        Boz: this.bozSadImage,
-        Terry: this.terrySadImage,
-        Cooper: this.cooperSadImage,
-        Ryan: this.ryanSadImage,
-      };
-      return sadImages[this.todaysLoser?.name] || null;
+      return this.getImage(this.todaysLoser?.name, 'Sad');
     },
   },
   methods: {
+    getImage(playerName, type) {
+      const images = {
+        Boz: {
+          Winner: this.bozWinnerImage,
+          Challenger: this.bozChallengerImage,
+          Sad: this.bozSadImage,
+        },
+        Terry: {
+          Winner: this.terryWinnerImage,
+          Challenger: this.terryChallengerImage,
+          Sad: this.terrySadImage,
+        },
+        Cooper: {
+          Winner: this.cooperWinnerImage,
+          Challenger: this.cooperChallengerImage,
+          Sad: this.cooperSadImage,
+        },
+        Ryan: {
+          Winner: this.ryanWinnerImage,
+          Challenger: this.ryanChallengerImage,
+          Sad: this.ryanSadImage,
+        },
+      };
+      return images[playerName]?.[type] || null;
+    },
     findPlayerTeam(game, player) {
       const homeTeamAbbrev = game.homeTeam.abbrev;
       const awayTeamAbbrev = game.awayTeam.abbrev;
