@@ -1,8 +1,7 @@
 <template>
   <v-container class="max-w-screen-md min-h-32">
-    <h1 class="text-4xl font-bold mb-4">In Season Cup</h1>
     <template v-if="loading">
-      <div class="flex justify-center items-center mt-10">
+      <div class="flex justify-center items-center mt-10 h-40">
         <v-progress-circular indeterminate color="primary"></v-progress-circular>
       </div>
     </template>
@@ -10,20 +9,25 @@
     <template v-else>
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
-        <div class="flex flex-col justify-center align-center my-4">
-          <h2 class="text-2xl font-bold mb-4">Game Over</h2>
-          <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
-          <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
+        <div class="grid gap-4 grid-cols-2 justify-center align-center my-4">
+          <div>
+            <p class="text-right self-start my-5"><em>"{{ getQuote() }}"</em></p>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold mb-4">Game Over</h2>
+            <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
+            <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
+          </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center align-center w-full my-4">
+        <div class="flex flex-row gap-4 justify-center align-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Champion</v-card-title>
             <v-card-text class="flex flex-col justify-center align-center">
               <router-link :to="`/player/${playerChampion.name}`"><h2 class="text-lg font-bold">{{ todaysWinner?.name }}</h2></router-link>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
-                <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
+                <div class="team-logo sm:-right-4">
                   <img :src="todaysWinner?.team?.logo" alt="Champion Team Logo" />
                 </div>
               </div>
@@ -36,7 +40,7 @@
               <router-link :to="`/player/${todaysLoser.name}`"><h2 class="text-lg font-bold">{{ todaysLoser?.name }}</h2></router-link>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
-                <div class="absolute flex align-middle justify-center -bottom-3 -left-4 w-16 h-16 bg-white rounded-full border-2">
+                <div class="team-logo sm:-left-4">
                   <img :src="todaysLoser?.team?.logo" alt="Losing Team Logo" />
                 </div>
               </div>
@@ -55,7 +59,7 @@
               <p>{{ playerChampion?.team?.placeName.default }}</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
+                <div class="team-logo sm:-right-4">
                   <img :src="playerChampion?.team?.logo" alt="Champion Team Logo" />
                 </div>
               </div>
@@ -69,7 +73,7 @@
               <p>{{ playerChallenger?.team?.placeName.default }}</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
                 <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
-                <div class="absolute flex align-middle justify-center -bottom-3 -left-4 w-16 h-16 bg-white rounded-full border-2">
+                <div class="team-logo sm:-left-4">
                   <img :src="playerChallenger?.team?.logo" alt="Challenger Team Logo" />
                 </div>
               </div>
@@ -87,7 +91,7 @@
               <p>is not Defending the Championship Today</p>
               <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                <div class="absolute flex align-middle justify-center -bottom-3 -right-4 w-16 h-16 bg-white rounded-full border-2">
+                <div class="team-logo -right-4">
                   <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" alt="Challenger Team Logo" />
                 </div>
               </div>
@@ -103,6 +107,8 @@
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
+
+import quotes from '@/utilities/quotes.json';
 import bozWinnerImage from '@/assets/players/boz-winner.png';
 import terryWinnerImage from '@/assets/players/terry-winner.png';
 import cooperWinnerImage from '@/assets/players/cooper-winner.png';
@@ -248,6 +254,16 @@ export default {
     getChampionInfo() {
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
     },
+    getQuote() {
+      const randomIndex = Math.floor(Math.random() * quotes.length);
+      return quotes[randomIndex];
+    },
   },
 };
 </script>
+
+<style>
+.team-logo {
+  @apply absolute flex align-middle justify-center -bottom-3 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
+}
+</style>
