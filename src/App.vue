@@ -17,7 +17,7 @@
       <router-view></router-view>
     </v-main>
 
-    <!-- Footer (Optional) -->
+    <!-- Footer -->
     <v-footer app color="primary" dark>
       <span class="mx-auto">© {{ new Date().getFullYear() }} In Season Cup</span>
     </v-footer>
