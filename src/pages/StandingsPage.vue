@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container class="max-w-screen-md">
     <h1 class="text-4xl font-bold mb-4">Standings</h1>
     <p>View the standings of the players based on their teams' cup reigns.</p>
     <template v-if="loading">

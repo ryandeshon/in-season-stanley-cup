@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container class="max-w-screen-md">
     <h1 class="text-4xl font-bold mb-4">About</h1>
     <div class="text-left">
       <p>Welcome to "In Season Cup", a game where NHL teams battle for daily glory and you compete to become the ultimate season champion! Here’s how it works:</p>
