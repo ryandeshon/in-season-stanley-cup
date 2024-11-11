@@ -1,12 +1,12 @@
 <template>
   <v-container class="max-w-screen-md min-h-32">
     <div v-if="player">
-      <div class="flex flex-col justify-center align-center my-4">
+      <div class="flex flex-col justify-center items-center my-4">
         <div v-if="player">
           <v-card class="pb-3">
             <v-card-title><h2 class="text-lg font-bold">{{ player.name }}</h2></v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center">
-              <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
+            <v-card-text class="flex flex-col justify-center items-center">
+              <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
                 <img :src="avatarImage" class="my-2" :alt="`${player?.name} Avatar`" />
               </div>
               <p>Title Defenses: {{ player.titleDefenses }}</p>
@@ -23,11 +23,11 @@
               </thead>
               <tbody>
               <tr v-for="game in playersGamesPlayed" :key="game.id" class="py-2">
-                <td class="text-center flex gap-2 justify-center align-center">
+                <td class="text-center flex gap-2 justify-center items-center">
                   <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.wTeam}_light.svg`" :alt="game.wTeam" class="w-6 h-6" /> vs. <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.lTeam}_light.svg`" :alt="game.lTeam" class="w-6 h-6" /></td>
                 
                 <td class="text-center">
-                  <div class="text-center flex gap-2 justify-center align-center">
+                  <div class="text-center flex gap-2 justify-center items-center">
                     <img v-if="getResults(game).team" :src="`https://assets.nhle.com/logos/nhl/svg/${ getResults(game).team }_light.svg`" :alt="game.wTeam" class="w-6 h-6" /> {{ getResults(game).result }}
                   </div>
                 </td>
@@ -43,7 +43,7 @@
               </thead>
               <tbody>
               <tr v-for="team in player.teams" :key="team" class="py-2">
-                <td class="text-center flex gap-2 justify-center align-center">
+                <td class="text-center flex gap-2 justify-center items-center">
                   <img :src="`https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`" :alt="team" class="w-10 h-10" />
                 </td>
                 <td class="text-center">{{ getWins(team) }} - {{ getLosses(team) }}</td>

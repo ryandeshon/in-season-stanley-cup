@@ -20,7 +20,7 @@
         <td class="text-left font-bold">
           <router-link :to="`/player/${standing.name}`">{{ standing.name }}</router-link>
         </td>
-        <th class="flex flex-wrap justify-center align-center">
+        <th class="flex flex-wrap justify-center items-center">
           <div v-for="team in standing.teams" :key="team">
             <img :src="`https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`" :alt="team" class="w-6 h-6" />
           </div>

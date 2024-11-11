@@ -1,5 +1,5 @@
 <template>
-  <v-container class="max-w-screen-md min-h-32">
+  <v-container class="max-w-[570px] min-h-32">
     <template v-if="loading">
       <div class="flex justify-center items-center mt-10 h-40">
         <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -9,25 +9,25 @@
     <template v-else>
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
-        <div class="grid gap-4 grid-cols-2 justify-center align-center my-4">
+        <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
           <div>
-            <p class="text-right self-start my-5"><em>"{{ getQuote() }}"</em></p>
+            <h2 class="text-2xl font-bold mb-2">Champion</h2>
+            <p class="text-center text-sm self-start"><em>"{{ getQuote() }}"</em></p>
           </div>
           <div>
-            <h2 class="text-2xl font-bold mb-4">Game Over</h2>
+            <h2 class="text-2xl font-bold mb-2">Game Over</h2>
             <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
             <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
           </div>
         </div>
 
-        <div class="flex flex-row gap-4 justify-center align-center w-full my-4">
+        <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
-            <v-card-title>Champion</v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center">
+            <v-card-text class="flex flex-col justify-center items-center">
               <router-link :to="`/player/${playerChampion.name}`"><h2 class="text-lg font-bold">{{ todaysWinner?.name }}</h2></router-link>
-              <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
+              <div class="avatar">
                 <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
-                <div class="team-logo sm:-right-4">
+                <div class="team-logo">
                   <img :src="todaysWinner?.team?.logo" alt="Champion Team Logo" />
                 </div>
               </div>
@@ -35,12 +35,11 @@
           </v-card>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <v-card class="pb-3 sm:min-w-52">
-            <v-card-title>Loser</v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center">
+            <v-card-text class="flex flex-col justify-center items-center">
               <router-link :to="`/player/${todaysLoser.name}`"><h2 class="text-lg font-bold">{{ todaysLoser?.name }}</h2></router-link>
-              <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
+              <div class="avatar">
                 <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
-                <div class="team-logo sm:-left-4">
+                <div class="team-logo">
                   <img :src="todaysLoser?.team?.logo" alt="Losing Team Logo" />
                 </div>
               </div>
@@ -51,15 +50,15 @@
 
       <!-- Game day -->
       <template v-else-if="isGameToday">
-        <div class="flex flex-col sm:flex-row gap-4 justify-center align-center w-full my-4">
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Champion</v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center">
+            <v-card-text class="flex flex-col justify-center items-center">
               <router-link :to="`/player/${playerChampion.name}`"><h2 class="text-lg font-bold">{{ playerChampion?.name }}</h2></router-link>
               <p>{{ playerChampion?.team?.placeName.default }}</p>
-              <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
+              <div class="avatar">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                <div class="team-logo sm:-right-4">
+                <div class="team-logo">
                   <img :src="playerChampion?.team?.logo" alt="Champion Team Logo" />
                 </div>
               </div>
@@ -68,12 +67,12 @@
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <v-card class="pb-3 sm:min-w-52">
             <v-card-title>Challenger</v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center">
+            <v-card-text class="flex flex-col justify-center items-center">
               <router-link :to="`/player/${playerChallenger.name}`"><h2 class="text-lg font-bold">{{ playerChallenger?.name }}</h2></router-link>
               <p>{{ playerChallenger?.team?.placeName.default }}</p>
-              <div class="relative flex flex-col justify-center align-center text-center my-auto w-36">
+              <div class="avatar">
                 <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
-                <div class="team-logo sm:-left-4">
+                <div class="team-logo">
                   <img :src="playerChallenger?.team?.logo" alt="Challenger Team Logo" />
                 </div>
               </div>
@@ -84,14 +83,14 @@
 
       <!-- Champion is not defending -->
       <template v-else>
-        <div class="flex flex-col justify-center align-center my-4">
+        <div class="flex flex-col justify-center items-center my-4">
           <v-card class="pb-3">
             <v-card-title><router-link :to="`/player/${playerChampion.name}`">Champion {{ playerChampion?.name }}</router-link></v-card-title>
-            <v-card-text class="flex flex-col justify-center align-center">
+            <v-card-text class="flex flex-col justify-center items-center">
               <p>is not Defending the Championship Today</p>
-              <div class="relative flex flex-col justify-center align-center text-center my-auto w-52">
+              <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
                 <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                <div class="team-logo -right-4">
+                <div class="team-logo">
                   <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" alt="Challenger Team Logo" />
                 </div>
               </div>
@@ -263,7 +262,10 @@ export default {
 </script>
 
 <style>
+.avatar {
+  @apply relative flex flex-col justify-center items-center text-center my-auto w-28 sm:w-52;
+}
 .team-logo {
-  @apply absolute flex align-middle justify-center -bottom-3 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
+  @apply absolute flex align-middle justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
 }
 </style>
