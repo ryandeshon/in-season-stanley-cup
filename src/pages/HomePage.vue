@@ -148,6 +148,7 @@ export default {
       playerChampion: {},
       playerChallenger: {},
       boxScore: {},
+      secondsRemaining: null,
       isGameToday: false,
       isGameOver: false,
       isGameLive: false,
@@ -197,8 +198,15 @@ export default {
       return this.getImage(this.todaysLoser?.name, 'Sad');
     },
     getClockTime() {
-      return DateTime.fromSeconds(this.todaysGame.clock.secondsRemaining).toFormat('mm:ss');
+      return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
     },
+  },
+  watch: {
+    'todaysGame.clock.secondsRemaining': function(newVal) {
+      if (newVal !== undefined) {
+        this.secondsRemaining = newVal;
+      }
+    }
   },
   methods: {
     getImage(playerName, type) {
@@ -227,8 +235,6 @@ export default {
       return images[playerName]?.[type] || null;
     },
     findPlayerTeam(game, player) {
-      console.log("🚀 ~ findPlayerTeam ~ game:", game);
-      console.log("🚀 ~ findPlayerTeam ~ player:", player);
       const homeTeamAbbrev = game.homeTeam.abbrev;
       const awayTeamAbbrev = game.awayTeam.abbrev;
 
