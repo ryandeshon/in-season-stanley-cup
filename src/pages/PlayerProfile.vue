@@ -9,8 +9,8 @@
               <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
                 <img :src="avatarImage" class="my-2" :alt="`${player?.name} Avatar`" />
               </div>
-              <p>Title Defenses: {{ player.titleDefenses }}</p>
-              <p>Championships: {{ player.championships }}</p>
+              <span>Title Defenses: {{ player.titleDefenses }}</span>
+              <span>Championships: {{ player.championships }}</span>
             </v-card-text>
           </v-card>
           <div v-if="playersGamesPlayed" class="my-10">

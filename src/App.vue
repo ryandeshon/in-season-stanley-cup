@@ -36,12 +36,7 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
+/* Import CSS files from the assets folder */
+@import "@/assets/_variables.css";
+@import "@/assets/style.css";
 </style>
