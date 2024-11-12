@@ -57,13 +57,15 @@
         </div>
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
-            <div class="text-center font-bold font-xl mb-2">Champion</div>
+            <div class="text-center font-bold text-xl mb-2">Champion</div>
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChampion.name}`"><h3>{{ playerChampion?.name }}</h3></router-link>
                 <span>{{ playerChampion?.team?.placeName.default }}</span>
-                <span v-if="isGameLive">Score: {{ playerChampion?.team.score }}</span>
-                <span v-if="isGameLive">SOG: {{ playerChampion?.team.sog }}</span>
+                <div v-if="isGameLive" class="text-sm">
+                  <div>Score: {{ playerChampion?.team.score }}</div>
+                  <div>SOG: {{ playerChampion?.team.sog }}</div>
+                </div>
                 <div class="avatar">
                   <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                   <div class="team-logo">
@@ -75,13 +77,15 @@
           </div>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <div>
-            <div class="text-center font-bold font-xl mb-2">Challenger</div>
+            <div class="text-center font-bold text-xl mb-2">Challenger</div>
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ playerChallenger?.name }}</h3></router-link>
                 <span>{{ playerChallenger?.team?.placeName.default }}</span>
-                <span v-if="isGameLive">Score: {{ playerChallenger?.team.score }}</span>
-                <span v-if="isGameLive">SOG: {{ playerChallenger?.team.sog }}</span>
+                <div v-if="isGameLive" class="text-sm">
+                  <div>Score: {{ playerChallenger?.team.score }}</div>
+                  <div>SOG: {{ playerChallenger?.team.sog }}</div>
+                </div>
                 <div class="avatar">
                   <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
                   <div class="team-logo">
