@@ -11,21 +11,21 @@
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
         <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
-          <div>
-            <h2 class="text-xl font-bold mb-2 text-center">Champion</h2>
-            <p class="text-center text-sm self-start"><em>"{{ getQuote() }}"</em></p>
+          <div class="text-center">
+            <h2 class="text-xl font-bold mb-2">Champion</h2>
+            <p class="text-sm self-start"><em>"{{ getQuote() }}"</em></p>
           </div>
-          <div>
-            <h2 class="text-2xl font-bold mb-2">Game Over</h2>
-            <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
-            <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
+          <div class="text-center">
+            <h2 class="text-xl font-bold mb-2">Game Over</h2>
+            <div>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</div>
+            <div>Winner: <strong>{{ todaysWinner.name }}</strong></div>
           </div>
         </div>
 
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${playerChampion.name}`">{{ todaysWinner?.name }}</router-link>
+              <router-link :to="`/player/${playerChampion.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
               <div class="avatar">
                 <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
                 <div class="team-logo">
@@ -37,7 +37,7 @@
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <v-card class="pb-3 sm:min-w-52">
             <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${todaysLoser.name}`">{{ todaysLoser?.name }}</router-link>
+              <router-link :to="`/player/${todaysLoser.name}`"><h3>{{ todaysLoser?.name }}</h3></router-link>
               <div class="avatar">
                 <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
                 <div class="team-logo">
@@ -52,7 +52,7 @@
       <!-- Game day -->
       <template v-else-if="isGameToday">
         <div v-if="isGameLive" class="text-center">
-          <div>Period: {{ todaysGame.periodDescriptor.number }}</div>
+          <div>Period: {{ getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
         </div>
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
@@ -61,7 +61,7 @@
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChampion.name}`"><h3>{{ playerChampion?.name }}</h3></router-link>
-                <span>{{ playerChampion?.team?.placeName.default }}</span>
+                <span><strong>{{ playerChampion?.team?.placeName.default }}</strong></span>
                 <div v-if="isGameLive" class="text-sm">
                   <div>Score: {{ playerChampion?.team.score }}</div>
                   <div>SOG: {{ playerChampion?.team.sog }}</div>
@@ -81,7 +81,7 @@
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ playerChallenger?.name }}</h3></router-link>
-                <span>{{ playerChallenger?.team?.placeName.default }}</span>
+                <span><strong>{{ playerChallenger?.team?.placeName.default }}</strong></span>
                 <div v-if="isGameLive" class="text-sm">
                   <div>Score: {{ playerChallenger?.team.score }}</div>
                   <div>SOG: {{ playerChallenger?.team.sog }}</div>
@@ -207,6 +207,12 @@ export default {
     getClockTime() {
       return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
     },
+    getPeriod() {
+      if (this.todaysGame.periodDescriptor.periodType === 'OT') {
+        return 'OT';
+      }
+      return this.todaysGame.periodDescriptor.number;
+    },
   },
   watch: {
     'todaysGame.clock.secondsRemaining': function(newVal) {
@@ -322,6 +328,44 @@ export default {
       if (player?.teams.includes(awayTeamAbbrev)) {
         return game.awayTeam;
       }
+    },
+    getGameInfo() {
+      // If there is a game today, fetch the game result
+      nhlApi.getGameInfo(this.gameID).then(result => {
+        this.todaysGame = result.data;
+        console.log("🚀 ~ nhlApi.getGameInfo ~ this.todaysGame:", this.todaysGame)
+        this.isGameOver = result.data.gameState === 'FINAL';
+      }).catch(error => {
+        console.error('Error fetching game result:', error);
+      }).finally(() => {
+        this.getChampionInfo();
+        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
+
+        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
+
+        this.isGameLive = this.todaysGame.gameState === 'LIVE' || this.todaysGame.gameState === 'CRIT';
+        
+        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
+        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
+
+        // find score and winner
+        if (this.isGameOver) {
+            const homeTeam = this.todaysGame.homeTeam;
+            const awayTeam = this.todaysGame.awayTeam;
+            if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
+              this.playerChampion.team.score = homeTeam?.score;
+              this.playerChallenger.team.score = awayTeam?.score;
+              this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
+              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
+            } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
+              this.playerChampion.team.score = awayTeam?.score;
+              this.playerChallenger.team.score = homeTeam?.score;
+              this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
+              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
+            }
+        }
+        this.loading = false;
+      });
     },
     getChampionInfo() {
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
