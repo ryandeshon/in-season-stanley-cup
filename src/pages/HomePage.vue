@@ -52,7 +52,7 @@
       <!-- Game day -->
       <template v-else-if="isGameToday">
         <div v-if="isGameLive" class="text-center">
-          <div>Period: {{ todaysGame.periodDescriptor.number }}</div>
+          <div>Period: {{ getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
         </div>
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
@@ -204,6 +204,12 @@ export default {
     getClockTime() {
       return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
     },
+    getPeriod() {
+      if (this.todaysGame.periodDescriptor.periodType === 'OT') {
+        return 'OT';
+      }
+      return this.todaysGame.periodDescriptor.number;
+    },
   },
   watch: {
     'todaysGame.clock.secondsRemaining': function(newVal) {
@@ -263,7 +269,7 @@ export default {
 
         this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
 
-        this.isGameLive = this.todaysGame.gameState === 'LIVE';
+        this.isGameLive = this.todaysGame.gameState === 'LIVE' || this.todaysGame.gameState === 'CRIT';
         
         this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
         this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
