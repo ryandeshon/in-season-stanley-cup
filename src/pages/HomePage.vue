@@ -158,6 +158,8 @@ export default {
       isGameLive: false,
       isMirrorMatch: false,
       gameID: null,
+      socket: null, // To store the WebSocket connection
+      // Images
       bozWinnerImage,
       terryWinnerImage,
       cooperWinnerImage,
@@ -185,6 +187,7 @@ export default {
     this.isGameToday = this.gameID !== null;
     if (this.isGameToday) {
       this.getGameInfo();
+      this.initWebSocket();
     } else {
       // If there is no game today, fetch the current champion info
       this.getChampionInfo();
@@ -213,6 +216,77 @@ export default {
     }
   },
   methods: {
+    async getGameInfo() {
+      // Fetch initial game info
+      try {
+        const result = await nhlApi.getGameInfo(this.gameID);
+        this.todaysGame = result.data;
+
+        this.getChampionInfo();
+        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
+
+        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
+        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
+
+
+        this.isGameOver = result.data.gameState === 'FINAL';
+        this.isGameLive = result.data.gameState === 'LIVE';
+        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
+
+        // find score and winner
+        if (this.isGameOver) {
+            const homeTeam = this.todaysGame.homeTeam;
+            const awayTeam = this.todaysGame.awayTeam;
+            if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
+              this.playerChampion.team.score = homeTeam?.score;
+              this.playerChallenger.team.score = awayTeam?.score;
+              this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
+              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
+            } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
+              this.playerChampion.team.score = awayTeam?.score;
+              this.playerChallenger.team.score = homeTeam?.score;
+              this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
+              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
+            }
+        }
+
+        this.loading = false;
+      } catch (error) {
+        console.error('Error fetching game data:', error);
+      }
+    },
+
+    initWebSocket() {
+      // Replace with your WebSocket URL
+      this.socket = new WebSocket('wss://j9hl0m2br8.execute-api.us-east-1.amazonaws.com/production');
+
+      this.socket.onopen = () => {
+        console.log('WebSocket connection established');
+        this.socket.send(JSON.stringify({ type: 'subscribe', gameID: this.gameID })); // Subscribe to specific game
+      };
+
+      this.socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Received WebSocket update:', data);
+
+        // Update game state if new data is received
+        if (data.gameID === this.gameID) {
+          this.todaysGame = data;
+          this.isGameOver = data.gameState === 'FINAL';
+          this.isGameLive = data.gameState === 'LIVE';
+        }
+      };
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      this.socket.onclose = () => {
+        console.log('WebSocket connection closed');
+      };
+    },
+
+
     getImage(playerName, type) {
       const images = {
         Boz: {
@@ -249,44 +323,6 @@ export default {
         return game.awayTeam;
       }
     },
-    getGameInfo() {
-      // If there is a game today, fetch the game result
-      nhlApi.getGameInfo(this.gameID).then(result => {
-        this.todaysGame = result.data;
-        console.log("🚀 ~ nhlApi.getGameInfo ~ this.todaysGame:", this.todaysGame)
-        this.isGameOver = result.data.gameState === 'FINAL';
-      }).catch(error => {
-        console.error('Error fetching game result:', error);
-      }).finally(() => {
-        this.getChampionInfo();
-        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
-
-        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
-
-        this.isGameLive = this.todaysGame.gameState === 'LIVE';
-        
-        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
-        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
-
-        // find score and winner
-        if (this.isGameOver) {
-            const homeTeam = this.todaysGame.homeTeam;
-            const awayTeam = this.todaysGame.awayTeam;
-            if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
-              this.playerChampion.team.score = homeTeam?.score;
-              this.playerChallenger.team.score = awayTeam?.score;
-              this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
-            } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
-              this.playerChampion.team.score = awayTeam?.score;
-              this.playerChallenger.team.score = homeTeam?.score;
-              this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
-            }
-        }
-        this.loading = false;
-      });
-    },
     getChampionInfo() {
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
     },
@@ -297,6 +333,14 @@ export default {
       const randomIndex = Math.floor(Math.random() * quotes.length);
       return quotes[randomIndex];
     },
+    closeWebSocket() {
+      if (this.socket) {
+        this.socket.close();
+      }
+    },
+  },
+  beforeUnmount() {
+    this.closeWebSocket();
   },
 };
 </script>
