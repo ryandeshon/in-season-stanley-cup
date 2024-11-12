@@ -51,13 +51,19 @@
 
       <!-- Game day -->
       <template v-else-if="isGameToday">
+        <div v-if="isGameLive" class="text-center">
+          <div>Period: {{ todaysGame.periodDescriptor.number }}</div>
+          <div>Time Remaining: {{ getClockTime }}</div>
+        </div>
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
             <div class="text-center font-bold font-xl mb-2">Champion</div>
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChampion.name}`"><h3>{{ playerChampion?.name }}</h3></router-link>
-                <p>{{ playerChampion?.team?.placeName.default }}</p>
+                <span>{{ playerChampion?.team?.placeName.default }}</span>
+                <span v-if="isGameLive">Score: {{ playerChampion?.team.score }}</span>
+                <span v-if="isGameLive">SOG: {{ playerChampion?.team.sog }}</span>
                 <div class="avatar">
                   <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                   <div class="team-logo">
@@ -73,7 +79,9 @@
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ playerChallenger?.name }}</h3></router-link>
-                <p>{{ playerChallenger?.team?.placeName.default }}</p>
+                <span>{{ playerChallenger?.team?.placeName.default }}</span>
+                <span v-if="isGameLive">Score: {{ playerChallenger?.team.score }}</span>
+                <span v-if="isGameLive">SOG: {{ playerChallenger?.team.sog }}</span>
                 <div class="avatar">
                   <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
                   <div class="team-logo">
@@ -108,6 +116,7 @@
 </template>
 
 <script>
+import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
@@ -138,8 +147,11 @@ export default {
       allPlayersData: {},
       playerChampion: {},
       playerChallenger: {},
+      boxScore: {},
       isGameToday: false,
       isGameOver: false,
+      isGameLive: false,
+      isMirrorMatch: false,
       gameID: null,
       bozWinnerImage,
       terryWinnerImage,
@@ -159,11 +171,11 @@ export default {
     try {
       this.currentChampion = await getCurrentChampion();
       this.gameID = await getGameId();
-      // this.currentChampion = "BOS";
-      // this.gameID = '2024020208';
+      // this.currentChampion = "SJS";
+      // this.gameID = '2024020240';
       this.allPlayersData = await getAllPlayers();
     } catch (error) {
-      console.error('Error fetching getSchedule:', error);
+      console.error('Error fetching getCurrentChampion or getGameId:', error);
     }
     this.isGameToday = this.gameID !== null;
     if (this.isGameToday) {
@@ -183,6 +195,9 @@ export default {
     },
     sadImage() {
       return this.getImage(this.todaysLoser?.name, 'Sad');
+    },
+    getClockTime() {
+      return DateTime.fromSeconds(this.todaysGame.clock.secondsRemaining).toFormat('mm:ss');
     },
   },
   methods: {
@@ -212,13 +227,15 @@ export default {
       return images[playerName]?.[type] || null;
     },
     findPlayerTeam(game, player) {
+      console.log("🚀 ~ findPlayerTeam ~ game:", game);
+      console.log("🚀 ~ findPlayerTeam ~ player:", player);
       const homeTeamAbbrev = game.homeTeam.abbrev;
       const awayTeamAbbrev = game.awayTeam.abbrev;
 
-      if (player.teams.includes(homeTeamAbbrev)) {
+      if (player?.teams.includes(homeTeamAbbrev)) {
         return game.homeTeam;
       }
-      if (player.teams.includes(awayTeamAbbrev)) {
+      if (player?.teams.includes(awayTeamAbbrev)) {
         return game.awayTeam;
       }
     },
@@ -232,8 +249,13 @@ export default {
         console.error('Error fetching game result:', error);
       }).finally(() => {
         this.getChampionInfo();
+        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
+
+        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
+
+        this.isGameLive = this.todaysGame.gameState === 'LIVE';
+        
         this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
-        this.playerChallenger = this.allPlayersData.find(player => !player.teams.includes(this.currentChampion) && (player.teams.includes(this.todaysGame.homeTeam.abbrev) || player.teams.includes(this.todaysGame.awayTeam.abbrev)));
         this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
 
         // find score and winner
@@ -257,6 +279,9 @@ export default {
     },
     getChampionInfo() {
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+    },
+    getChallengerInfo(homeTeam, awayTeam) {
+      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(homeTeam) || player.teams.includes(awayTeam));
     },
     getQuote() {
       const randomIndex = Math.floor(Math.random() * quotes.length);
