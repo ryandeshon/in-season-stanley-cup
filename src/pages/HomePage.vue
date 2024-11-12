@@ -11,21 +11,21 @@
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
         <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
-          <div>
-            <h2 class="text-xl font-bold mb-2 text-center">Champion</h2>
-            <p class="text-center text-sm self-start"><em>"{{ getQuote() }}"</em></p>
+          <div class="text-center">
+            <h2 class="text-xl font-bold mb-2">Champion</h2>
+            <p class="text-sm self-start"><em>"{{ getQuote() }}"</em></p>
           </div>
-          <div>
-            <h2 class="text-2xl font-bold mb-2">Game Over</h2>
-            <p>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</p>
-            <p>Winner: <strong>{{ todaysWinner.name }}</strong></p>
+          <div class="text-center">
+            <h2 class="text-xl font-bold mb-2">Game Over</h2>
+            <div>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</div>
+            <div>Winner: <strong>{{ todaysWinner.name }}</strong></div>
           </div>
         </div>
 
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${playerChampion.name}`">{{ todaysWinner?.name }}</router-link>
+              <router-link :to="`/player/${playerChampion.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
               <div class="avatar">
                 <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
                 <div class="team-logo">
@@ -37,7 +37,7 @@
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <v-card class="pb-3 sm:min-w-52">
             <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${todaysLoser.name}`">{{ todaysLoser?.name }}</router-link>
+              <router-link :to="`/player/${todaysLoser.name}`"><h3>{{ todaysLoser?.name }}</h3></router-link>
               <div class="avatar">
                 <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
                 <div class="team-logo">
@@ -61,7 +61,7 @@
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChampion.name}`"><h3>{{ playerChampion?.name }}</h3></router-link>
-                <span>{{ playerChampion?.team?.placeName.default }}</span>
+                <span><strong>{{ playerChampion?.team?.placeName.default }}</strong></span>
                 <div v-if="isGameLive" class="text-sm">
                   <div>Score: {{ playerChampion?.team.score }}</div>
                   <div>SOG: {{ playerChampion?.team.sog }}</div>
@@ -81,7 +81,7 @@
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
                 <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ playerChallenger?.name }}</h3></router-link>
-                <span>{{ playerChallenger?.team?.placeName.default }}</span>
+                <span><strong>{{ playerChallenger?.team?.placeName.default }}</strong></span>
                 <div v-if="isGameLive" class="text-sm">
                   <div>Score: {{ playerChallenger?.team.score }}</div>
                   <div>SOG: {{ playerChallenger?.team.sog }}</div>
