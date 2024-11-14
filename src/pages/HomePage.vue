@@ -52,7 +52,7 @@
       <!-- Game day -->
       <template v-else-if="isGameToday">
         <div v-if="isGameLive" class="text-center">
-          <div>Period: {{ getPeriod }}</div>
+          <div>Period: {{ this.todaysGame.clock.inIntermission ? 'INT' : getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
         </div>
         <div v-if="isMirrorMatch" class="text-center">

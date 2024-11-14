@@ -4,6 +4,7 @@ import AWS from 'aws-sdk';
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const TABLE_NAME = 'GameOptions';
 const PLAYERS_TABLE = 'Players';
+const GAME_RECORDS = 'GameRecords';
 const PARTITION_KEY = 'currentChampion';
 const API_URL = process.env.API_URL; // Your API Gateway URL that proxies to the NHL API
 
@@ -39,7 +40,7 @@ async function checkGameResult(gameID) {
         const awayTeam = gameData.awayTeam;
 
         // Check if the game is completed
-        if (gameData.gameState === "FINAL") {
+        if (gameData.gameState === "OFF") {
             // Determine the winner and loser
             const winner = homeTeam.score > awayTeam.score ? homeTeam.abbrev : awayTeam.abbrev;
             const loser = homeTeam.score > awayTeam.score ? awayTeam.abbrev : homeTeam.abbrev;
@@ -101,7 +102,7 @@ async function incrementTitleDefense(playerId) {
 // Function to save the game stats into GameRecords table
 async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
   const params = {
-    TableName: 'GameRecords',
+    TableName: GAME_RECORDS,
     Item: {
       id: gameID,
       wTeam,
@@ -114,6 +115,22 @@ async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
   await dynamoDB.put(params).promise();
 }
 
+// function to check if game results are already in the database
+async function checkGameResults(gameID) {
+  const params = {
+    TableName: GAME_RECORDS,
+    Key: { id: gameID },
+  };
+
+  try {
+    const result = await dynamoDB.get(params).promise();
+    return result.Item;
+  } catch (error) {
+    console.error("Error retrieving game record:", error);
+    throw new Error("Failed to retrieve game record");
+  }
+}
+
 // Main handler
 export const handler = async (event) => {
   try {
@@ -123,14 +140,19 @@ export const handler = async (event) => {
 
     // Check the game result
     const result = await checkGameResult(gameID);
+    console.log("🚀 ~ handler ~ result:", result)
 
     if (result) {
       // Save the winner to DynamoDB
       const { wTeam, wScore, lTeam, lScore } = result;
+      // Save the game stats
+      const gameAlreadySaved = await checkGameResults(gameID);
+      console.log("Game is already saved");
+      if (gameAlreadySaved) return;
+      
+      await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
       await saveWinnerToDatabase(wTeam);
       console.log(`Winner ${wTeam} saved to the database`);
-      // Save the game stats
-      await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
       // Find the player who has the winning team
       const playerId = await findPlayerWithTeam(wTeam);
       if (playerId) {
