@@ -293,11 +293,13 @@ export default {
         this.loading = false;
       });
     },
+    getChampionInfo() {
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+    },
     getTeamsInfo(homeTeam, awayTeam) {
       const getHomeTeam = this.allPlayersData.find(player => player.teams.includes(homeTeam));
       const getAwayTeam = this.allPlayersData.find(player => player.teams.includes(awayTeam));
       this.playerChallenger = getHomeTeam?.name === this.currentChampion ? getHomeTeam : getAwayTeam;    
-      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
     getQuote() {
