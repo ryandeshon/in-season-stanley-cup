@@ -25,9 +25,9 @@
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <v-card class="pb-3 sm:min-w-52">
             <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${playerChampion.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
+              <router-link :to="`/player/${todaysWinner.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
               <div class="avatar">
-                <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
+                <img :src="championImage(todaysWinner?.name)" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
                 <div class="team-logo">
                   <img :src="todaysWinner?.team?.logo" :alt="`${todaysWinner?.team?.placeName.default} Team Logo`" />
                 </div>
@@ -55,6 +55,9 @@
           <div>Period: {{ getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
         </div>
+        <div v-if="isMirrorMatch" class="text-center">
+          <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
+        </div>
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
             <div class="text-center font-bold text-xl mb-2">Champion</div>
@@ -67,7 +70,7 @@
                   <div>SOG: {{ playerChampion?.team.sog }}</div>
                 </div>
                 <div class="avatar">
-                  <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
+                  <img :src="championImage(playerChampion?.name)" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                   <div class="team-logo">
                     <img :src="playerChampion?.team?.logo" :alt="`${playerChampion?.team?.placeName.default} Team Logo`" />
                   </div>
@@ -106,7 +109,7 @@
             <v-card-text class="flex flex-col justify-center items-center">
               <p>is not Defending the Championship Today</p>
               <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
-                <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
+                <img :src="championImage(playerChampion?.name)" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                 <div class="team-logo">
                   <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${playerChampion?.team?.placeName.default} Logo`" />
                 </div>
@@ -192,9 +195,6 @@ export default {
     }  
   },
   computed: {
-    championImage() {
-      return this.getImage(this.playerChampion?.name, 'Winner');
-    },
     challengerImage() {
       return this.getImage(this.playerChallenger?.name, 'Challenger');
     },
@@ -219,7 +219,11 @@ export default {
     }
   },
   methods: {
+    championImage(name) {
+      return this.getImage(name, 'Winner');
+    },
     getImage(playerName, type) {
+      console.log("🚀 ~ getImage ~ playerName, type:", playerName, type)
       const images = {
         Boz: {
           Winner: this.bozWinnerImage,
@@ -264,10 +268,7 @@ export default {
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
-        this.getChampionInfo();
-        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
-
-        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
+        this.getTeamsInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
 
         this.isGameLive = this.todaysGame.gameState === 'LIVE' || this.todaysGame.gameState === 'CRIT';
         
@@ -293,11 +294,12 @@ export default {
         this.loading = false;
       });
     },
-    getChampionInfo() {
+    getTeamsInfo(homeTeam, awayTeam) {
+      const getHomeTeam = this.allPlayersData.find(player => player.teams.includes(homeTeam));
+      const getAwayTeam = this.allPlayersData.find(player => player.teams.includes(awayTeam));
+      this.playerChallenger = getHomeTeam?.name === this.currentChampion ? getHomeTeam : getAwayTeam;    
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-    },
-    getChallengerInfo(homeTeam, awayTeam) {
-      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(homeTeam) || player.teams.includes(awayTeam));
+      this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
     getQuote() {
       const randomIndex = Math.floor(Math.random() * quotes.length);
