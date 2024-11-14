@@ -187,6 +187,7 @@ export default {
     }
     this.isGameToday = this.gameID !== null;
     if (this.isGameToday) {
+      this.getChampionInfo();
       this.getGameInfo();
     } else {
       // If there is no game today, fetch the current champion info
