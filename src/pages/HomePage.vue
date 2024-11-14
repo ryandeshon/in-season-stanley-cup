@@ -70,7 +70,7 @@
                   <div>SOG: {{ playerChampion?.team.sog }}</div>
                 </div>
                 <div class="avatar">
-                  <img :src="championImage(playerChampion?.name)" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
+                  <img :src="isMirrorMatch ? challengerImage : championImage(playerChampion?.name)" :class="{'-scale-x-100': isMirrorMatch}" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                   <div class="team-logo">
                     <img :src="playerChampion?.team?.logo" :alt="`${playerChampion?.team?.placeName.default} Team Logo`" />
                   </div>
@@ -223,7 +223,6 @@ export default {
       return this.getImage(name, 'Winner');
     },
     getImage(playerName, type) {
-      console.log("🚀 ~ getImage ~ playerName, type:", playerName, type)
       const images = {
         Boz: {
           Winner: this.bozWinnerImage,
