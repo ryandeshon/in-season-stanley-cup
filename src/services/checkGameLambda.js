@@ -136,11 +136,12 @@ export const handler = async (event) => {
   try {
     const gameID = await getGameID();
     // If there is no game stop checking
+    console.log("🚀 ~ No Game to Check")
     if (!gameID) return;
 
     // Check the game result
     const result = await checkGameResult(gameID);
-    console.log("🚀 ~ handler ~ result:", result)
+    console.log("🚀 ~ handler ~ checkGameResult:", result)
 
     if (result) {
       // Save the winner to DynamoDB
@@ -152,7 +153,7 @@ export const handler = async (event) => {
       
       await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
       await saveWinnerToDatabase(wTeam);
-      console.log(`Winner ${wTeam} saved to the database`);
+      console.log(`Winner ${wTeam} saved to the database. Game ID: ${gameID}`);
       // Find the player who has the winning team
       const playerId = await findPlayerWithTeam(wTeam);
       if (playerId) {
