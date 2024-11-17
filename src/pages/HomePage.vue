@@ -83,14 +83,14 @@
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
-                <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ playerChallenger?.name }}</h3></router-link>
+                <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ isMirrorMatch ? 'Evil ' : ''}}{{ playerChallenger?.name }}</h3></router-link>
                 <span><strong>{{ playerChallenger?.team?.placeName.default }}</strong></span>
                 <div v-if="isGameLive" class="text-sm">
                   <div>Score: {{ playerChallenger?.team.score }}</div>
                   <div>SOG: {{ playerChallenger?.team.sog }}</div>
                 </div>
                 <div class="avatar">
-                  <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
+                  <img :src="challengerImage" :class="{'saturate-50 contrast-125 brightness-75': isMirrorMatch}" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
                   <div class="team-logo">
                     <img :src="playerChallenger?.team?.logo" :alt="`${playerChallenger?.team?.placeName.default} Team Logo`" />
                   </div>
@@ -187,7 +187,6 @@ export default {
     }
     this.isGameToday = this.gameID !== null;
     if (this.isGameToday) {
-      this.getChampionInfo();
       this.getGameInfo();
     } else {
       // If there is no game today, fetch the current champion info
@@ -300,7 +299,8 @@ export default {
     getTeamsInfo(homeTeam, awayTeam) {
       const getHomeTeam = this.allPlayersData.find(player => player.teams.includes(homeTeam));
       const getAwayTeam = this.allPlayersData.find(player => player.teams.includes(awayTeam));
-      this.playerChallenger = getHomeTeam?.name === this.currentChampion ? getHomeTeam : getAwayTeam;    
+      this.getChampionInfo();
+      this.playerChallenger = getHomeTeam?.name === this.playerChampion.name ? getAwayTeam : getHomeTeam;
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
     getQuote() {
