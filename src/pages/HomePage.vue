@@ -83,7 +83,7 @@
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
             <v-card class="pb-3 sm:min-w-52">
               <v-card-text class="flex flex-col justify-center items-center">
-                <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ isMirrorMatch ? 'Evil ' : ''}}{{ playerChallenger?.name }}</h3></router-link>
+                <router-link :to="`/player/${playerChallenger.name}`"><h3><span v-if="isMirrorMatch" class="text-sm">Evil </span>{{ playerChallenger?.name }}</h3></router-link>
                 <span><strong>{{ playerChallenger?.team?.placeName.default }}</strong></span>
                 <div v-if="isGameLive" class="text-sm">
                   <div>Score: {{ playerChallenger?.team.score }}</div>
