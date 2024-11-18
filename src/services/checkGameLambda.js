@@ -136,8 +136,13 @@ export const handler = async (event) => {
   try {
     const gameID = await getGameID();
     // If there is no game stop checking
-    console.log("🚀 ~ No Game to Check")
-    if (!gameID) return;
+    if (!gameID) {
+      console.log("🚀 ~ No Game to Check");
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'No game to check' }),
+      };
+    }
 
     // Check the game result
     const result = await checkGameResult(gameID);
