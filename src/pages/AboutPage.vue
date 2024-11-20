@@ -13,6 +13,8 @@
 
       <p>The concept of the game I came across from the "32 Thoughts" hockey podcast and wanted to use this as an excuse to build an app and learn a new language and sharpen some skills. As well as a passive way to root for teams I otherwise might not pay attention too.</p>
 
+      <p>The code for this site is completely open source and free to use for yourself. <a href="https://github.com/ryandeshon/in-season-stanley-cup" target="_blank" rel="noopener noreferrer">Github code here</a></p>
+
       <div class="disclaimer mt-10">
         <h3 class="text-lg">Disclaimer</h3>
         <p class="text-xs mb-2">
