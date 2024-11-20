@@ -146,16 +146,16 @@ export const handler = async (event) => {
 
     // Check the game result
     const result = await checkGameResult(gameID);
-    console.log("🚀 ~ handler ~ checkGameResult:", result)
 
     if (result) {
       // Save the winner to DynamoDB
       const { wTeam, wScore, lTeam, lScore } = result;
       // Save the game stats
       const gameAlreadySaved = await checkGameResults(gameID);
-      console.log("Game is already saved");
-      if (gameAlreadySaved) return;
-      
+      if (gameAlreadySaved) {
+        console.log("Game is already saved");
+        return;
+      }
       await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
       await saveWinnerToDatabase(wTeam);
       console.log(`Winner ${wTeam} saved to the database. Game ID: ${gameID}`);
