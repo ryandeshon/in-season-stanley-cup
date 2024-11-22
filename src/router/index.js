@@ -3,6 +3,7 @@ import HomePage from '../pages/HomePage.vue';
 import StandingsPage from '../pages/StandingsPage.vue';
 import AboutPage from '../pages/AboutPage.vue';
 import PlayerProfile from '../pages/PlayerProfile.vue';
+import GamePage from '../pages/GamePage.vue';
 
 const routes = [
   { path: '/', component: HomePage },
@@ -13,6 +14,12 @@ const routes = [
     name: 'PlayerProfile',
     component: PlayerProfile,
     props: true, // Pass the name parameter as a prop
+  },
+  {
+    path: '/game/:id', // Add a new route for game details
+    name: 'GamePage',
+    component: GamePage,
+    props: true,
   },
 ];
 

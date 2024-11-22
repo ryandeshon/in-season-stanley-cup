@@ -28,7 +28,7 @@
                 
                 <td class="text-center">
                   <div class="text-center flex gap-2 justify-center items-center">
-                    <img v-if="getResults(game).team" :src="`https://assets.nhle.com/logos/nhl/svg/${ getResults(game).team }_light.svg`" :alt="game.wTeam" class="w-6 h-6" /> {{ getResults(game).result }}
+                    <img v-if="getResults(game).team" :src="`https://assets.nhle.com/logos/nhl/svg/${ getResults(game).team }_light.svg`" :alt="game.wTeam" class="w-6 h-6" /> <router-link :to="{ name: 'GamePage', params: { id: game.id } }" class="contents">{{ getResults(game).result }}</router-link>
                   </div>
                 </td>
               </tr>
