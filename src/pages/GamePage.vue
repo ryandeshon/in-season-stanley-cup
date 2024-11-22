@@ -63,7 +63,7 @@
       <h3 class="text-xl font-bold text-center">Home Team Players</h3>
       <v-data-table-virtual
           class="mb-4"
-          :items="awayTeamPlayers"
+          :items="homeTeamPlayers"
           :headers="[
             { key: 'sweaterNumber', title: '#' },
             { key: 'name', title: 'Name' },
