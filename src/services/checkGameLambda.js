@@ -101,6 +101,7 @@ async function incrementTitleDefense(playerId) {
 
 // Function to save the game stats into GameRecords table
 async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
+  console.log("🚀 ~ saveGameStats ~ gameID, wTeam, wScore, lTeam, lScore:", gameID, wTeam, wScore, lTeam, lScore)
   const params = {
     TableName: GAME_RECORDS,
     Item: {
