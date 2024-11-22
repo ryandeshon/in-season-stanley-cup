@@ -30,6 +30,64 @@
       </v-row>
     </template>
   </v-container>
+  <v-row class="mt-4">
+    <v-col cols="6">
+      <h3 class="text-xl font-bold text-center">Away Team Players</h3>
+      <v-data-table-virtual
+          class="mb-4"
+          :items="awayTeamPlayers"
+          :headers="[
+            { key: 'sweaterNumber', title: '#' },
+            { key: 'name', title: 'Name' },
+            { key: 'goals', title: 'Goals' },
+            { key: 'assists', title: 'Assists' },
+            { key: 'sog', title: 'SOG' },
+            { key: 'plusMinus', title: '+/-' },
+            { hits: 'hits', title: 'Hits' },
+          ]"
+        >
+          <template #item="{ item, index }">
+            <tr :data-test="`index-${index}`">
+              <td>{{ item.sweaterNumber }}</td>
+              <td>{{ item.name.default }}</td>
+              <td>{{ item.goals }}</td>
+              <td>{{ item.assists }}</td>
+              <td>{{ item.sog }}</td>
+              <td>{{ item.plusMinus }}</td>
+              <td>{{ item.hits }}</td>
+            </tr>
+          </template>
+        </v-data-table-virtual>
+    </v-col>
+    <v-col cols="6">
+      <h3 class="text-xl font-bold text-center">Home Team Players</h3>
+      <v-data-table-virtual
+          class="mb-4"
+          :items="awayTeamPlayers"
+          :headers="[
+            { key: 'sweaterNumber', title: '#' },
+            { key: 'name', title: 'Name' },
+            { key: 'goals', title: 'Goals' },
+            { key: 'assists', title: 'Assists' },
+            { key: 'sog', title: 'SOG' },
+            { key: 'plusMinus', title: '+/-' },
+            { hits: 'hits', title: 'Hits' },
+          ]"
+        >
+          <template #item="{ item, index }">
+            <tr :data-test="`index-${index}`">
+              <td>{{ item.sweaterNumber }}</td>
+              <td>{{ item.name.default }}</td>
+              <td>{{ item.goals }}</td>
+              <td>{{ item.assists }}</td>
+              <td>{{ item.sog }}</td>
+              <td>{{ item.plusMinus }}</td>
+              <td>{{ item.hits }}</td>
+            </tr>
+          </template>
+        </v-data-table-virtual>
+    </v-col>
+  </v-row>
 </template>
 
 <script>
@@ -44,6 +102,8 @@ export default {
       loading: true,
       gameDetails: null,
       localStartTime: null,
+      homeTeamPlayers: [],
+      awayTeamPlayers: [],
     };
   },
   async created() {
@@ -52,6 +112,10 @@ export default {
       const response = await nhlApi.getGameInfo(gameId);
       this.gameDetails = response.data;
       this.localStartTime = DateTime.fromISO(this.gameDetails.startTimeUTC).toLocaleString(DateTime.DATETIME_FULL);
+      this.homeTeamPlayers = this.gameDetails.playerByGameStats.homeTeam.forwards.concat(this.gameDetails.playerByGameStats.homeTeam.defense);
+      this.awayTeamPlayers = this.gameDetails.playerByGameStats.awayTeam.forwards.concat(this.gameDetails.playerByGameStats.awayTeam.defense);
+
+      
     } catch (error) {
       console.error('Error fetching game details:', error);
     } finally {

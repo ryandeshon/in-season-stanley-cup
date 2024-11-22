@@ -99,6 +99,9 @@
             </v-card>
           </div>
         </div>
+        <div class="text-center mb-4">
+          <router-link :to="`/game/${todaysGame.id}`" class="text-blue-500 underline">View Game Details</router-link>
+        </div>
       </template>
 
       <!-- Champion is not defending -->
