@@ -190,7 +190,7 @@ export default {
       this.getGameInfo();
     } else {
       // If there is no game today, fetch the current champion info
-      this.getChampionInfo();
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
       this.loading = false;
     }  
   },
@@ -247,15 +247,9 @@ export default {
       };
       return images[playerName]?.[type] || null;
     },
-    findPlayerTeam(game, player) {
-      const homeTeamAbbrev = game.homeTeam.abbrev;
-      const awayTeamAbbrev = game.awayTeam.abbrev;
-
-      if (player?.teams.includes(homeTeamAbbrev)) {
-        return game.homeTeam;
-      }
-      if (player?.teams.includes(awayTeamAbbrev)) {
-        return game.awayTeam;
+    findPlayerTeam(team, player) {
+      if (player?.teams.includes(team)) {
+        return team.homeTeam.abbrev === player.teams[0] ? team.homeTeam : team.awayTeam;
       }
     },
     getGameInfo() {
@@ -267,25 +261,17 @@ export default {
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
-        this.getTeamsInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
-
+        this.getTeamsInfo();
         this.isGameLive = this.todaysGame.gameState === 'LIVE' || this.todaysGame.gameState === 'CRIT';
-        
-        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
-        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
 
         // find score and winner
         if (this.isGameOver) {
             const homeTeam = this.todaysGame.homeTeam;
             const awayTeam = this.todaysGame.awayTeam;
             if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
-              this.playerChampion.team.score = homeTeam?.score;
-              this.playerChallenger.team.score = awayTeam?.score;
               this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
               this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
             } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
-              this.playerChampion.team.score = awayTeam?.score;
-              this.playerChallenger.team.score = homeTeam?.score;
               this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
               this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
             }
@@ -293,14 +279,23 @@ export default {
         this.loading = false;
       });
     },
-    getChampionInfo() {
+    getTeamsInfo() {
+      const homeTeam = this.todaysGame.homeTeam;
+      const awayTeam = this.todaysGame.awayTeam;
+      const getChampionTeam = this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
+      const getChallengerTeam = this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
+      console.log("🚀 ~ getTeamsInfo ~ getChampionTeam:", getChampionTeam)
+
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-    },
-    getTeamsInfo(homeTeam, awayTeam) {
-      const getHomeTeam = this.allPlayersData.find(player => player.teams.includes(homeTeam));
-      const getAwayTeam = this.allPlayersData.find(player => player.teams.includes(awayTeam));
-      this.getChampionInfo();
-      this.playerChallenger = getHomeTeam?.name === this.playerChampion.name ? getAwayTeam : getHomeTeam;
+      // if champion has a team in the object over write it
+      this.playerChampion.team = {};
+      this.playerChampion.team = getChampionTeam;
+      console.log("🚀 ~ getTeamsInfo ~ getChampionTeam:", getChampionTeam)
+      console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
+      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(getChallengerTeam.abbrev));
+      this.playerChallenger.team = getChallengerTeam;
+      // console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
+
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
     getQuote() {
