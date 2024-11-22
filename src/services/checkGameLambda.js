@@ -105,10 +105,10 @@ async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
     TableName: GAME_RECORDS,
     Item: {
       id: gameID,
-      wTeam,
-      wScore,
-      lTeam,
-      lScore
+      wTeam: wTeam,
+      wScore: wScore,
+      lTeam: lTeam,
+      lScore: lScore
     },
   };
 
@@ -150,6 +150,7 @@ export const handler = async (event) => {
     if (result) {
       // Save the winner to DynamoDB
       const { wTeam, wScore, lTeam, lScore } = result;
+      console.log("🚀 ~ handler ~ result:", result)
       // Save the game stats
       const gameAlreadySaved = await checkGameResults(gameID);
       if (gameAlreadySaved) {
