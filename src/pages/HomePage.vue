@@ -27,7 +27,7 @@
             <v-card-text class="flex flex-col justify-center items-center">
               <router-link :to="`/player/${todaysWinner.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
               <div class="avatar">
-                <img :src="championImage(todaysWinner?.name)" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
+                <img :src="getImage(todaysWinner?.name, 'Winner')" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
                 <div class="team-logo">
                   <img :src="todaysWinner?.team?.logo" :alt="`${todaysWinner?.team?.placeName.default} Team Logo`" />
                 </div>
@@ -39,7 +39,7 @@
             <v-card-text class="flex flex-col justify-center items-center">
               <router-link :to="`/player/${todaysLoser.name}`"><h3>{{ todaysLoser?.name }}</h3></router-link>
               <div class="avatar">
-                <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
+                <img :src="getImage(todaysLoser?.name, 'Sad')" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
                 <div class="team-logo">
                   <img :src="todaysLoser?.team?.logo" :alt="`${todaysLoser?.team?.placeName.default} Team Logo`" />
                 </div>
@@ -70,7 +70,7 @@
                   <div>SOG: {{ playerChampion?.team.sog }}</div>
                 </div>
                 <div class="avatar">
-                  <img :src="isMirrorMatch ? challengerImage : championImage(playerChampion?.name)" :class="{'-scale-x-100': isMirrorMatch}" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
+                  <img :src="getImage(playerChampion?.name, 'Challenger')" class="-scale-x-100 my-2" :alt="`${playerChampion?.name} Avatar`" />
                   <div class="team-logo">
                     <img :src="playerChampion?.team?.logo" :alt="`${playerChampion?.team?.placeName.default} Team Logo`" />
                   </div>
@@ -90,7 +90,7 @@
                   <div>SOG: {{ playerChallenger?.team.sog }}</div>
                 </div>
                 <div class="avatar">
-                  <img :src="challengerImage" :class="{'saturate-50 contrast-125 brightness-75': isMirrorMatch}" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
+                  <img :src="getImage(playerChallenger?.name, 'Challenger')" :class="{'saturate-50 contrast-125 brightness-75': isMirrorMatch}" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
                   <div class="team-logo">
                     <img :src="playerChallenger?.team?.logo" :alt="`${playerChallenger?.team?.placeName.default} Team Logo`" />
                   </div>
@@ -109,7 +109,7 @@
             <v-card-text class="flex flex-col justify-center items-center">
               <p>is not Defending the Championship Today</p>
               <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
-                <img :src="championImage(playerChampion?.name)" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
+                <img :src="getImage(playerChampion?.name, 'Winner')" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
                 <div class="team-logo">
                   <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${playerChampion?.team?.placeName.default} Logo`" />
                 </div>
@@ -195,12 +195,6 @@ export default {
     }  
   },
   computed: {
-    challengerImage() {
-      return this.getImage(this.playerChallenger?.name, 'Challenger');
-    },
-    sadImage() {
-      return this.getImage(this.todaysLoser?.name, 'Sad');
-    },
     getClockTime() {
       return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
     },
@@ -284,17 +278,13 @@ export default {
       const awayTeam = this.todaysGame.awayTeam;
       const getChampionTeam = this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
       const getChallengerTeam = this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
-      console.log("🚀 ~ getTeamsInfo ~ getChampionTeam:", getChampionTeam)
 
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-      // if champion has a team in the object over write it
-      this.playerChampion.team = {};
       this.playerChampion.team = getChampionTeam;
-      console.log("🚀 ~ getTeamsInfo ~ getChampionTeam:", getChampionTeam)
-      console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
       this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(getChallengerTeam.abbrev));
       this.playerChallenger.team = getChallengerTeam;
-      // console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
+      console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
+      console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
 
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
