@@ -250,13 +250,12 @@ export default {
       // If there is a game today, fetch the game result
       nhlApi.getGameInfo(this.gameID).then(result => {
         this.todaysGame = result.data;
-        console.log("🚀 ~ nhlApi.getGameInfo ~ this.todaysGame:", this.todaysGame)
-        this.isGameOver = result.data.gameState === 'FINAL';
+        this.isGameOver = ['FINAL', 'OFF'].includes(result.data.gameState);
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
         this.getTeamsInfo();
-        this.isGameLive = this.todaysGame.gameState === 'LIVE' || this.todaysGame.gameState === 'CRIT';
+        this.isGameLive = ['LIVE', 'CRIT'].includes(this.todaysGame.gameState);
 
         // find score and winner
         if (this.isGameOver) {
@@ -277,14 +276,16 @@ export default {
       const homeTeam = this.todaysGame.homeTeam;
       const awayTeam = this.todaysGame.awayTeam;
       const getChampionTeam = this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
+      console.log("🚀 ~ getTeamsInfo ~ getChampionTeam:", getChampionTeam)
       const getChallengerTeam = this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
+      console.log("🚀 ~ getTeamsInfo ~ getChallengerTeam:", getChallengerTeam)
 
-      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+      this.playerChampion = this.findPlayerTeam(getChampionTeam, this.playerChampion);
       this.playerChampion.team = getChampionTeam;
       this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(getChallengerTeam.abbrev));
       this.playerChallenger.team = getChallengerTeam;
-      console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
-      console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
+      // console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
+      // console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
 
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
