@@ -42,11 +42,11 @@ async function checkGameResult(gameID) {
         // Check if the game is completed
         if (gameData.gameState === "OFF") {
             // Determine the winner and loser
-            const winner = homeTeam.score > awayTeam.score ? homeTeam.abbrev : awayTeam.abbrev;
-            const loser = homeTeam.score > awayTeam.score ? awayTeam.abbrev : homeTeam.abbrev;
-            const winnerScore = homeTeam.score > awayTeam.score ? homeTeam.score : awayTeam.score;
-            const loserScore = homeTeam.score > awayTeam.score ? awayTeam.score : homeTeam.score;
-            resolve({ winner, winnerScore, loser, loserScore });
+            const wTeam = homeTeam.score > awayTeam.score ? homeTeam.abbrev : awayTeam.abbrev;
+            const lTeam = homeTeam.score > awayTeam.score ? awayTeam.abbrev : homeTeam.abbrev;
+            const wScore = homeTeam.score > awayTeam.score ? homeTeam.score : awayTeam.score;
+            const lScore = homeTeam.score > awayTeam.score ? awayTeam.score : homeTeam.score;
+            resolve({ wTeam, wScore, lTeam, lScore });
         } else {
           console.log(`Game ${gameID}: ${homeTeam.abbrev} vs. ${awayTeam.abbrev} has not finished yet. (Status: ${gameData.gameState})`);
           resolve(null); // Game hasn't finished
@@ -137,7 +137,6 @@ export const handler = async (event) => {
     const gameID = await getGameID();
     // If there is no game stop checking
     if (!gameID) {
-      console.log("🚀 ~ No Game to Check");
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'No game to check' }),
