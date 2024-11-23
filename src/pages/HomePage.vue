@@ -45,6 +45,9 @@
           <div>Period: {{ this.todaysGame.clock.inIntermission ? 'INT' : getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
         </div>
+        <div v-else>
+          <p class="text-center">{{ localStartTime}}</p>
+        </div>
         <div v-if="isMirrorMatch" class="text-center">
           <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
         </div>
@@ -109,6 +112,7 @@ export default {
     return {
       loading: true,
       currentChampion: null,
+      localStartTime: null,
       todaysGame: {},
       todaysWinner: {},
       todaysLoser: {},
@@ -169,6 +173,7 @@ export default {
         this.todaysGame = result.data;
         this.isGameOver = ['FINAL', 'OFF'].includes(result.data.gameState);
         this.isGameLive = ['LIVE', 'CRIT'].includes(result.data.gameState);
+        this.localStartTime = DateTime.fromISO(result.data.startTimeUTC).toLocaleString(DateTime.DATETIME_FULL);
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
