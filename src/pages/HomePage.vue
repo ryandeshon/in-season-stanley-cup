@@ -182,9 +182,10 @@ export default {
     try {
       this.currentChampion = await getCurrentChampion();
       this.gameID = await getGameId();
-      // this.currentChampion = "SJS";
-      // this.gameID = '2024020240';
+      // this.currentChampion = "NYR";
+      // this.gameID = '2024020247';
       this.allPlayersData = await getAllPlayers();
+      // console.log("🚀 ~ created ~ this.allPlayersData:", this.allPlayersData)
     } catch (error) {
       console.error('Error fetching getCurrentChampion or getGameId:', error);
     }
@@ -216,9 +217,6 @@ export default {
     }
   },
   methods: {
-    championImage(name) {
-      return this.getImage(name, 'Winner');
-    },
     getImage(playerName, type) {
       const images = {
         Boz: {
@@ -279,16 +277,16 @@ export default {
       const homeTeam = this.todaysGame.homeTeam;
       const awayTeam = this.todaysGame.awayTeam;
       const getChampionTeam = this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
-      console.log("🚀 ~ getTeamsInfo ~ getChampionTeam:", getChampionTeam)
       const getChallengerTeam = this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
-      console.log("🚀 ~ getTeamsInfo ~ getChallengerTeam:", getChallengerTeam)
 
-      this.playerChampion = this.findPlayerTeam(getChampionTeam, this.playerChampion);
+      console.log("🚀 ~ getTeamsInfo ~ this.allPlayersData:", this.allPlayersData)
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(getChampionTeam.abbrev));
       this.playerChampion.team = getChampionTeam;
       this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(getChallengerTeam.abbrev));
       this.playerChallenger.team = getChallengerTeam;
-      // console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
-      // console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
+      
+      console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
+      console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
 
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
