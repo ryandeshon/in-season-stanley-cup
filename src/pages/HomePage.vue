@@ -17,102 +17,78 @@
           </div>
           <div class="text-center">
             <h2 class="text-xl font-bold mb-2">Game Over</h2>
-            <div>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</div>
-            <div>Winner: <strong>{{ todaysWinner.name }}</strong></div>
+            <div>Final Score: {{ todaysWinner.score }} - {{ todaysLoser.score }}</div>
+            <div>Winner: <strong>{{ todaysWinner.player.name }}</strong> - {{ todaysWinner.name.default }}</div>
           </div>
         </div>
 
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
-          <v-card class="pb-3 sm:min-w-52">
-            <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${playerChampion.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
-              <div class="avatar">
-                <img :src="championImage" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
-                <div class="team-logo">
-                  <img :src="todaysWinner?.team?.logo" :alt="`${todaysWinner?.team?.placeName.default} Team Logo`" />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PlayerCard
+            :player="todaysWinner.player"
+            :team="todaysWinner"
+            imageType="Winner"
+            :isGameLive="isGameLive"
+          />
           <div class="flex justify-center items-center"><strong>VS</strong></div>
-          <v-card class="pb-3 sm:min-w-52">
-            <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${todaysLoser.name}`"><h3>{{ todaysLoser?.name }}</h3></router-link>
-              <div class="avatar">
-                <img :src="sadImage" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
-                <div class="team-logo">
-                  <img :src="todaysLoser?.team?.logo" :alt="`${todaysLoser?.team?.placeName.default} Team Logo`" />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PlayerCard
+            :player="todaysLoser.player"
+            :team="todaysLoser"
+            imageType="Sad"
+            :isGameLive="isGameLive"
+          />
         </div>
       </template>
 
       <!-- Game day -->
       <template v-else-if="isGameToday">
         <div v-if="isGameLive" class="text-center">
-          <div>Period: {{ getPeriod }}</div>
+          <div>Period: {{ this.todaysGame.clock.inIntermission ? 'INT' : getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
+        </div>
+        <div v-else class="text-center">
+          <h3 class="text-xl font-bold">Game Information</h3>
+          <p>{{ localStartTime}}</p>
+        </div>
+        <div v-if="isMirrorMatch" class="text-center">
+          <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
         </div>
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
             <div class="text-center font-bold text-xl mb-2">Champion</div>
-            <v-card class="pb-3 sm:min-w-52">
-              <v-card-text class="flex flex-col justify-center items-center">
-                <router-link :to="`/player/${playerChampion.name}`"><h3>{{ playerChampion?.name }}</h3></router-link>
-                <span><strong>{{ playerChampion?.team?.placeName.default }}</strong></span>
-                <div v-if="isGameLive" class="text-sm">
-                  <div>Score: {{ playerChampion?.team.score }}</div>
-                  <div>SOG: {{ playerChampion?.team.sog }}</div>
-                </div>
-                <div class="avatar">
-                  <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                  <div class="team-logo">
-                    <img :src="playerChampion?.team?.logo" :alt="`${playerChampion?.team?.placeName.default} Team Logo`" />
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
+              <PlayerCard
+                :player="playerChampion"
+                :team="playerChampion.championTeam"
+                imageType="Challenger"
+                :isGameLive="isGameLive"
+                :isChampion="true"
+              />
           </div>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <div>
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
-            <v-card class="pb-3 sm:min-w-52">
-              <v-card-text class="flex flex-col justify-center items-center">
-                <router-link :to="`/player/${playerChallenger.name}`"><h3>{{ playerChallenger?.name }}</h3></router-link>
-                <span><strong>{{ playerChallenger?.team?.placeName.default }}</strong></span>
-                <div v-if="isGameLive" class="text-sm">
-                  <div>Score: {{ playerChallenger?.team.score }}</div>
-                  <div>SOG: {{ playerChallenger?.team.sog }}</div>
-                </div>
-                <div class="avatar">
-                  <img :src="challengerImage" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
-                  <div class="team-logo">
-                    <img :src="playerChallenger?.team?.logo" :alt="`${playerChallenger?.team?.placeName.default} Team Logo`" />
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
+              <PlayerCard
+                :player="playerChallenger"
+                :team="playerChallenger.challengerTeam"
+                imageType="Challenger"
+                :isGameLive="isGameLive"
+                :isMirrorMatch="isMirrorMatch"
+              />
           </div>
+        </div>
+        <div class="text-center mb-4">
+          <router-link :to="`/game/${todaysGame.id}`" class="text-blue-500 underline">View Game Details</router-link>
         </div>
       </template>
 
       <!-- Champion is not defending -->
       <template v-else>
         <div class="flex flex-col justify-center items-center my-4">
-          <v-card class="pb-3">
-            <v-card-title><router-link :to="`/player/${playerChampion.name}`">Champion {{ playerChampion?.name }}</router-link></v-card-title>
-            <v-card-text class="flex flex-col justify-center items-center">
-              <p>is not Defending the Championship Today</p>
-              <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
-                <img :src="championImage" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                <div class="team-logo">
-                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${playerChampion?.team?.placeName.default} Logo`" />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PlayerCard
+            :player="playerChampion"
+            title="Champion"
+            subtitle="is not Defending the Championship Today"
+            imageType="Winner"
+          />
         </div>
       </template>
     </template>
@@ -124,27 +100,20 @@ import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
+import PlayerCard from '@/components/PlayerCard.vue';
 
 import quotes from '@/utilities/quotes.json';
-import bozWinnerImage from '@/assets/players/boz-winner.png';
-import terryWinnerImage from '@/assets/players/terry-winner.png';
-import cooperWinnerImage from '@/assets/players/cooper-winner.png';
-import ryanWinnerImage from '@/assets/players/ryan-winner.png';
-import bozChallengerImage from '@/assets/players/boz-challenger.png';
-import terryChallengerImage from '@/assets/players/terry-challenger.png';
-import cooperChallengerImage from '@/assets/players/cooper-challenger.png';
-import ryanChallengerImage from '@/assets/players/ryan-challenger.png';
-import bozSadImage from '@/assets/players/boz-sad.png';
-import terrySadImage from '@/assets/players/terry-sad.png';
-import cooperSadImage from '@/assets/players/cooper-sad.png';
-import ryanSadImage from '@/assets/players/ryan-sad.png';
 
 export default {
   name: 'HomePage',
+  components: {
+    PlayerCard,
+  },
   data() {
     return {
       loading: true,
       currentChampion: null,
+      localStartTime: null,
       todaysGame: {},
       todaysWinner: {},
       todaysLoser: {},
@@ -159,28 +128,16 @@ export default {
       isMirrorMatch: false,
       gameID: null,
       socket: null, // To store the WebSocket connection
-      // Images
-      bozWinnerImage,
-      terryWinnerImage,
-      cooperWinnerImage,
-      ryanWinnerImage,
-      bozChallengerImage,
-      terryChallengerImage,
-      cooperChallengerImage,
-      ryanChallengerImage,
-      bozSadImage,
-      terrySadImage,
-      cooperSadImage,
-      ryanSadImage,
     };
   },
   async created() {
     try {
       this.currentChampion = await getCurrentChampion();
       this.gameID = await getGameId();
-      // this.currentChampion = "SJS";
-      // this.gameID = '2024020240';
+      // this.currentChampion = "NYR";
+      // this.gameID = '2024020247';
       this.allPlayersData = await getAllPlayers();
+      // console.log("🚀 ~ created ~ this.allPlayersData:", this.allPlayersData)
     } catch (error) {
       console.error('Error fetching getCurrentChampion or getGameId:', error);
     }
@@ -190,20 +147,11 @@ export default {
       this.initWebSocket();
     } else {
       // If there is no game today, fetch the current champion info
-      this.getChampionInfo();
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
       this.loading = false;
     }  
   },
   computed: {
-    championImage() {
-      return this.getImage(this.playerChampion?.name, 'Winner');
-    },
-    challengerImage() {
-      return this.getImage(this.playerChallenger?.name, 'Challenger');
-    },
-    sadImage() {
-      return this.getImage(this.todaysLoser?.name, 'Sad');
-    },
     getClockTime() {
       return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
     },
@@ -222,46 +170,6 @@ export default {
     }
   },
   methods: {
-    async getGameInfo() {
-      // Fetch initial game info
-      try {
-        const result = await nhlApi.getGameInfo(this.gameID);
-        this.todaysGame = result.data;
-
-        this.getChampionInfo();
-        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
-
-        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
-        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
-
-
-        this.isGameOver = result.data.gameState === 'FINAL';
-        this.isGameLive = result.data.gameState === 'LIVE';
-        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
-
-        // find score and winner
-        if (this.isGameOver) {
-            const homeTeam = this.todaysGame.homeTeam;
-            const awayTeam = this.todaysGame.awayTeam;
-            if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
-              this.playerChampion.team.score = homeTeam?.score;
-              this.playerChallenger.team.score = awayTeam?.score;
-              this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
-            } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
-              this.playerChampion.team.score = awayTeam?.score;
-              this.playerChallenger.team.score = homeTeam?.score;
-              this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
-            }
-        }
-
-        this.loading = false;
-      } catch (error) {
-        console.error('Error fetching game data:', error);
-      }
-    },
-
     initWebSocket() {
       // Replace with your WebSocket URL
       this.socket = new WebSocket('wss://j9hl0m2br8.execute-api.us-east-1.amazonaws.com/production');
@@ -291,87 +199,51 @@ export default {
         console.log('WebSocket connection closed');
       };
     },
-
-
-    getImage(playerName, type) {
-      const images = {
-        Boz: {
-          Winner: this.bozWinnerImage,
-          Challenger: this.bozChallengerImage,
-          Sad: this.bozSadImage,
-        },
-        Terry: {
-          Winner: this.terryWinnerImage,
-          Challenger: this.terryChallengerImage,
-          Sad: this.terrySadImage,
-        },
-        Cooper: {
-          Winner: this.cooperWinnerImage,
-          Challenger: this.cooperChallengerImage,
-          Sad: this.cooperSadImage,
-        },
-        Ryan: {
-          Winner: this.ryanWinnerImage,
-          Challenger: this.ryanChallengerImage,
-          Sad: this.ryanSadImage,
-        },
-      };
-      return images[playerName]?.[type] || null;
-    },
-    findPlayerTeam(game, player) {
-      const homeTeamAbbrev = game.homeTeam.abbrev;
-      const awayTeamAbbrev = game.awayTeam.abbrev;
-
-      if (player?.teams.includes(homeTeamAbbrev)) {
-        return game.homeTeam;
-      }
-      if (player?.teams.includes(awayTeamAbbrev)) {
-        return game.awayTeam;
-      }
-    },
     getGameInfo() {
       // If there is a game today, fetch the game result
       nhlApi.getGameInfo(this.gameID).then(result => {
         this.todaysGame = result.data;
-        console.log("🚀 ~ nhlApi.getGameInfo ~ this.todaysGame:", this.todaysGame)
-        this.isGameOver = result.data.gameState === 'FINAL';
+        this.isGameOver = ['FINAL', 'OFF'].includes(result.data.gameState);
+        this.isGameLive = ['LIVE', 'CRIT'].includes(result.data.gameState);
+        this.localStartTime = DateTime.fromISO(result.data.startTimeUTC).toLocaleString(DateTime.DATETIME_FULL);
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
-        this.getChampionInfo();
-        this.getChallengerInfo(this.todaysGame.homeTeam.abbrev, this.todaysGame.awayTeam.abbrev);
-
-        this.isMirrorMatch = this.playerChampion.teams.includes(this.todaysGame.homeTeam.abbrev) && this.playerChampion.teams.includes(this.todaysGame.awayTeam.abbrev);
-
-        this.isGameLive = this.todaysGame.gameState === 'LIVE' || this.todaysGame.gameState === 'CRIT';
-        
-        this.playerChampion.team = this.findPlayerTeam(this.todaysGame, this.playerChampion);
-        this.playerChallenger.team = this.findPlayerTeam(this.todaysGame, this.playerChallenger);
+        this.getTeamsInfo();
 
         // find score and winner
         if (this.isGameOver) {
-            const homeTeam = this.todaysGame.homeTeam;
-            const awayTeam = this.todaysGame.awayTeam;
-            if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
-              this.playerChampion.team.score = homeTeam?.score;
-              this.playerChallenger.team.score = awayTeam?.score;
-              this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
-            } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
-              this.playerChampion.team.score = awayTeam?.score;
-              this.playerChallenger.team.score = homeTeam?.score;
-              this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
-            }
+          const homeTeam = this.todaysGame.homeTeam;
+          const awayTeam = this.todaysGame.awayTeam;
+
+          if (homeTeam.score > awayTeam.score) {
+            this.todaysWinner = homeTeam;
+            this.todaysLoser = awayTeam;
+          } else {
+            this.todaysWinner = awayTeam;
+            this.todaysLoser = homeTeam;
+          }
+
+          const getWinningPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysWinner.abbrev));
+          this.todaysWinner.player = getWinningPlayer;
+          const getLosingPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysWinner.abbrev));
+          this.todaysLoser.player = getLosingPlayer;          
         }
         this.loading = false;
       });
     },
-    getChampionInfo() {
-      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
-    },
-    getChallengerInfo(homeTeam, awayTeam) {
-      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(homeTeam) || player.teams.includes(awayTeam));
+    getTeamsInfo() {
+      const homeTeam = this.todaysGame.homeTeam;
+      const awayTeam = this.todaysGame.awayTeam;
+      const getChampionTeam = this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
+      const getChallengerTeam = this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
+
+      this.playerChampion = this.allPlayersData.find(player => player.teams.includes(getChampionTeam.abbrev));
+      this.playerChampion.championTeam = getChampionTeam;
+      this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(getChallengerTeam.abbrev));
+      this.playerChallenger.challengerTeam = getChallengerTeam;
+
+      this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
     getQuote() {
       const randomIndex = Math.floor(Math.random() * quotes.length);
@@ -390,10 +262,4 @@ export default {
 </script>
 
 <style>
-.avatar {
-  @apply relative flex flex-col justify-center items-center text-center my-auto w-28 sm:w-52;
-}
-.team-logo {
-  @apply absolute flex align-middle justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
-}
 </style>
