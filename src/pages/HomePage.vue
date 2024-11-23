@@ -45,8 +45,9 @@
           <div>Period: {{ this.todaysGame.clock.inIntermission ? 'INT' : getPeriod }}</div>
           <div>Time Remaining: {{ getClockTime }}</div>
         </div>
-        <div v-else>
-          <p class="text-center">{{ localStartTime}}</p>
+        <div v-else class="text-center">
+          <h3 class="text-xl font-bold">Game Information</h3>
+          <p>{{ localStartTime}}</p>
         </div>
         <div v-if="isMirrorMatch" class="text-center">
           <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
