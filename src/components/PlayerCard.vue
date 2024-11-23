@@ -1,14 +1,14 @@
 <template>
   <v-card class="pb-3 sm:min-w-52">
     <v-card-text class="flex flex-col justify-center items-center">
-      <router-link :to="`/player/${player.name}`"><h3 class="mb-0">{{ player?.name }}</h3></router-link>
+      <router-link :to="`/player/${player?.name}`"><h3 class="mb-0">{{ player?.name }}</h3></router-link>
       <p class="text-center" v-if="subtitle">{{ subtitle }}</p>
+      <p v-if="team?.placeName.default" class="mb-1"><strong>{{ team?.placeName.default }}</strong></p>
       <div v-if="isGameLive" class="text-sm">
-        <div>Score: {{ player?.team.score }}</div>
-        <div>SOG: {{ player?.team.sog }}</div>
+        <div>Score: {{ team?.score }}</div>
+        <div>SOG: {{ team?.sog }}</div>
       </div>
       <div class="avatar">
-        <p><strong>{{ player.team.placeName.default }}</strong></p>
         <img 
           :src="getImage(player?.name, imageType)"
           class="my-2"
@@ -19,7 +19,7 @@
           :alt="`${player?.name} Avatar`"
         />
         <div class="team-logo">
-          <img :src="`https://assets.nhle.com/logos/nhl/svg/${player.team.abbrev}_light.svg`" :alt="`${player?.team?.placeName.default} Logo`" />
+          <img :src="`https://assets.nhle.com/logos/nhl/svg/${team?.abbrev}_light.svg`" :alt="`${team?.placeName.default} Logo`" />
         </div>
       </div>
     </v-card-text>
@@ -63,9 +63,9 @@ export default {
       type: Object,
       required: true,
     },
-    title: {
-      type: String,
-      default: '',
+    team: {
+      type: Object,
+      required: true,
     },
     subtitle: {
       type: String,

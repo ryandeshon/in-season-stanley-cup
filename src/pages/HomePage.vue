@@ -17,20 +17,22 @@
           </div>
           <div class="text-center">
             <h2 class="text-xl font-bold mb-2">Game Over</h2>
-            <div>Final Score: {{ playerChampion.team.score }} - {{ playerChallenger.team.score }}</div>
-            <div>Winner: <strong>{{ todaysWinner.name }}</strong></div>
+            <div>Final Score: {{ todaysWinner.score }} - {{ todaysLoser.score }}</div>
+            <div>Winner: <strong>{{ todaysWinner.player.name }}</strong> - {{ todaysWinner.name.default }}</div>
           </div>
         </div>
 
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <PlayerCard
-            :player="todaysWinner"
+            :player="todaysWinner.player"
+            :team="todaysWinner"
             imageType="Winner"
             :isGameLive="isGameLive"
           />
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <PlayerCard
-            :player="todaysLoser"
+            :player="todaysLoser.player"
+            :team="todaysLoser"
             imageType="Sad"
             :isGameLive="isGameLive"
           />
@@ -46,11 +48,12 @@
         <div v-if="isMirrorMatch" class="text-center">
           <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
         </div>
-        <div v-else class="flex flex-row gap-4 justify-center items-center w-full my-4">
+        <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
             <div class="text-center font-bold text-xl mb-2">Champion</div>
               <PlayerCard
                 :player="playerChampion"
+                :team="playerChampion.championTeam"
                 imageType="Challenger"
                 :isGameLive="isGameLive"
                 :isChampion="true"
@@ -61,6 +64,7 @@
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
               <PlayerCard
                 :player="playerChallenger"
+                :team="playerChallenger.challengerTeam"
                 imageType="Challenger"
                 :isGameLive="isGameLive"
                 :isMirrorMatch="isMirrorMatch"
@@ -159,33 +163,34 @@ export default {
     }
   },
   methods: {
-    findPlayerTeam(team, player) {
-      if (player?.teams.includes(team)) {
-        return team.homeTeam.abbrev === player.teams[0] ? team.homeTeam : team.awayTeam;
-      }
-    },
     getGameInfo() {
       // If there is a game today, fetch the game result
       nhlApi.getGameInfo(this.gameID).then(result => {
         this.todaysGame = result.data;
         this.isGameOver = ['FINAL', 'OFF'].includes(result.data.gameState);
+        this.isGameLive = ['LIVE', 'CRIT'].includes(result.data.gameState);
       }).catch(error => {
         console.error('Error fetching game result:', error);
       }).finally(() => {
         this.getTeamsInfo();
-        this.isGameLive = ['LIVE', 'CRIT'].includes(this.todaysGame.gameState);
 
         // find score and winner
         if (this.isGameOver) {
-            const homeTeam = this.todaysGame.homeTeam;
-            const awayTeam = this.todaysGame.awayTeam;
-            if (this.playerChampion.team.abbrev === homeTeam.abbrev) {
-              this.todaysWinner = homeTeam?.score > awayTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = homeTeam?.score < awayTeam?.score ? this.playerChampion : this.playerChallenger;
-            } else if (this.playerChampion.team.abbrev === awayTeam.abbrev) {
-              this.todaysWinner = awayTeam?.score > homeTeam?.score ? this.playerChampion : this.playerChallenger;
-              this.todaysLoser = awayTeam?.score < homeTeam?.score ? this.playerChampion : this.playerChallenger;
-            }
+          const homeTeam = this.todaysGame.homeTeam;
+          const awayTeam = this.todaysGame.awayTeam;
+
+          if (homeTeam.score > awayTeam.score) {
+            this.todaysWinner = homeTeam;
+            this.todaysLoser = awayTeam;
+          } else {
+            this.todaysWinner = awayTeam;
+            this.todaysLoser = homeTeam;
+          }
+
+          const getWinningPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysWinner.abbrev));
+          this.todaysWinner.player = getWinningPlayer;
+          const getLosingPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysWinner.abbrev));
+          this.todaysLoser.player = getLosingPlayer;          
         }
         this.loading = false;
       });
@@ -196,14 +201,10 @@ export default {
       const getChampionTeam = this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
       const getChallengerTeam = this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
 
-      console.log("🚀 ~ getTeamsInfo ~ this.allPlayersData:", this.allPlayersData)
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(getChampionTeam.abbrev));
-      this.playerChampion.team = getChampionTeam;
+      this.playerChampion.championTeam = getChampionTeam;
       this.playerChallenger = this.allPlayersData.find(player => player.teams.includes(getChallengerTeam.abbrev));
-      this.playerChallenger.team = getChallengerTeam;
-      
-      console.log("🚀 ~ getTeamsInfo ~ this.playerChampion:", this.playerChampion)
-      console.log("🚀 ~ getTeamsInfo ~ this.playerChallenger:", this.playerChallenger)
+      this.playerChallenger.challengerTeam = getChallengerTeam;
 
       this.isMirrorMatch = this.playerChampion.name === this.playerChallenger.name;
     },
