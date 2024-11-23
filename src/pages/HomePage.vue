@@ -23,29 +23,17 @@
         </div>
 
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
-          <v-card class="pb-3 sm:min-w-52">
-            <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${todaysWinner.name}`"><h3>{{ todaysWinner?.name }}</h3></router-link>
-              <div class="avatar">
-                <img :src="getImage(todaysWinner?.name, 'Winner')" class="my-2" :alt="`${todaysWinner?.name} Avatar`" />
-                <div class="team-logo">
-                  <img :src="todaysWinner?.team?.logo" :alt="`${todaysWinner?.team?.placeName.default} Team Logo`" />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PlayerCard
+            :player="todaysWinner"
+            imageType="Winner"
+            :isGameLive="isGameLive"
+          />
           <div class="flex justify-center items-center"><strong>VS</strong></div>
-          <v-card class="pb-3 sm:min-w-52">
-            <v-card-text class="flex flex-col justify-center items-center">
-              <router-link :to="`/player/${todaysLoser.name}`"><h3>{{ todaysLoser?.name }}</h3></router-link>
-              <div class="avatar">
-                <img :src="getImage(todaysLoser?.name, 'Sad')" class="my-2" :alt="`${todaysLoser?.name} Avatar`" />
-                <div class="team-logo">
-                  <img :src="todaysLoser?.team?.logo" :alt="`${todaysLoser?.team?.placeName.default} Team Logo`" />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PlayerCard
+            :player="todaysLoser"
+            imageType="Sad"
+            :isGameLive="isGameLive"
+          />
         </div>
       </template>
 
@@ -58,45 +46,25 @@
         <div v-if="isMirrorMatch" class="text-center">
           <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
         </div>
-        <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
+        <div v-else class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
             <div class="text-center font-bold text-xl mb-2">Champion</div>
-            <v-card class="pb-3 sm:min-w-52">
-              <v-card-text class="flex flex-col justify-center items-center">
-                <router-link :to="`/player/${playerChampion.name}`"><h3>{{ playerChampion?.name }}</h3></router-link>
-                <span><strong>{{ playerChampion?.team?.placeName.default }}</strong></span>
-                <div v-if="isGameLive" class="text-sm">
-                  <div>Score: {{ playerChampion?.team.score }}</div>
-                  <div>SOG: {{ playerChampion?.team.sog }}</div>
-                </div>
-                <div class="avatar">
-                  <img :src="getImage(playerChampion?.name, 'Challenger')" class="-scale-x-100 my-2" :alt="`${playerChampion?.name} Avatar`" />
-                  <div class="team-logo">
-                    <img :src="playerChampion?.team?.logo" :alt="`${playerChampion?.team?.placeName.default} Team Logo`" />
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
+              <PlayerCard
+                :player="playerChampion"
+                imageType="Challenger"
+                :isGameLive="isGameLive"
+                :isChampion="true"
+              />
           </div>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <div>
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
-            <v-card class="pb-3 sm:min-w-52">
-              <v-card-text class="flex flex-col justify-center items-center">
-                <router-link :to="`/player/${playerChallenger.name}`"><h3><span v-if="isMirrorMatch" class="text-sm">Evil </span>{{ playerChallenger?.name }}</h3></router-link>
-                <span><strong>{{ playerChallenger?.team?.placeName.default }}</strong></span>
-                <div v-if="isGameLive" class="text-sm">
-                  <div>Score: {{ playerChallenger?.team.score }}</div>
-                  <div>SOG: {{ playerChallenger?.team.sog }}</div>
-                </div>
-                <div class="avatar">
-                  <img :src="getImage(playerChallenger?.name, 'Challenger')" :class="{'saturate-50 contrast-125 brightness-75': isMirrorMatch}" class="my-2" :alt="`${playerChallenger?.name} Avatar`" />
-                  <div class="team-logo">
-                    <img :src="playerChallenger?.team?.logo" :alt="`${playerChallenger?.team?.placeName.default} Team Logo`" />
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
+              <PlayerCard
+                :player="playerChallenger"
+                imageType="Challenger"
+                :isGameLive="isGameLive"
+                :isMirrorMatch="isMirrorMatch"
+              />
           </div>
         </div>
         <div class="text-center mb-4">
@@ -107,18 +75,12 @@
       <!-- Champion is not defending -->
       <template v-else>
         <div class="flex flex-col justify-center items-center my-4">
-          <v-card class="pb-3">
-            <v-card-title><router-link :to="`/player/${playerChampion.name}`">Champion {{ playerChampion?.name }}</router-link></v-card-title>
-            <v-card-text class="flex flex-col justify-center items-center">
-              <p>is not Defending the Championship Today</p>
-              <div class="relative flex flex-col justify-center items-center text-center my-auto w-52">
-                <img :src="getImage(playerChampion?.name, 'Winner')" class="my-2" :alt="`${playerChampion?.name} Avatar`" />
-                <div class="team-logo">
-                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${playerChampion?.team?.placeName.default} Logo`" />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PlayerCard
+            :player="playerChampion"
+            title="Champion"
+            subtitle="is not Defending the Championship Today"
+            imageType="Winner"
+          />
         </div>
       </template>
     </template>
@@ -130,23 +92,15 @@ import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
+import PlayerCard from '@/components/PlayerCard.vue';
 
 import quotes from '@/utilities/quotes.json';
-import bozWinnerImage from '@/assets/players/boz-winner.png';
-import terryWinnerImage from '@/assets/players/terry-winner.png';
-import cooperWinnerImage from '@/assets/players/cooper-winner.png';
-import ryanWinnerImage from '@/assets/players/ryan-winner.png';
-import bozChallengerImage from '@/assets/players/boz-challenger.png';
-import terryChallengerImage from '@/assets/players/terry-challenger.png';
-import cooperChallengerImage from '@/assets/players/cooper-challenger.png';
-import ryanChallengerImage from '@/assets/players/ryan-challenger.png';
-import bozSadImage from '@/assets/players/boz-sad.png';
-import terrySadImage from '@/assets/players/terry-sad.png';
-import cooperSadImage from '@/assets/players/cooper-sad.png';
-import ryanSadImage from '@/assets/players/ryan-sad.png';
 
 export default {
   name: 'HomePage',
+  components: {
+    PlayerCard,
+  },
   data() {
     return {
       loading: true,
@@ -164,18 +118,6 @@ export default {
       isGameLive: false,
       isMirrorMatch: false,
       gameID: null,
-      bozWinnerImage,
-      terryWinnerImage,
-      cooperWinnerImage,
-      ryanWinnerImage,
-      bozChallengerImage,
-      terryChallengerImage,
-      cooperChallengerImage,
-      ryanChallengerImage,
-      bozSadImage,
-      terrySadImage,
-      cooperSadImage,
-      ryanSadImage,
     };
   },
   async created() {
@@ -217,31 +159,6 @@ export default {
     }
   },
   methods: {
-    getImage(playerName, type) {
-      const images = {
-        Boz: {
-          Winner: this.bozWinnerImage,
-          Challenger: this.bozChallengerImage,
-          Sad: this.bozSadImage,
-        },
-        Terry: {
-          Winner: this.terryWinnerImage,
-          Challenger: this.terryChallengerImage,
-          Sad: this.terrySadImage,
-        },
-        Cooper: {
-          Winner: this.cooperWinnerImage,
-          Challenger: this.cooperChallengerImage,
-          Sad: this.cooperSadImage,
-        },
-        Ryan: {
-          Winner: this.ryanWinnerImage,
-          Challenger: this.ryanChallengerImage,
-          Sad: this.ryanSadImage,
-        },
-      };
-      return images[playerName]?.[type] || null;
-    },
     findPlayerTeam(team, player) {
       if (player?.teams.includes(team)) {
         return team.homeTeam.abbrev === player.teams[0] ? team.homeTeam : team.awayTeam;
@@ -299,10 +216,4 @@ export default {
 </script>
 
 <style>
-.avatar {
-  @apply relative flex flex-col justify-center items-center text-center my-auto w-28 sm:w-52;
-}
-.team-logo {
-  @apply absolute flex align-middle justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
-}
 </style>
