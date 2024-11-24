@@ -55,24 +55,24 @@
         <div class="flex flex-row gap-4 justify-center items-center w-full my-4">
           <div>
             <div class="text-center font-bold text-xl mb-2">Champion</div>
-              <PlayerCard
-                :player="playerChampion"
-                :team="playerChampion.championTeam"
-                imageType="Challenger"
-                :isGameLive="isGameLive"
-                :isChampion="true"
-              />
+            <PlayerCard
+              :player="playerChampion"
+              :team="playerChampion.championTeam"
+              imageType="Challenger"
+              :isGameLive="isGameLive"
+              :isChampion="true"
+            />
           </div>
           <div class="flex justify-center items-center"><strong>VS</strong></div>
           <div>
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
-              <PlayerCard
-                :player="playerChallenger"
-                :team="playerChallenger.challengerTeam"
-                imageType="Challenger"
-                :isGameLive="isGameLive"
-                :isMirrorMatch="isMirrorMatch"
-              />
+            <PlayerCard
+              :player="playerChallenger"
+              :team="playerChallenger.challengerTeam"
+              imageType="Challenger"
+              :isGameLive="isGameLive"
+              :isMirrorMatch="isMirrorMatch"
+            />
           </div>
         </div>
         <div class="text-center mb-4">
@@ -194,8 +194,8 @@ export default {
           }
 
           const getWinningPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysWinner.abbrev));
+          const getLosingPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysLoser.abbrev));
           this.todaysWinner.player = getWinningPlayer;
-          const getLosingPlayer = this.allPlayersData.find(player => player.teams.includes(this.todaysWinner.abbrev));
           this.todaysLoser.player = getLosingPlayer;          
         }
         this.loading = false;
