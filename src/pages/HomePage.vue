@@ -42,8 +42,8 @@
       <!-- Game day -->
       <template v-else-if="isGameToday">
         <div v-if="isGameLive" class="text-center">
-          <div>Period: {{ this.todaysGame.clock.inIntermission ? 'INT' : getPeriod }}</div>
-          <div>Time Remaining: {{ getClockTime }}</div>
+          <div>Period: {{ this.todaysGame.clock.inIntermission ? 'INT' : period }}</div>
+          <div>Time Remaining: {{ clockTime }}</div>
         </div>
         <div v-else class="text-center">
           <h3 class="text-xl font-bold">Game Information</h3>
@@ -91,6 +91,31 @@
             imageType="Winner"
           />
         </div>
+        <div class="text-center mb-4">
+          <h2 class="text-xl font-bold">Possible Upcoming Match-ups</h2>
+          <v-table class="mt-10">
+            <thead>
+              <tr>
+                <th class="text-center"><strong>Home Team</strong></th>
+                <th class="text-center"></th>
+                <th class="text-center"><strong>Away Team</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="game in possibleMatchUps" :key="game.id" class="py-2 text-center h-12">
+                <td class="flex justify-center items-center">
+                  {{getTeamOwner(game.homeTeam.abbrev).name}}
+                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_light.svg`" :alt="game.homeTeam.abbrev" class="w-10 h-10" />
+                </td>
+                <td class="">vs</td>
+                <td class="flex justify-center items-center">
+                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_light.svg`" :alt="game.awayTeam.abbrev" class="w-10 h-10" />
+                  {{getTeamOwner(game.awayTeam.abbrev).name}}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
       </template>
     </template>
   </v-container>
@@ -122,6 +147,7 @@ export default {
       playerChampion: {},
       playerChallenger: {},
       boxScore: {},
+      possibleMatchUps: [],
       secondsRemaining: null,
       isGameToday: false,
       isGameOver: false,
@@ -147,14 +173,15 @@ export default {
     } else {
       // If there is no game today, fetch the current champion info
       this.playerChampion = this.allPlayersData.find(player => player.teams.includes(this.currentChampion));
+      this.getPossibleMatchUps();
       this.loading = false;
     }  
   },
   computed: {
-    getClockTime() {
+    clockTime() {
       return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
     },
-    getPeriod() {
+    period() {
       if (this.todaysGame.periodDescriptor.periodType === 'OT') {
         return 'OT';
       }
@@ -218,6 +245,30 @@ export default {
     getQuote() {
       const randomIndex = Math.floor(Math.random() * quotes.length);
       return quotes[randomIndex];
+    },
+    async getPossibleMatchUps() {
+      const upcomingGames = [];
+      const tomorrow = DateTime.now().plus({days:1}).toFormat('yyyy-MM-dd');
+      const scheduleData = await nhlApi.getSchedule(tomorrow);
+
+      scheduleData.data.gameWeek.forEach(date => {
+        date.games.forEach(game => {
+          const { homeTeam, awayTeam, id } = game;
+          console.log("🚀 ~ getPossibleMatchUps ~ this.currentChampion:", this.currentChampion)
+          if (homeTeam.abbrev === this.currentChampion || awayTeam.abbrev === this.currentChampion) {
+            upcomingGames.push({
+              id: id,
+              homeTeam: homeTeam,
+              awayTeam: awayTeam,
+            });
+          }
+        });
+      });
+      this.possibleMatchUps = upcomingGames;
+    },
+    getTeamOwner(teamAbbrev) {
+      const teamOwner = this.allPlayersData.find(player => player.teams.includes(teamAbbrev));
+      return teamOwner;
     },
   },
 };

@@ -13,9 +13,8 @@ const apiClient = axios.create({
 });
 
 export default {
-  getSchedule() {
-    const getToday = DateTime.now().toFormat('yyyy-MM-dd');
-    return apiClient.get(`/schedule/${getToday}`);
+  getSchedule(date = DateTime.now().toFormat('yyyy-MM-dd')) {
+    return apiClient.get(`/schedule/${date}`);
   },
   getStandings() {
     return apiClient.get('/standings/now');
