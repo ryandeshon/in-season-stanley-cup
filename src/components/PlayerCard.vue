@@ -18,8 +18,11 @@
           }"
           :alt="`${player?.name} Avatar`"
         />
-        <div class="team-logo">
-          <img :src="`https://assets.nhle.com/logos/nhl/svg/${team?.abbrev}_light.svg`" :alt="`${team?.placeName.default} Logo`" />
+        <div v-if="team" class="team-logo">
+          <img :src="`https://assets.nhle.com/logos/nhl/svg/${team.abbrev}_light.svg`" :alt="`${team.placeName.default} Logo`" />
+        </div>
+        <div v-else class="team-logo">
+          <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${currentChampion} Logo`" />
         </div>
       </div>
     </v-card-text>
@@ -65,7 +68,6 @@ export default {
     },
     team: {
       type: Object,
-      required: true,
     },
     subtitle: {
       type: String,
@@ -74,6 +76,10 @@ export default {
     imageType: {
       type: String,
       default: 'Winner',
+    },
+    currentChampion: {
+      type: String,
+      default: '',
     },
     isChampion: {
       type: Boolean,

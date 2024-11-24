@@ -83,9 +83,10 @@
       <!-- Champion is not defending -->
       <template v-else>
         <div class="flex flex-col justify-center items-center my-4">
+          <div class="text-center font-bold text-xl mb-2">Champion</div>
           <PlayerCard
             :player="playerChampion"
-            title="Champion"
+            :currentChampion="currentChampion"
             subtitle="is not Defending the Championship Today"
             imageType="Winner"
           />
