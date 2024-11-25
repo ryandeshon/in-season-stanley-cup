@@ -1,8 +1,8 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
+import { createApp } from 'vue';
+import App from './App.vue';
+import router from './router';
 import vuetify from './plugins/vuetify';
- // Import Tailwind CSS
+// Import Tailwind CSS
 import './assets/tailwind.css';
 // Import global styles
 import '@/assets/_variables.css';

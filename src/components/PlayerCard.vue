@@ -1,15 +1,19 @@
 <template>
   <v-card class="pb-3 sm:min-w-52">
     <v-card-text class="flex flex-col justify-center items-center">
-      <router-link :to="`/player/${player?.name}`"><h3 class="mb-0">{{ player?.name }}</h3></router-link>
-      <p class="text-center" v-if="subtitle">{{ subtitle }}</p>
-      <p v-if="team?.placeName.default" class="mb-1"><strong>{{ team?.placeName.default }}</strong></p>
+      <router-link :to="`/player/${player?.name}`"
+        ><h3 class="mb-0">{{ player?.name }}</h3></router-link
+      >
+      <p v-if="subtitle" class="text-center">{{ subtitle }}</p>
+      <p v-if="team?.placeName.default" class="mb-1">
+        <strong>{{ team?.placeName.default }}</strong>
+      </p>
       <div v-if="isGameLive" class="text-sm">
         <div>Score: {{ team?.score }}</div>
         <div>SOG: {{ team?.sog }}</div>
       </div>
       <div class="avatar">
-        <img 
+        <img
           :src="getImage(player?.name, imageType)"
           class="my-2"
           :class="{
@@ -19,10 +23,16 @@
           :alt="`${player?.name} Avatar`"
         />
         <div v-if="team" class="team-logo">
-          <img :src="`https://assets.nhle.com/logos/nhl/svg/${team.abbrev}_light.svg`" :alt="`${team.placeName.default} Logo`" />
+          <img
+            :src="`https://assets.nhle.com/logos/nhl/svg/${team.abbrev}_light.svg`"
+            :alt="`${team.placeName.default} Logo`"
+          />
         </div>
         <div v-else class="team-logo">
-          <img :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`" :alt="`${currentChampion} Logo`" />
+          <img
+            :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`"
+            :alt="`${currentChampion} Logo`"
+          />
         </div>
       </div>
     </v-card-text>
@@ -45,22 +55,6 @@ import ryanSadImage from '@/assets/players/ryan-sad.png';
 
 export default {
   name: 'PlayerCard',
-  data() {
-    return {
-      bozWinnerImage,
-      terryWinnerImage,
-      cooperWinnerImage,
-      ryanWinnerImage,
-      bozChallengerImage,
-      terryChallengerImage,
-      cooperChallengerImage,
-      ryanChallengerImage,
-      bozSadImage,
-      terrySadImage,
-      cooperSadImage,
-      ryanSadImage,
-    };
-  },
   props: {
     player: {
       type: Object,
@@ -93,6 +87,22 @@ export default {
       type: Boolean,
       default: false,
     },
+  },
+  data() {
+    return {
+      bozWinnerImage,
+      terryWinnerImage,
+      cooperWinnerImage,
+      ryanWinnerImage,
+      bozChallengerImage,
+      terryChallengerImage,
+      cooperChallengerImage,
+      ryanChallengerImage,
+      bozSadImage,
+      terrySadImage,
+      cooperSadImage,
+      ryanSadImage,
+    };
   },
   methods: {
     getImage(playerName, type) {

@@ -26,8 +26,8 @@ async function getCurrentChampion() {
     const result = await dynamoDB.get(params).promise();
     return result.Item ? result.Item.champion : null;
   } catch (error) {
-    console.error("Error retrieving current champion:", error);
-    throw new Error("Failed to retrieve current champion");
+    console.error('Error retrieving current champion:', error);
+    throw new Error('Failed to retrieve current champion');
   }
 }
 
@@ -37,29 +37,37 @@ async function checkGameForChampion(champion) {
   const apiUrl = `${API_URL}/schedule/${todayDate}`; // Replace with the correct endpoint for schedule
 
   return new Promise((resolve, reject) => {
-    https.get(apiUrl, (response) => {
-      let data = '';
-      response.on('data', (chunk) => {
-        data += chunk;
+    https
+      .get(apiUrl, (response) => {
+        let data = '';
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        response.on('end', () => {
+          const jsonData = JSON.parse(data);
+          const gameWeek = jsonData.gameWeek;
+          const todayGames = gameWeek.find(
+            (day) => day.date === todayDate
+          )?.games;
+          if (!todayGames) {
+            return resolve(null);
+          }
+          const game = todayGames.find(
+            (game) =>
+              game.homeTeam.abbrev === champion ||
+              game.awayTeam.abbrev === champion
+          );
+          if (game) {
+            resolve(game.id); // Return the game ID
+          } else {
+            resolve(null);
+          }
+        });
+      })
+      .on('error', (e) => {
+        console.error('API Request Error:', e);
+        reject(e);
       });
-      response.on('end', () => {
-        const jsonData = JSON.parse(data);
-        const gameWeek = jsonData.gameWeek;
-        const todayGames = gameWeek.find(day => day.date === todayDate)?.games;
-        if (!todayGames) {
-          return resolve(null);
-        }
-        const game = todayGames.find( game => game.homeTeam.abbrev === champion || game.awayTeam.abbrev === champion);        
-        if (game) {
-          resolve(game.id); // Return the game ID
-        } else {
-          resolve(null);
-        }
-      });
-    }).on('error', (e) => {
-      console.error('API Request Error:', e);
-      reject(e);
-    });
   });
 }
 
@@ -79,7 +87,7 @@ export const handler = async (event) => {
   try {
     const champion = await getCurrentChampion();
     if (!champion) {
-      throw new Error("No current champion found in the database");
+      throw new Error('No current champion found in the database');
     }
 
     // Check if there's a game for the champion today
@@ -97,10 +105,17 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: gameID ? `Game ID ${gameID} saved for champion ${champion}` : `No game scheduled for champion ${champion} today` }),
+      body: JSON.stringify({
+        message: gameID
+          ? `Game ID ${gameID} saved for champion ${champion}`
+          : `No game scheduled for champion ${champion} today`,
+      }),
     };
   } catch (error) {
     console.error('Error:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to process request' }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to process request' }),
+    };
   }
 };

@@ -7,17 +7,17 @@ export const getPlayerData = async (playerName) => {
     IndexName: 'NameIndex',
     KeyConditionExpression: '#n = :name', // Use a placeholder for `name`
     ExpressionAttributeNames: {
-      '#n': 'name',                       // Define `#n` as the placeholder for `name`
+      '#n': 'name', // Define `#n` as the placeholder for `name`
     },
     ExpressionAttributeValues: {
-      ':name': playerName,                // Bind the playerName parameter to `:name`
+      ':name': playerName, // Bind the playerName parameter to `:name`
     },
   };
 
   try {
     const data = await dynamodb.query(params).promise();
     console.log('Player data:', data.Items[0]); // Log and return the first matched item
-    return data.Items[0];                       // Assuming `name` is unique, return the first result
+    return data.Items[0]; // Assuming `name` is unique, return the first result
   } catch (error) {
     console.error('Error fetching player data:', error);
     throw error;
@@ -27,7 +27,7 @@ export const getPlayerData = async (playerName) => {
 // Function to get all players
 export const getAllPlayers = async () => {
   const params = {
-    TableName: 'Players'
+    TableName: 'Players',
   };
 
   try {
@@ -41,7 +41,7 @@ export const getAllPlayers = async () => {
 
 export const getGameRecords = async () => {
   const params = {
-    TableName: 'GameRecords'
+    TableName: 'GameRecords',
   };
 
   try {
@@ -57,18 +57,24 @@ export const getGameRecords = async () => {
 export const updatePlayerAttributes = async (playerName, updatedAttributes) => {
   // Construct the UpdateExpression and ExpressionAttributeValues dynamically
   const updateExpression = Object.keys(updatedAttributes)
-    .map(attr => `#${attr} = :${attr}`)
+    .map((attr) => `#${attr} = :${attr}`)
     .join(', ');
 
-  const expressionAttributeNames = Object.keys(updatedAttributes).reduce((acc, attr) => {
-    acc[`#${attr}`] = attr;
-    return acc;
-  }, {});
+  const expressionAttributeNames = Object.keys(updatedAttributes).reduce(
+    (acc, attr) => {
+      acc[`#${attr}`] = attr;
+      return acc;
+    },
+    {}
+  );
 
-  const expressionAttributeValues = Object.keys(updatedAttributes).reduce((acc, attr) => {
-    acc[`:${attr}`] = updatedAttributes[attr];
-    return acc;
-  }, {});
+  const expressionAttributeValues = Object.keys(updatedAttributes).reduce(
+    (acc, attr) => {
+      acc[`:${attr}`] = updatedAttributes[attr];
+      return acc;
+    },
+    {}
+  );
 
   // Define the DynamoDB update parameters
   const params = {

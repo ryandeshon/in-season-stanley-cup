@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
-    "./src/**/*.{vue,js,ts,jsx,tsx}", // This tells Tailwind to look for classes in these files
+    './src/**/*.{vue,js,ts,jsx,tsx}', // This tells Tailwind to look for classes in these files
   ],
   theme: {
     extend: {},

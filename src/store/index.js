@@ -11,7 +11,7 @@ export const useCupStore = defineStore('cup', {
       this.cupHolder = team;
     },
     updateStandings(user, daysHeld) {
-      const player = this.standings.find(p => p.user === user);
+      const player = this.standings.find((p) => p.user === user);
       if (player) {
         player.daysHeld += daysHeld;
       } else {
@@ -27,15 +27,15 @@ import App from './App.vue';
 import router from './router';
 import { createGtag } from 'vue-gtag-next';
 
-
 const app = createApp(App);
 
 // Set up Google Analytics with vue-gtag
 app.use(
-  createGtag, {
+  createGtag,
+  {
     property: {
-      id: 'G-KPL5ZVDJC7'  // Replace with your actual Measurement ID
-    }
+      id: 'G-KPL5ZVDJC7', // Replace with your actual Measurement ID
+    },
   },
   router // Optional: pass router to track page views automatically
 );
