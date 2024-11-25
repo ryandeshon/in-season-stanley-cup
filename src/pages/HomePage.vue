@@ -91,26 +91,34 @@
             imageType="Winner"
           />
         </div>
-        <div class="text-center mb-4">
+
+        <template v-if="potentialLoading">
+          <div class="flex justify-center items-center mt-10 h-40">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+          </div>
+        </template>
+        <div v-else class="text-center mb-4">
           <h2 class="text-xl font-bold">Possible Upcoming Match-ups</h2>
           <v-table class="mt-10">
             <thead>
               <tr>
+                <th class="text-center"><strong>Date</strong></th>
                 <th class="text-center"><strong>Home Team</strong></th>
                 <th class="text-center"></th>
                 <th class="text-center"><strong>Away Team</strong></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="game in possibleMatchUps" :key="game.id" class="py-2 text-center h-12">
-                <td class="flex justify-center items-center">
-                  {{getTeamOwner(game.homeTeam.abbrev).name}}
-                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_light.svg`" :alt="game.homeTeam.abbrev" class="w-10 h-10" />
+              <tr v-for="game in possibleMatchUps" :key="game.id" class="py-2">
+                <td class="text-center">{{ game.dateTime }}</td>
+                <td>
+                  <div class="flex flex-col-reverse sm:flex-row sm:gap-2 justify-center items-center">{{getTeamOwner(game.homeTeam.abbrev).name}}
+                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_light.svg`" :alt="game.homeTeam.abbrev" class="w-10 h-10" /></div>
                 </td>
                 <td class="">vs</td>
-                <td class="flex justify-center items-center">
-                  <img :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_light.svg`" :alt="game.awayTeam.abbrev" class="w-10 h-10" />
-                  {{getTeamOwner(game.awayTeam.abbrev).name}}
+                <td>
+                  <div class="flex flex-col sm:flex-row sm:gap-2 justify-center items-center"><img :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_light.svg`" :alt="game.awayTeam.abbrev" class="w-10 h-10" />
+                  {{getTeamOwner(game.awayTeam.abbrev).name}}</div>
                 </td>
               </tr>
             </tbody>
@@ -138,6 +146,7 @@ export default {
   data() {
     return {
       loading: true,
+      potentialLoading: true,
       currentChampion: null,
       localStartTime: null,
       todaysGame: {},
@@ -253,18 +262,19 @@ export default {
 
       scheduleData.data.gameWeek.forEach(date => {
         date.games.forEach(game => {
-          const { homeTeam, awayTeam, id } = game;
-          console.log("🚀 ~ getPossibleMatchUps ~ this.currentChampion:", this.currentChampion)
+          const { id, homeTeam, awayTeam, startTimeUTC } = game;
           if (homeTeam.abbrev === this.currentChampion || awayTeam.abbrev === this.currentChampion) {
             upcomingGames.push({
               id: id,
               homeTeam: homeTeam,
               awayTeam: awayTeam,
+              dateTime: DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
             });
           }
         });
       });
       this.possibleMatchUps = upcomingGames;
+      this.potentialLoading = false
     },
     getTeamOwner(teamAbbrev) {
       const teamOwner = this.allPlayersData.find(player => player.teams.includes(teamAbbrev));

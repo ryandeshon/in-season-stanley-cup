@@ -36,7 +36,10 @@
     </v-container>
     <v-container v-if="gameDetails?.gameState !== 'FUT'" class="max-w-screen-xl">
       <v-row class="mt-4">
-        <v-col cols="6">
+        <v-col 
+          cols="12"
+          sm="6"
+        >
           <h3 class="text-xl font-bold text-center">Away Team Players</h3>
           <v-data-table-virtual
               class="mb-4"
@@ -64,7 +67,10 @@
               </template>
             </v-data-table-virtual>
         </v-col>
-        <v-col cols="6">
+        <v-col 
+          cols="12"
+          sm="6"
+        >
           <h3 class="text-xl font-bold text-center">Home Team Players</h3>
           <v-data-table-virtual
               class="mb-4"
