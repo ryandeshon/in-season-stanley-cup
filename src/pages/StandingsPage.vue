@@ -7,30 +7,32 @@
         <v-progress-circular indeterminate color="primary"></v-progress-circular>
       </div>
     </template>
-    <v-table v-else>
-      <thead>
-        <tr>
-          <th class="text-left">Player</th>
-          <th class="text-center">Teams</th>
-          <th class="text-left">Title Defenses</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(standing, index) in allPlayersData" :key="standing.name" :class="{'bg-amber-200': index === 0}" class="py-2">
-          <td class="text-left font-bold">
-            <router-link :to="`/player/${standing.name}`">{{ standing.name }}</router-link>
-            <span v-if="standing.name === currentChampion.name" class="ml-1">👑</span>
-          </td>
-          <td class="flex flex-wrap justify-center items-center">
-            <div v-for="team in standing.teams" :key="team">
-              <img :src="`https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`" :alt="team" class="w-6 h-6" />
-            </div>
-          </td>
-          <td class="text-left">{{ standing.titleDefenses }}</td>
-        </tr>
-      </tbody>
-    </v-table>
-    <div class="text-sm mt-2">👑 = Current Champion</div>
+    <div v-else>
+      <v-table>
+        <thead>
+          <tr>
+            <th class="text-left">Player</th>
+            <th class="text-center">Teams</th>
+            <th class="text-left">Title Defenses</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(standing, index) in allPlayersData" :key="standing.name" :class="{'bg-amber-200': index === 0}" class="py-2">
+            <td class="text-left font-bold">
+              <router-link :to="`/player/${standing.name}`">{{ standing.name }}</router-link>
+              <span v-if="standing.name === currentChampion.name" class="ml-1">👑</span>
+            </td>
+            <td class="flex flex-wrap justify-center items-center">
+              <div v-for="team in standing.teams" :key="team">
+                <img :src="`https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`" :alt="team" class="w-6 h-6" />
+              </div>
+            </td>
+            <td class="text-left">{{ standing.titleDefenses }}</td>
+          </tr>
+        </tbody>
+      </v-table>
+      <div class="text-sm mt-2">👑 = Current Champion</div>
+    </div>
   </v-container>
 </template>
 
