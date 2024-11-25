@@ -19,6 +19,7 @@
         <tr v-for="(standing, index) in allPlayersData" :key="standing.name" :class="{'bg-amber-200': index === 0}" class="py-2">
           <td class="text-left font-bold">
             <router-link :to="`/player/${standing.name}`">{{ standing.name }}</router-link>
+            <span v-if="standing.name === currentChampion.name" class="ml-1">👑</span>
           </td>
           <td class="flex flex-wrap justify-center items-center">
             <div v-for="team in standing.teams" :key="team">
@@ -29,11 +30,13 @@
         </tr>
       </tbody>
     </v-table>
+    <div class="text-sm mt-2">👑 = Current Champion</div>
   </v-container>
 </template>
 
 <script>
 import { getAllPlayers } from '../services/dynamodbService';
+import { getCurrentChampion } from '../services/championServices';
 
 export default {
 
@@ -42,12 +45,15 @@ export default {
     return {
       loading: true,
       allPlayersData: null,
+      currentChampion: null,
     };
   },
   async mounted() {
     try {
+      const currentChampionTeam = await getCurrentChampion();
       const data = await getAllPlayers();
       this.allPlayersData = data.sort((a, b) => b.titleDefenses - a.titleDefenses);
+      this.currentChampion = this.allPlayersData.find(player => player.teams.includes(currentChampionTeam));
       this.loading = false;
     } catch (error) {
       console.error('Error fetching player data:', error);
