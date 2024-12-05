@@ -62,6 +62,7 @@ export default {
     },
     team: {
       type: Object,
+      default: null,
     },
     subtitle: {
       type: String,

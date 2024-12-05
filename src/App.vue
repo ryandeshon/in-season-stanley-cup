@@ -32,11 +32,12 @@
 </template>
 
 <script>
+import logo from '@/assets/in-season-logo.png';
 export default {
   name: 'App',
   data() {
     return {
-      logo: require('@/assets/in-season-logo.png'),
+      logo: logo,
     };
   },
 };
