@@ -27,7 +27,7 @@
             </div>
             <div>
               Winner: <strong>{{ todaysWinner.player.name }}</strong> -
-              {{ todaysWinner.name.default }}
+              {{ todaysWinner.commonName.default }}
             </div>
           </div>
         </div>
