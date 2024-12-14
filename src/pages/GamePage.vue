@@ -16,7 +16,7 @@
           ></v-img>
           <h2 class="text-2xl font-bold">
             {{ gameDetails.awayTeam.placeName.default }}
-            {{ gameDetails.awayTeam.name.default }}
+            {{ gameDetails.awayTeam.commonName.default }}
           </h2>
           <template v-if="gameDetails?.gameState !== 'FUT'">
             <p>Score: {{ gameDetails.awayTeam.score }}</p>
@@ -31,7 +31,7 @@
           ></v-img>
           <h2 class="text-2xl font-bold">
             {{ gameDetails.homeTeam.placeName.default }}
-            {{ gameDetails.homeTeam.name.default }}
+            {{ gameDetails.homeTeam.commonName.default }}
           </h2>
           <template v-if="gameDetails?.gameState !== 'FUT'">
             <p>Score: {{ gameDetails.homeTeam.score }}</p>

@@ -157,7 +157,7 @@ export default {
 
       // Save the manipulated data into data properties
       this.allGamesPlayed = games;
-      this.playersGamesPlayed = filteredGames.sort((a, b) => a.id - b.id);
+      this.playersGamesPlayed = filteredGames.sort((a, b) => b.id - a.id);
     } catch (error) {
       console.error('Error fetching player data:', error);
     }
