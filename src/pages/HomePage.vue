@@ -258,8 +258,8 @@ export default {
     try {
       this.currentChampion = await getCurrentChampion();
       this.gameID = await getGameId();
-      this.currentChampion = 'NYR';
-      this.gameID = '2024020247';
+      // this.currentChampion = 'NYR';
+      // this.gameID = '2024020247';
       this.allPlayersData = await getAllPlayers();
       // console.log("🚀 ~ created ~ this.allPlayersData:", this.allPlayersData)
     } catch (error) {
