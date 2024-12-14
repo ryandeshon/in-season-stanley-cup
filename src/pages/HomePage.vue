@@ -33,7 +33,7 @@
         </div>
 
         <div
-          class="flex flex-row gap-4 justify-center items-center w-full my-4"
+          class="grid gap-4 grid-cols-2 justify-start items-start w-full my-4"
         >
           <PlayerCard
             :player="todaysWinner.player"
@@ -41,15 +41,25 @@
             image-type="Winner"
             :is-game-live="isGameLive"
           />
-          <div class="flex justify-center items-center">
-            <strong>VS</strong>
+          <div>
+            <PlayerCard
+              :player="todaysLoser.player"
+              :team="todaysLoser"
+              image-type="Sad"
+              :is-game-live="isGameLive"
+            />
+            <div v-if="firstGameNonChampionTeam" class="next-game-info mt-2">
+              <p class="text-lg font-bold mb-1">Next Game:</p>
+              <p class="">
+                {{ firstGameNonChampionTeam.date }}
+              </p>
+              <PlayerCard
+                :player="firstGameNonChampionTeam.player"
+                :team="firstGameNonChampionTeam.team"
+                image-type="Challenger"
+              />
+            </div>
           </div>
-          <PlayerCard
-            :player="todaysLoser.player"
-            :team="todaysLoser"
-            image-type="Sad"
-            :is-game-live="isGameLive"
-          />
         </div>
       </template>
 
@@ -218,6 +228,24 @@ export default {
       }
       return this.todaysGame.periodDescriptor.number;
     },
+    firstGameNonChampionTeam() {
+      if (this.possibleMatchUps.length === 0) {
+        return null;
+      }
+      const firstGame = this.possibleMatchUps[0];
+      const nonChampionTeam =
+        firstGame.homeTeam.abbrev === this.currentChampion
+          ? firstGame.awayTeam
+          : firstGame.homeTeam;
+      const player = this.allPlayersData.find((player) =>
+        player.teams.includes(nonChampionTeam.abbrev)
+      );
+      return {
+        date: firstGame.dateTime,
+        team: nonChampionTeam,
+        player: player,
+      };
+    },
   },
   watch: {
     'todaysGame.clock.secondsRemaining': function (newVal) {
@@ -230,14 +258,15 @@ export default {
     try {
       this.currentChampion = await getCurrentChampion();
       this.gameID = await getGameId();
-      // this.currentChampion = "NYR";
-      // this.gameID = '2024020247';
+      this.currentChampion = 'NYR';
+      this.gameID = '2024020247';
       this.allPlayersData = await getAllPlayers();
       // console.log("🚀 ~ created ~ this.allPlayersData:", this.allPlayersData)
     } catch (error) {
       console.error('Error fetching getCurrentChampion or getGameId:', error);
     }
     this.isGameToday = this.gameID !== null;
+    this.getPossibleMatchUps();
     if (this.isGameToday) {
       this.getGameInfo();
     } else {
@@ -245,7 +274,6 @@ export default {
       this.playerChampion = this.allPlayersData.find((player) =>
         player.teams.includes(this.currentChampion)
       );
-      this.getPossibleMatchUps();
       this.loading = false;
     }
   },
