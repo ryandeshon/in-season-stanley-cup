@@ -82,6 +82,32 @@
               </tr>
             </template>
           </v-data-table-virtual>
+          <h3 class="text-xl font-bold text-center">Away Team Goalies</h3>
+          <v-data-table-virtual
+            class="mb-4"
+            :items="awayTeamGoalies"
+            :headers="[
+              { key: 'sweaterNumber', title: '#' },
+              { key: 'name', title: 'Name' },
+              { key: 'shotsAgainst', title: 'SA' },
+              { key: 'saves', title: 'SV' },
+              { key: 'goalsAgainst', title: 'GA' },
+              { key: 'savePctg', title: 'SV%' },
+              { key: 'toi', title: 'TOI' },
+            ]"
+          >
+            <template #item="{ item, index }">
+              <tr :data-test="`index-${index}`">
+                <td>{{ item.sweaterNumber }}</td>
+                <td>{{ item.name.default }}</td>
+                <td>{{ item.shotsAgainst }}</td>
+                <td>{{ item.saves }}</td>
+                <td>{{ item.goalsAgainst }}</td>
+                <td>{{ item.savePctg }}</td>
+                <td>{{ item.toi }}</td>
+              </tr>
+            </template>
+          </v-data-table-virtual>
         </v-col>
         <v-col cols="12" sm="6">
           <h3 class="text-xl font-bold text-center">Home Team Players</h3>
@@ -110,6 +136,32 @@
               </tr>
             </template>
           </v-data-table-virtual>
+          <h3 class="text-xl font-bold text-center">Home Team Goalies</h3>
+          <v-data-table-virtual
+            class="mb-4"
+            :items="homeTeamGoalies"
+            :headers="[
+              { key: 'sweaterNumber', title: '#' },
+              { key: 'name', title: 'Name' },
+              { key: 'shotsAgainst', title: 'SA' },
+              { key: 'saves', title: 'SV' },
+              { key: 'goalsAgainst', title: 'GA' },
+              { key: 'savePctg', title: 'SV%' },
+              { key: 'toi', title: 'TOI' },
+            ]"
+          >
+            <template #item="{ item, index }">
+              <tr :data-test="`index-${index}`">
+                <td>{{ item.sweaterNumber }}</td>
+                <td>{{ item.name.default }}</td>
+                <td>{{ item.shotsAgainst }}</td>
+                <td>{{ item.saves }}</td>
+                <td>{{ item.goalsAgainst }}</td>
+                <td>{{ item.savePctg }}</td>
+                <td>{{ item.toi }}</td>
+              </tr>
+            </template>
+          </v-data-table-virtual>
         </v-col>
       </v-row>
     </v-container>
@@ -129,7 +181,9 @@ export default {
       gameDetails: null,
       localStartTime: null,
       homeTeamPlayers: [],
+      homeTeamGoalies: [],
       awayTeamPlayers: [],
+      awayTeamGoalies: [],
     };
   },
   async created() {
@@ -144,10 +198,14 @@ export default {
         this.gameDetails.playerByGameStats.homeTeam.forwards.concat(
           this.gameDetails.playerByGameStats.homeTeam.defense
         );
+      this.homeTeamGoalies =
+        this.gameDetails.playerByGameStats.homeTeam.goalies;
       this.awayTeamPlayers =
         this.gameDetails.playerByGameStats.awayTeam.forwards.concat(
           this.gameDetails.playerByGameStats.awayTeam.defense
         );
+      this.awayTeamGoalies =
+        this.gameDetails.playerByGameStats.awayTeam.goalies;
 
       console.log('🚀 ~ created ~ this.gameDetails:', this.gameDetails);
     } catch (error) {
