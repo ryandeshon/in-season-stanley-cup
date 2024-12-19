@@ -23,7 +23,7 @@
               <span>Championships: {{ player.championships }}</span>
             </v-card-text>
           </v-card>
-          <div v-if="playersGamesPlayed" class="my-10">
+          <div v-if="playersGamesPlayed" class="mt-5 grid gap-5">
             <v-table>
               <thead>
                 <tr>
@@ -32,11 +32,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="game in playersGamesPlayed"
-                  :key="game.id"
-                  class="py-2"
-                >
+                <tr v-for="game in displayedGames" :key="game.id" class="py-2">
                   <td
                     class="text-center flex gap-2 justify-center items-center"
                   >
@@ -73,7 +69,13 @@
                 </tr>
               </tbody>
             </v-table>
-            <v-table class="mt-10">
+            <v-btn
+              @click="loadMore"
+              v-if="displayedGames.length < playersGamesPlayed.length"
+            >
+              Load More
+            </v-btn>
+            <v-table>
               <thead>
                 <tr>
                   <th class="text-center">Team</th>
@@ -120,12 +122,15 @@ import ryanWinnerImage from '@/assets/players/ryan-winner.png';
 
 export default {
   name: 'PlayerProfile',
-  props: ['name'], // Accept the player name as a prop
+  props: ['name'],
   data() {
     return {
       player: null,
       allGamesPlayed: null,
       playersGamesPlayed: null,
+      currentPage: 1,
+      itemsPerPage: 5,
+      displayedGames: [],
       bozWinnerImage,
       terryWinnerImage,
       cooperWinnerImage,
@@ -141,6 +146,14 @@ export default {
         Ryan: this.ryanWinnerImage,
       };
       return avatarImages[this.player?.name] || null;
+    },
+    paginatedGames() {
+      if (!this.playersGamesPlayed) {
+        return [];
+      }
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.playersGamesPlayed?.slice(start, end);
     },
   },
   async created() {
@@ -186,6 +199,27 @@ export default {
       return this.playersGamesPlayed.filter((game) => game.lTeam === team)
         .length;
     },
+    loadMore() {
+      if (!this.playersGamesPlayed) {
+        return;
+      }
+      const start = this.displayedGames.length;
+      const end = start + this.itemsPerPage;
+      this.displayedGames = this.displayedGames.concat(
+        this.playersGamesPlayed.slice(start, end)
+      );
+      this.currentPage++;
+    },
+  },
+  watch: {
+    playersGamesPlayed(newVal) {
+      if (newVal && this.displayedGames.length === 0) {
+        this.loadMore(); // Load the first set of games when playersGamesPlayed is loaded
+      }
+    },
+  },
+  mounted() {
+    this.loadMore(); // Load the first set of games when the component is mounted
   },
 };
 </script>
