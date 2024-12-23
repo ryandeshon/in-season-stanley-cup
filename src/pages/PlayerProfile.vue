@@ -70,8 +70,8 @@
               </tbody>
             </v-table>
             <v-btn
-              @click="loadMore"
               v-if="displayedGames.length < playersGamesPlayed.length"
+              @click="loadMore"
             >
               Load More
             </v-btn>

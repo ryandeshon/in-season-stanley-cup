@@ -23,7 +23,7 @@
     </v-main>
 
     <!-- Footer -->
-    <v-footer app color="primary" dark>
+    <v-footer app color="primary">
       <span class="mx-auto"
         >© {{ new Date().getFullYear() }} In Season Cup</span
       >

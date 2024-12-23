@@ -21,9 +21,8 @@
         </thead>
         <tbody>
           <tr
-            v-for="(standing, index) in allPlayersData"
+            v-for="standing in allPlayersData"
             :key="standing.name"
-            :class="{ 'bg-amber-200': index === 0 }"
             class="py-2"
           >
             <td class="text-left font-bold">
