@@ -1,19 +1,21 @@
 <template>
   <v-app>
     <!-- App Bar / Navigation Bar -->
-    <v-app-bar app color="primary" dark class="px-2">
-      <v-toolbar-title>
-        <a href="/"
-          ><img
-            :src="logo"
-            alt="In Season Cup Logo"
-            class="hover:cursor-pointer mr-2 h-10"
-        /></a>
-      </v-toolbar-title>
+    <v-app-bar app color="primary" class="px-2" scroll-behavior="hide">
+      <router-link to="/" class="mr-2 h-10">
+        <img :src="logo" alt="In Season Cup Logo" class="h-10" />
+      </router-link>
       <v-spacer></v-spacer>
       <div class="flex gap-1">
         <v-btn text to="/standings">Standings</v-btn>
         <v-btn text to="/about">About</v-btn>
+        <v-spacer></v-spacer>
+        <v-btn
+          :icon="isDarkTheme ? 'mdi-lightbulb-outline' : 'mdi-lightbulb'"
+          size="small"
+          text
+          @click="toggleTheme"
+        />
       </div>
     </v-app-bar>
 
@@ -31,15 +33,16 @@
   </v-app>
 </template>
 
-<script>
+<script setup>
+import { computed } from 'vue';
+import { useTheme } from 'vuetify';
 import logo from '@/assets/in-season-logo.png';
-export default {
-  name: 'App',
-  data() {
-    return {
-      logo: logo,
-    };
-  },
+
+const theme = useTheme();
+const isDarkTheme = computed(() => theme.global.name.value === 'dark');
+
+const toggleTheme = () => {
+  theme.global.name.value = isDarkTheme.value ? 'light' : 'dark';
 };
 </script>
 

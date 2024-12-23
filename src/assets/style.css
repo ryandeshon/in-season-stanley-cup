@@ -1,8 +1,6 @@
 /* Base styles */
 .v-application {
   font-family: var(--font-body);
-  background-color: var(--color-background);
-  color: var(--color-text);
   margin: 0;
   padding: 0;
   line-height: var(--line-height);
@@ -12,7 +10,6 @@ body {
   padding: 0;
   line-height: var(--line-height);
 }
-
 /* Headings */
 h1,
 h2,
@@ -21,72 +18,58 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
-  color: var(--color-heading);
+  color: var(--v-theme-primary);
   text-transform: var(--heading-transform);
   margin: 0 0 15px;
 }
 
 h1 {
-  font-size: 2.5em;
-  border-bottom: 3px solid var(--color-heading);
+  border-bottom: 5px solid;
   padding-bottom: 10px;
-  margin-bottom: 20px;
 }
 
 h2 {
-  font-size: 2em;
-  border-bottom: 2px solid var(--color-subheading);
+  border-bottom: 2px solid;
   padding-bottom: 8px;
-  margin-bottom: 18px;
 }
 
 h3 {
-  font-size: 1.75em;
-  color: var(--color-subheading);
+  color: var(--v-theme-secondary);
 }
 
 h4,
 h5,
 h6 {
-  font-size: 1.5em;
-  color: var(--color-subheading);
+  color: var(--v-theme-secondary);
 }
 
 /* Paragraphs */
 p {
   font-size: 1em;
   margin: 0 0 20px;
-  color: var(--color-text);
+  color: var(--v-theme-primary);
 }
 
 /* Links */
 a {
-  color: var(--color-link);
+  color: var(--v-theme-primary);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-link-hover);
+  color: var(--v-theme-primary-hover);
   text-decoration: underline;
 }
 
 /* Buttons */
-button {
-  font-family: var(--font-heading);
-  font-size: 1em;
-  font-weight: 700;
-  text-transform: var(--heading-transform);
-  background-color: var(--color-button);
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: var(--border-radius);
+.v-btn,
+.v-btn:hover {
+  text-decoration: none !important;
 }
 
 /* Additional touches for hockey theme */
 blockquote {
-  border-left: 4px solid var(--color-heading);
+  border-left: 4px solid var(--v-theme-primary);
   padding-left: 15px;
   font-style: italic;
   color: #666;

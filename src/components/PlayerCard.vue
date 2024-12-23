@@ -2,7 +2,7 @@
   <v-card class="pb-3 sm:min-w-52">
     <v-card-text class="flex flex-col justify-center items-center">
       <router-link :to="`/player/${player?.name}`"
-        ><h3 class="mb-0">{{ player?.name }}</h3></router-link
+        ><h3 class="text-xl font-bold mb-0">{{ player?.name }}</h3></router-link
       >
       <p v-if="subtitle" class="text-center">{{ subtitle }}</p>
       <p v-if="team?.placeName.default" class="mb-1">
