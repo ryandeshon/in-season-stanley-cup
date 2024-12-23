@@ -37,13 +37,13 @@
                     class="text-center flex gap-2 justify-center items-center"
                   >
                     <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.wTeam}_light.svg`"
+                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.wTeam}_${isDarkOrLight}.svg`"
                       :alt="game.wTeam"
                       class="w-6 h-6"
                     />
                     vs.
                     <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.lTeam}_light.svg`"
+                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.lTeam}_${isDarkOrLight}.svg`"
                       :alt="game.lTeam"
                       class="w-6 h-6"
                     />
@@ -55,7 +55,7 @@
                     >
                       <img
                         v-if="getResults(game).team"
-                        :src="`https://assets.nhle.com/logos/nhl/svg/${getResults(game).team}_light.svg`"
+                        :src="`https://assets.nhle.com/logos/nhl/svg/${getResults(game).team}_${isDarkOrLight}.svg`"
                         :alt="game.wTeam"
                         class="w-6 h-6"
                       />
@@ -88,7 +88,7 @@
                     class="text-center flex gap-2 justify-center items-center"
                   >
                     <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`"
+                      :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
                       :alt="team"
                       class="w-10 h-10"
                     />
@@ -112,114 +112,105 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue';
 import { getPlayerData, getGameRecords } from '../services/dynamodbService';
+import { useTheme } from 'vuetify';
 
 import bozWinnerImage from '@/assets/players/boz-winner.png';
 import terryWinnerImage from '@/assets/players/terry-winner.png';
 import cooperWinnerImage from '@/assets/players/cooper-winner.png';
 import ryanWinnerImage from '@/assets/players/ryan-winner.png';
 
-export default {
-  name: 'PlayerProfile',
-  props: ['name'],
-  data() {
-    return {
-      player: null,
-      allGamesPlayed: null,
-      playersGamesPlayed: null,
-      currentPage: 1,
-      itemsPerPage: 5,
-      displayedGames: [],
-      bozWinnerImage,
-      terryWinnerImage,
-      cooperWinnerImage,
-      ryanWinnerImage,
-    };
-  },
-  computed: {
-    avatarImage() {
-      const avatarImages = {
-        Boz: this.bozWinnerImage,
-        Terry: this.terryWinnerImage,
-        Cooper: this.cooperWinnerImage,
-        Ryan: this.ryanWinnerImage,
-      };
-      return avatarImages[this.player?.name] || null;
-    },
-    paginatedGames() {
-      if (!this.playersGamesPlayed) {
-        return [];
-      }
-      const start = (this.currentPage - 1) * this.itemsPerPage;
-      const end = start + this.itemsPerPage;
-      return this.playersGamesPlayed?.slice(start, end);
-    },
-  },
-  async created() {
-    try {
-      this.player = await getPlayerData(this.name); // Fetch the player data by name
-      const games = await getGameRecords();
+const props = defineProps(['name']);
 
-      // Manipulate the data as needed
-      const filteredGames = games.filter(
-        (game) =>
-          this.player.teams.includes(game.lTeam) ||
-          this.player.teams.includes(game.wTeam)
-      );
+const theme = useTheme();
+const isDarkOrLight = theme.global.name.value;
 
-      // Save the manipulated data into data properties
-      this.allGamesPlayed = games;
-      this.playersGamesPlayed = filteredGames.sort((a, b) => b.id - a.id);
-    } catch (error) {
-      console.error('Error fetching player data:', error);
-    }
-  },
-  methods: {
-    getResults(game) {
-      if (
-        this.player.teams.includes(game.lTeam) &&
-        this.player.teams.includes(game.wTeam)
-      ) {
-        return { team: null, result: 'Mirror Match' };
-      }
+const player = ref(null);
+const allGamesPlayed = ref(null);
+const playersGamesPlayed = ref(null);
+const currentPage = ref(1);
+const itemsPerPage = ref(5);
+const displayedGames = ref([]);
+const bozWinnerImageRef = ref(bozWinnerImage);
+const terryWinnerImageRef = ref(terryWinnerImage);
+const cooperWinnerImageRef = ref(cooperWinnerImage);
+const ryanWinnerImageRef = ref(ryanWinnerImage);
 
-      if (this.player.teams.includes(game.lTeam)) {
-        return { team: game.lTeam, result: 'Loss' };
-      } else if (this.player.teams.includes(game.wTeam)) {
-        return { team: game.wTeam, result: 'Win' };
-      }
-      return { team: 'Unknown', result: 'Unknown' };
-    },
-    getWins(team) {
-      return this.playersGamesPlayed.filter((game) => game.wTeam === team)
-        .length;
-    },
-    getLosses(team) {
-      return this.playersGamesPlayed.filter((game) => game.lTeam === team)
-        .length;
-    },
-    loadMore() {
-      if (!this.playersGamesPlayed) {
-        return;
-      }
-      const start = this.displayedGames.length;
-      const end = start + this.itemsPerPage;
-      this.displayedGames = this.displayedGames.concat(
-        this.playersGamesPlayed.slice(start, end)
-      );
-      this.currentPage++;
-    },
-  },
-  watch: {
-    playersGamesPlayed(newVal) {
-      if (newVal && this.displayedGames.length === 0) {
-        this.loadMore(); // Load the first set of games when playersGamesPlayed is loaded
-      }
-    },
-  },
-  mounted() {
-    this.loadMore(); // Load the first set of games when the component is mounted
-  },
+const avatarImage = computed(() => {
+  const avatarImages = {
+    Boz: bozWinnerImageRef.value,
+    Terry: terryWinnerImageRef.value,
+    Cooper: cooperWinnerImageRef.value,
+    Ryan: ryanWinnerImageRef.value,
+  };
+  return avatarImages[player.value?.name] || null;
+});
+
+const loadMore = () => {
+  if (!playersGamesPlayed.value) {
+    return;
+  }
+  const start = displayedGames.value.length;
+  const end = start + itemsPerPage.value;
+  displayedGames.value = displayedGames.value.concat(
+    playersGamesPlayed.value.slice(start, end)
+  );
+  currentPage.value++;
 };
+
+const getResults = (game) => {
+  if (
+    player.value.teams.includes(game.lTeam) &&
+    player.value.teams.includes(game.wTeam)
+  ) {
+    return { team: null, result: 'Mirror Match' };
+  }
+
+  if (player.value.teams.includes(game.lTeam)) {
+    return { team: game.lTeam, result: 'Loss' };
+  } else if (player.value.teams.includes(game.wTeam)) {
+    return { team: game.wTeam, result: 'Win' };
+  }
+  return { team: 'Unknown', result: 'Unknown' };
+};
+
+const getWins = (team) => {
+  return playersGamesPlayed.value.filter((game) => game.wTeam === team).length;
+};
+
+const getLosses = (team) => {
+  return playersGamesPlayed.value.filter((game) => game.lTeam === team).length;
+};
+
+onMounted(async () => {
+  try {
+    player.value = await getPlayerData(props.name); // Fetch the player data by name
+    const games = await getGameRecords();
+
+    // Manipulate the data as needed
+    const filteredGames = games.filter(
+      (game) =>
+        player.value.teams.includes(game.lTeam) ||
+        player.value.teams.includes(game.wTeam)
+    );
+
+    // Save the manipulated data into data properties
+    allGamesPlayed.value = games;
+    playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
+  } catch (error) {
+    console.error('Error fetching player data:', error);
+  }
+});
+
+watch(playersGamesPlayed, (newVal) => {
+  if (newVal && displayedGames.value.length === 0) {
+    loadMore(); // Load the first set of games when playersGamesPlayed is loaded
+  }
+});
+
+onMounted(() => {
+  loadMore(); // Load the first set of games when the component is mounted
+});
 </script>

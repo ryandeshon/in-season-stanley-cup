@@ -36,7 +36,7 @@
             <td class="flex flex-wrap justify-center items-center">
               <div v-for="team in standing.teams" :key="team">
                 <img
-                  :src="`https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`"
+                  :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
                   :alt="team"
                   class="w-6 h-6"
                 />
@@ -51,33 +51,32 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
+import { useTheme } from 'vuetify';
 
-export default {
-  name: 'StandingsPage',
-  data() {
-    return {
-      loading: true,
-      allPlayersData: null,
-      currentChampion: null,
-    };
-  },
-  async mounted() {
-    try {
-      const currentChampionTeam = await getCurrentChampion();
-      const data = await getAllPlayers();
-      this.allPlayersData = data.sort(
-        (a, b) => b.titleDefenses - a.titleDefenses
-      );
-      this.currentChampion = this.allPlayersData.find((player) =>
-        player.teams.includes(currentChampionTeam)
-      );
-      this.loading = false;
-    } catch (error) {
-      console.error('Error fetching player data:', error);
-    }
-  },
-};
+const loading = ref(true);
+const allPlayersData = ref(null);
+const currentChampion = ref(null);
+
+const theme = useTheme();
+const isDarkOrLight = theme.global.name.value;
+
+onMounted(async () => {
+  try {
+    const currentChampionTeam = await getCurrentChampion();
+    const data = await getAllPlayers();
+    allPlayersData.value = data.sort(
+      (a, b) => b.titleDefenses - a.titleDefenses
+    );
+    currentChampion.value = allPlayersData.value.find((player) =>
+      player.teams.includes(currentChampionTeam)
+    );
+    loading.value = false;
+  } catch (error) {
+    console.error('Error fetching player data:', error);
+  }
+});
 </script>

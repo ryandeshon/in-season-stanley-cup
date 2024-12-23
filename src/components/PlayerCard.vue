@@ -1,37 +1,39 @@
 <template>
   <v-card class="pb-3 sm:min-w-52">
     <v-card-text class="flex flex-col justify-center items-center">
-      <router-link :to="`/player/${player?.name}`"
-        ><h3 class="text-xl font-bold mb-0">{{ player?.name }}</h3></router-link
+      <router-link :to="`/player/${props.player?.name}`"
+        ><h3 class="text-xl font-bold mb-0">
+          {{ props.player?.name }}
+        </h3></router-link
       >
-      <p v-if="subtitle" class="text-center">{{ subtitle }}</p>
-      <p v-if="team?.placeName.default" class="mb-1">
-        <strong>{{ team?.placeName.default }}</strong>
+      <p v-if="props.subtitle" class="text-center">{{ props.subtitle }}</p>
+      <p v-if="props.team?.placeName.default" class="mb-1">
+        <strong>{{ props.team?.placeName.default }}</strong>
       </p>
-      <div v-if="isGameLive" class="text-sm">
-        <div>Score: {{ team?.score }}</div>
-        <div>SOG: {{ team?.sog }}</div>
+      <div v-if="props.isGameLive" class="text-sm">
+        <div>Score: {{ props.team?.score }}</div>
+        <div>SOG: {{ props.team?.sog }}</div>
       </div>
       <div class="avatar">
         <img
-          :src="getImage(player?.name, imageType)"
+          :src="getImage(props.player?.name, props.imageType)"
           class="my-2"
           :class="{
-            'saturate-50 contrast-125 brightness-75': isMirrorMatch,
-            '-scale-x-100': isChampion,
+            'saturate-50 contrast-125 brightness-75': props.isMirrorMatch,
+            '-scale-x-100': props.isChampion,
           }"
-          :alt="`${player?.name} Avatar`"
+          :alt="`${props.player?.name} Avatar`"
         />
-        <div v-if="team" class="team-logo">
+        <div v-if="props.team" class="team-logo">
           <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${team.abbrev}_light.svg`"
+            :src="`https://assets.nhle.com/logos/nhl/svg/${props.team.abbrev}_light.svg`"
             :alt="`${team.placeName.default} Logo`"
           />
         </div>
         <div v-else class="team-logo">
           <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${currentChampion}_light.svg`"
-            :alt="`${currentChampion} Logo`"
+            :src="`https://assets.nhle.com/logos/nhl/svg/${props.currentChampion}_light.svg`"
+            :alt="`${props.currentChampion} Logo`"
           />
         </div>
       </div>
@@ -39,7 +41,7 @@
   </v-card>
 </template>
 
-<script>
+<script setup>
 import bozWinnerImage from '@/assets/players/boz-winner.png';
 import terryWinnerImage from '@/assets/players/terry-winner.png';
 import cooperWinnerImage from '@/assets/players/cooper-winner.png';
@@ -53,85 +55,66 @@ import terrySadImage from '@/assets/players/terry-sad.png';
 import cooperSadImage from '@/assets/players/cooper-sad.png';
 import ryanSadImage from '@/assets/players/ryan-sad.png';
 
-export default {
-  name: 'PlayerCard',
-  props: {
-    player: {
-      type: Object,
-      required: true,
-    },
-    team: {
-      type: Object,
-      default: null,
-    },
-    subtitle: {
-      type: String,
-      default: '',
-    },
-    imageType: {
-      type: String,
-      default: 'Winner',
-    },
-    currentChampion: {
-      type: String,
-      default: '',
-    },
-    isChampion: {
-      type: Boolean,
-      default: false,
-    },
-    isGameLive: {
-      type: Boolean,
-      default: false,
-    },
-    isMirrorMatch: {
-      type: Boolean,
-      default: false,
-    },
+const props = defineProps({
+  player: {
+    type: Object,
+    required: true,
   },
-  data() {
-    return {
-      bozWinnerImage,
-      terryWinnerImage,
-      cooperWinnerImage,
-      ryanWinnerImage,
-      bozChallengerImage,
-      terryChallengerImage,
-      cooperChallengerImage,
-      ryanChallengerImage,
-      bozSadImage,
-      terrySadImage,
-      cooperSadImage,
-      ryanSadImage,
-    };
+  team: {
+    type: Object,
+    default: null,
   },
-  methods: {
-    getImage(playerName, type) {
-      const images = {
-        Boz: {
-          Winner: this.bozWinnerImage,
-          Challenger: this.bozChallengerImage,
-          Sad: this.bozSadImage,
-        },
-        Terry: {
-          Winner: this.terryWinnerImage,
-          Challenger: this.terryChallengerImage,
-          Sad: this.terrySadImage,
-        },
-        Cooper: {
-          Winner: this.cooperWinnerImage,
-          Challenger: this.cooperChallengerImage,
-          Sad: this.cooperSadImage,
-        },
-        Ryan: {
-          Winner: this.ryanWinnerImage,
-          Challenger: this.ryanChallengerImage,
-          Sad: this.ryanSadImage,
-        },
-      };
-      return images[playerName]?.[type] || null;
-    },
+  subtitle: {
+    type: String,
+    default: '',
   },
+  imageType: {
+    type: String,
+    default: 'Winner',
+  },
+  currentChampion: {
+    type: String,
+    default: '',
+  },
+  isChampion: {
+    type: Boolean,
+    default: false,
+  },
+  isGameLive: {
+    type: Boolean,
+    default: false,
+  },
+  isMirrorMatch: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const images = {
+  Boz: {
+    Winner: bozWinnerImage,
+    Challenger: bozChallengerImage,
+    Sad: bozSadImage,
+  },
+  Terry: {
+    Winner: terryWinnerImage,
+    Challenger: terryChallengerImage,
+    Sad: terrySadImage,
+  },
+  Cooper: {
+    Winner: cooperWinnerImage,
+    Challenger: cooperChallengerImage,
+    Sad: cooperSadImage,
+  },
+  Ryan: {
+    Winner: ryanWinnerImage,
+    Challenger: ryanChallengerImage,
+    Sad: ryanSadImage,
+  },
+};
+
+const getImage = (playerName, type) => {
+  return images[playerName]?.[type] || null;
 };
 </script>
 
