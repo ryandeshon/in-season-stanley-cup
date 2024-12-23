@@ -34,16 +34,24 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { useThemeStore } from '@/store/themeStore';
+import { watch } from 'vue';
 import { useTheme } from 'vuetify';
 import logo from '@/assets/in-season-logo.png';
 
-const theme = useTheme();
-const isDarkTheme = computed(() => theme.global.name.value === 'dark');
+const themeStore = useThemeStore();
+const isDarkTheme = themeStore.isDarkTheme;
+const toggleTheme = themeStore.toggleTheme;
 
-const toggleTheme = () => {
-  theme.global.name.value = isDarkTheme.value ? 'light' : 'dark';
-};
+const theme = useTheme();
+
+watch(
+  () => themeStore.isDarkTheme,
+  (newVal) => {
+    theme.global.name.value = newVal ? 'dark' : 'light';
+  },
+  { immediate: true }
+);
 </script>
 
 <style>
