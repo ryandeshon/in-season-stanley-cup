@@ -3,6 +3,7 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 import vuetify from './plugins/vuetify';
+import { useThemeStore } from '@/store/themeStore'; // Import the theme store
 
 // Import Tailwind CSS
 import './assets/tailwind.css';
@@ -18,14 +19,16 @@ app.mount('#app');
 
 // Detect system theme
 const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+// Access the theme store
+const themeStore = useThemeStore();
 
 if (prefersDarkScheme.matches) {
-  vuetify.theme.global.name.value = 'dark';
+  themeStore.isDarkTheme = true; // Update the store state
 } else {
-  vuetify.theme.global.name.value = 'light';
+  themeStore.isDarkTheme = false; // Update the store state
 }
 
 // Listen for changes in theme preference
 prefersDarkScheme.addEventListener('change', (event) => {
-  vuetify.theme.global.name.value = event.matches ? 'dark' : 'light';
+  themeStore.isDarkTheme = event.matches; // Update the store state
 });

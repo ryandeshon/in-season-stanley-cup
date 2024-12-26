@@ -154,7 +154,7 @@
                   >
                     {{ getTeamOwner(game.homeTeam.abbrev).name }}
                     <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_light.svg`"
+                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_${isDarkOrLight}.svg`"
                       :alt="game.homeTeam.abbrev"
                       class="w-10 h-10"
                     />
@@ -166,7 +166,7 @@
                     class="flex flex-col sm:flex-row sm:gap-2 justify-center items-center"
                   >
                     <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_light.svg`"
+                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_${isDarkOrLight}.svg`"
                       :alt="game.awayTeam.abbrev"
                       class="w-10 h-10"
                     />
@@ -189,6 +189,7 @@ import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import PlayerCard from '@/components/PlayerCard.vue';
+import { useThemeStore } from '@/store/themeStore'; // Import the theme store
 
 import quotes from '@/utilities/quotes.json';
 
@@ -210,6 +211,16 @@ const isGameOver = ref(false);
 const isGameLive = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+
+const themeStore = useThemeStore();
+const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
+watch(
+  () => themeStore.isDarkTheme,
+  (newVal) => {
+    isDarkOrLight.value = newVal ? 'dark' : 'light';
+  },
+  { immediate: true }
+);
 
 const clockTime = computed(() => {
   return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');

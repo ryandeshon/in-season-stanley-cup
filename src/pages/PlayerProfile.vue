@@ -125,7 +125,15 @@ import ryanWinnerImage from '@/assets/players/ryan-winner.png';
 const props = defineProps(['name']);
 
 const theme = useTheme();
-const isDarkOrLight = theme.global.name.value;
+const isDarkOrLight = ref(theme.global.name.value);
+
+watch(
+  () => theme.global.name.value,
+  (newVal) => {
+    isDarkOrLight.value = newVal;
+  },
+  { immediate: true }
+);
 
 const player = ref(null);
 const allGamesPlayed = ref(null);

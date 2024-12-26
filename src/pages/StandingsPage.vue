@@ -52,17 +52,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
-import { useTheme } from 'vuetify';
+import { useThemeStore } from '@/store/themeStore';
 
 const loading = ref(true);
 const allPlayersData = ref(null);
 const currentChampion = ref(null);
 
-const theme = useTheme();
-const isDarkOrLight = theme.global.name.value;
+const themeStore = useThemeStore();
+const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
+watch(
+  () => themeStore.isDarkTheme,
+  (newVal) => {
+    isDarkOrLight.value = newVal ? 'dark' : 'light';
+  },
+  { immediate: true }
+);
 
 onMounted(async () => {
   try {
