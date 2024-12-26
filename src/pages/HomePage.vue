@@ -182,7 +182,8 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
@@ -191,193 +192,184 @@ import PlayerCard from '@/components/PlayerCard.vue';
 
 import quotes from '@/utilities/quotes.json';
 
-export default {
-  name: 'HomePage',
-  components: {
-    PlayerCard,
-  },
-  data() {
-    return {
-      loading: true,
-      potentialLoading: true,
-      currentChampion: null,
-      localStartTime: null,
-      todaysGame: {},
-      todaysWinner: {},
-      todaysLoser: {},
-      allPlayersData: {},
-      playerChampion: {},
-      playerChallenger: {},
-      boxScore: {},
-      possibleMatchUps: [],
-      secondsRemaining: null,
-      isGameToday: false,
-      isGameOver: false,
-      isGameLive: false,
-      isMirrorMatch: false,
-      gameID: null,
-    };
-  },
-  computed: {
-    clockTime() {
-      return DateTime.fromSeconds(this.secondsRemaining).toFormat('mm:ss');
-    },
-    period() {
-      if (this.todaysGame.periodDescriptor.periodType === 'OT') {
-        return 'OT';
-      }
-      return this.todaysGame.periodDescriptor.number;
-    },
-    firstGameNonChampionTeam() {
-      if (this.possibleMatchUps.length === 0) {
-        return null;
-      }
-      const firstGame = this.possibleMatchUps[0];
-      const nonChampionTeam =
-        firstGame.homeTeam.abbrev === this.currentChampion
-          ? firstGame.awayTeam
-          : firstGame.homeTeam;
-      const player = this.allPlayersData.find((player) =>
-        player.teams.includes(nonChampionTeam.abbrev)
-      );
-      return {
-        date: firstGame.dateTime,
-        team: nonChampionTeam,
-        player: player,
-      };
-    },
-  },
-  watch: {
-    'todaysGame.clock.secondsRemaining': function (newVal) {
-      if (newVal !== undefined) {
-        this.secondsRemaining = newVal;
-      }
-    },
-  },
-  async created() {
-    try {
-      this.currentChampion = await getCurrentChampion();
-      this.gameID = await getGameId();
-      // this.currentChampion = 'NYR';
-      // this.gameID = '2024020247';
-      this.allPlayersData = await getAllPlayers();
-      // console.log("🚀 ~ created ~ this.allPlayersData:", this.allPlayersData)
-    } catch (error) {
-      console.error('Error fetching getCurrentChampion or getGameId:', error);
+const loading = ref(true);
+const potentialLoading = ref(true);
+const currentChampion = ref(null);
+const localStartTime = ref(null);
+const todaysGame = ref({});
+const todaysWinner = ref({});
+const todaysLoser = ref({});
+const allPlayersData = ref({});
+const playerChampion = ref({});
+const playerChallenger = ref({});
+// const boxScore = ref({});
+const possibleMatchUps = ref([]);
+const secondsRemaining = ref(null);
+const isGameToday = ref(false);
+const isGameOver = ref(false);
+const isGameLive = ref(false);
+const isMirrorMatch = ref(false);
+const gameID = ref(null);
+
+const clockTime = computed(() => {
+  return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');
+});
+
+const period = computed(() => {
+  if (todaysGame.value.periodDescriptor?.periodType === 'OT') {
+    return 'OT';
+  }
+  return todaysGame.value.periodDescriptor?.number;
+});
+
+const firstGameNonChampionTeam = computed(() => {
+  if (possibleMatchUps.value.length === 0) {
+    return null;
+  }
+  const firstGame = possibleMatchUps.value[0];
+  const nonChampionTeam =
+    firstGame.homeTeam.abbrev === currentChampion.value
+      ? firstGame.awayTeam
+      : firstGame.homeTeam;
+  const player = allPlayersData.value.find((player) =>
+    player.teams.includes(nonChampionTeam.abbrev)
+  );
+  return {
+    date: firstGame.dateTime,
+    team: nonChampionTeam,
+    player: player,
+  };
+});
+
+watch(
+  () => todaysGame.value.clock?.secondsRemaining,
+  (newVal) => {
+    if (newVal !== undefined) {
+      secondsRemaining.value = newVal;
     }
-    this.isGameToday = this.gameID !== null;
-    this.getPossibleMatchUps();
-    if (this.isGameToday) {
-      this.getGameInfo();
-    } else {
-      // If there is no game today, fetch the current champion info
-      this.playerChampion = this.allPlayersData.find((player) =>
-        player.teams.includes(this.currentChampion)
-      );
-      this.loading = false;
-    }
-  },
-  methods: {
-    getGameInfo() {
-      // If there is a game today, fetch the game result
-      nhlApi
-        .getGameInfo(this.gameID)
-        .then((result) => {
-          this.todaysGame = result.data;
-          this.isGameOver = ['FINAL', 'OFF'].includes(result.data.gameState);
-          this.isGameLive = ['LIVE', 'CRIT'].includes(result.data.gameState);
-          this.localStartTime = DateTime.fromISO(
-            result.data.startTimeUTC
-          ).toLocaleString(DateTime.DATETIME_FULL);
-        })
-        .catch((error) => {
-          console.error('Error fetching game result:', error);
-        })
-        .finally(() => {
-          this.getTeamsInfo();
+  }
+);
 
-          // find score and winner
-          if (this.isGameOver) {
-            const homeTeam = this.todaysGame.homeTeam;
-            const awayTeam = this.todaysGame.awayTeam;
+onMounted(async () => {
+  try {
+    currentChampion.value = await getCurrentChampion();
+    gameID.value = await getGameId();
+    allPlayersData.value = await getAllPlayers();
+  } catch (error) {
+    console.error('Error fetching getCurrentChampion or getGameId:', error);
+  }
+  isGameToday.value = gameID.value !== null;
+  getPossibleMatchUps();
+  if (isGameToday.value) {
+    getGameInfo();
+  } else {
+    playerChampion.value = allPlayersData.value.find((player) =>
+      player.teams.includes(currentChampion.value)
+    );
+    loading.value = false;
+  }
+});
 
-            if (homeTeam.score > awayTeam.score) {
-              this.todaysWinner = homeTeam;
-              this.todaysLoser = awayTeam;
-            } else {
-              this.todaysWinner = awayTeam;
-              this.todaysLoser = homeTeam;
-            }
+function getGameInfo() {
+  nhlApi
+    .getGameInfo(gameID.value)
+    .then((result) => {
+      todaysGame.value = result.data;
+      isGameOver.value = ['FINAL', 'OFF'].includes(result.data.gameState);
+      isGameLive.value = ['LIVE', 'CRIT'].includes(result.data.gameState);
+      localStartTime.value = DateTime.fromISO(
+        result.data.startTimeUTC
+      ).toLocaleString(DateTime.DATETIME_FULL);
+    })
+    .catch((error) => {
+      console.error('Error fetching game result:', error);
+    })
+    .finally(() => {
+      getTeamsInfo();
 
-            const getWinningPlayer = this.allPlayersData.find((player) =>
-              player.teams.includes(this.todaysWinner.abbrev)
-            );
-            const getLosingPlayer = this.allPlayersData.find((player) =>
-              player.teams.includes(this.todaysLoser.abbrev)
-            );
-            this.todaysWinner.player = getWinningPlayer;
-            this.todaysLoser.player = getLosingPlayer;
-          }
-          this.loading = false;
+      if (isGameOver.value) {
+        const homeTeam = todaysGame.value.homeTeam;
+        const awayTeam = todaysGame.value.awayTeam;
+
+        if (homeTeam.score > awayTeam.score) {
+          todaysWinner.value = homeTeam;
+          todaysLoser.value = awayTeam;
+        } else {
+          todaysWinner.value = awayTeam;
+          todaysLoser.value = homeTeam;
+        }
+
+        const getWinningPlayer = allPlayersData.value.find((player) =>
+          player.teams.includes(todaysWinner.value.abbrev)
+        );
+        const getLosingPlayer = allPlayersData.value.find((player) =>
+          player.teams.includes(todaysLoser.value.abbrev)
+        );
+        todaysWinner.value.player = getWinningPlayer;
+        todaysLoser.value.player = getLosingPlayer;
+      }
+      loading.value = false;
+    });
+}
+
+function getTeamsInfo() {
+  const homeTeam = todaysGame.value.homeTeam;
+  const awayTeam = todaysGame.value.awayTeam;
+  const getChampionTeam =
+    currentChampion.value === homeTeam.abbrev ? homeTeam : awayTeam;
+  const getChallengerTeam =
+    currentChampion.value === homeTeam.abbrev ? awayTeam : homeTeam;
+
+  playerChampion.value = allPlayersData.value.find((player) =>
+    player.teams.includes(getChampionTeam.abbrev)
+  );
+  playerChampion.value.championTeam = getChampionTeam;
+  playerChallenger.value = allPlayersData.value.find((player) =>
+    player.teams.includes(getChallengerTeam.abbrev)
+  );
+  playerChallenger.value.challengerTeam = getChallengerTeam;
+
+  isMirrorMatch.value =
+    playerChampion.value.name === playerChallenger.value.name;
+}
+
+function getQuote() {
+  const randomIndex = Math.floor(Math.random() * quotes.length);
+  return quotes[randomIndex];
+}
+
+async function getPossibleMatchUps() {
+  const upcomingGames = [];
+  const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
+  const scheduleData = await nhlApi.getSchedule(tomorrow);
+
+  scheduleData.data.gameWeek.forEach((date) => {
+    date.games.forEach((game) => {
+      const { id, homeTeam, awayTeam, startTimeUTC } = game;
+      if (
+        homeTeam.abbrev === currentChampion.value ||
+        awayTeam.abbrev === currentChampion.value
+      ) {
+        upcomingGames.push({
+          id: id,
+          homeTeam: homeTeam,
+          awayTeam: awayTeam,
+          dateTime:
+            DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
         });
-    },
-    getTeamsInfo() {
-      const homeTeam = this.todaysGame.homeTeam;
-      const awayTeam = this.todaysGame.awayTeam;
-      const getChampionTeam =
-        this.currentChampion === homeTeam.abbrev ? homeTeam : awayTeam;
-      const getChallengerTeam =
-        this.currentChampion === homeTeam.abbrev ? awayTeam : homeTeam;
+      }
+    });
+  });
+  possibleMatchUps.value = upcomingGames;
+  potentialLoading.value = false;
+}
 
-      this.playerChampion = this.allPlayersData.find((player) =>
-        player.teams.includes(getChampionTeam.abbrev)
-      );
-      this.playerChampion.championTeam = getChampionTeam;
-      this.playerChallenger = this.allPlayersData.find((player) =>
-        player.teams.includes(getChallengerTeam.abbrev)
-      );
-      this.playerChallenger.challengerTeam = getChallengerTeam;
-
-      this.isMirrorMatch =
-        this.playerChampion.name === this.playerChallenger.name;
-    },
-    getQuote() {
-      const randomIndex = Math.floor(Math.random() * quotes.length);
-      return quotes[randomIndex];
-    },
-    async getPossibleMatchUps() {
-      const upcomingGames = [];
-      const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
-      const scheduleData = await nhlApi.getSchedule(tomorrow);
-
-      scheduleData.data.gameWeek.forEach((date) => {
-        date.games.forEach((game) => {
-          const { id, homeTeam, awayTeam, startTimeUTC } = game;
-          if (
-            homeTeam.abbrev === this.currentChampion ||
-            awayTeam.abbrev === this.currentChampion
-          ) {
-            upcomingGames.push({
-              id: id,
-              homeTeam: homeTeam,
-              awayTeam: awayTeam,
-              dateTime:
-                DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
-            });
-          }
-        });
-      });
-      this.possibleMatchUps = upcomingGames;
-      this.potentialLoading = false;
-    },
-    getTeamOwner(teamAbbrev) {
-      const teamOwner = this.allPlayersData.find((player) =>
-        player.teams.includes(teamAbbrev)
-      );
-      return teamOwner;
-    },
-  },
-};
+function getTeamOwner(teamAbbrev) {
+  const teamOwner = allPlayersData.value.find((player) =>
+    player.teams.includes(teamAbbrev)
+  );
+  return teamOwner;
+}
 </script>
 
 <style></style>
