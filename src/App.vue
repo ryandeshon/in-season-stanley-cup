@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- App Bar / Navigation Bar -->
-    <v-app-bar app color="primary" class="px-2" scroll-behavior="hide">
+    <v-app-bar app color="primary" class="px-2">
       <router-link to="/" class="mr-2 h-10">
         <img :src="logo" alt="In Season Cup Logo" class="h-10" />
       </router-link>
