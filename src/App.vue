@@ -6,7 +6,7 @@
         <img :src="logo" alt="In Season Cup Logo" class="h-10" />
       </router-link>
       <v-spacer></v-spacer>
-      <div class="flex gap-1">
+      <div class="flex justify-center items-center gap-1">
         <v-btn text to="/standings">Standings</v-btn>
         <v-btn text to="/about">About</v-btn>
         <v-spacer></v-spacer>
