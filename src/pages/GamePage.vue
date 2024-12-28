@@ -17,7 +17,7 @@
             "
             class="mx-auto mb-2"
             max-width="100"
-          ></v-img>
+          />
           <h2 class="text-2xl font-bold">
             {{ gameDetails.awayTeam.placeName.default }}
             {{ gameDetails.awayTeam.commonName.default }}
@@ -36,7 +36,7 @@
             "
             class="mx-auto mb-2"
             max-width="100"
-          ></v-img>
+          />
           <h2 class="text-2xl font-bold">
             {{ gameDetails.homeTeam.placeName.default }}
             {{ gameDetails.homeTeam.commonName.default }}
