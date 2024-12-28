@@ -10,7 +10,11 @@
       <v-row>
         <v-col cols="6" class="text-center">
           <v-img
-            :src="gameDetails.awayTeam.logo"
+            :src="
+              isDarkOrLight === 'dark'
+                ? gameDetails.awayTeam.darkLogo
+                : gameDetails.awayTeam.logo
+            "
             class="mx-auto mb-2"
             max-width="100"
           ></v-img>
@@ -25,7 +29,11 @@
         </v-col>
         <v-col cols="6" class="text-center">
           <v-img
-            :src="gameDetails.homeTeam.logo"
+            :src="
+              isDarkOrLight === 'dark'
+                ? gameDetails.homeTeam.darkLogo
+                : gameDetails.homeTeam.logo
+            "
             class="mx-auto mb-2"
             max-width="100"
           ></v-img>
@@ -168,53 +176,63 @@
   </template>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import nhlApi from '@/services/nhlApi';
 import { DateTime } from 'luxon';
-// import { getGameRecords } from '../services/dynamodbService';
+import { useTheme } from 'vuetify';
 
-export default {
-  name: 'GamePage',
-  data() {
-    return {
-      loading: true,
-      gameDetails: null,
-      localStartTime: null,
-      homeTeamPlayers: [],
-      homeTeamGoalies: [],
-      awayTeamPlayers: [],
-      awayTeamGoalies: [],
-    };
-  },
-  async created() {
-    const gameId = this.$route.params.id; // Assuming the route has a dynamic segment for game ID
-    try {
-      const response = await nhlApi.getGameInfo(gameId);
-      this.gameDetails = response.data;
-      this.localStartTime = DateTime.fromISO(
-        this.gameDetails.startTimeUTC
-      ).toLocaleString(DateTime.DATETIME_FULL);
-      this.homeTeamPlayers =
-        this.gameDetails.playerByGameStats.homeTeam.forwards.concat(
-          this.gameDetails.playerByGameStats.homeTeam.defense
-        );
-      this.homeTeamGoalies =
-        this.gameDetails.playerByGameStats.homeTeam.goalies;
-      this.awayTeamPlayers =
-        this.gameDetails.playerByGameStats.awayTeam.forwards.concat(
-          this.gameDetails.playerByGameStats.awayTeam.defense
-        );
-      this.awayTeamGoalies =
-        this.gameDetails.playerByGameStats.awayTeam.goalies;
+const theme = useTheme();
+const isDarkOrLight = ref(theme.global.name.value);
 
-      console.log('🚀 ~ created ~ this.gameDetails:', this.gameDetails);
-    } catch (error) {
-      console.error('Error fetching game details:', error);
-    } finally {
-      this.loading = false;
-    }
+watch(
+  () => theme.global.name.value,
+  (newVal) => {
+    isDarkOrLight.value = newVal;
   },
-};
+  { immediate: true }
+);
+
+const loading = ref(true);
+const gameDetails = ref(null);
+const localStartTime = ref(null);
+const homeTeamPlayers = ref([]);
+const homeTeamGoalies = ref([]);
+const awayTeamPlayers = ref([]);
+const awayTeamGoalies = ref([]);
+
+const route = useRoute();
+
+onMounted(async () => {
+  const gameId = route.params.id;
+  try {
+    const response = await nhlApi.getGameInfo(gameId);
+    gameDetails.value = response.data;
+    localStartTime.value = DateTime.fromISO(
+      gameDetails.value.startTimeUTC
+    ).toLocaleString(DateTime.DATETIME_FULL);
+    if (!gameDetails.value?.playerByGameStats?.homeTeam) return;
+    homeTeamPlayers.value =
+      gameDetails.value.playerByGameStats.homeTeam.forwards.concat(
+        gameDetails.value.playerByGameStats.homeTeam.defense
+      );
+    homeTeamGoalies.value =
+      gameDetails.value.playerByGameStats.homeTeam.goalies;
+    awayTeamPlayers.value =
+      gameDetails.value.playerByGameStats.awayTeam.forwards.concat(
+        gameDetails.value.playerByGameStats.awayTeam.defense
+      );
+    awayTeamGoalies.value =
+      gameDetails.value.playerByGameStats.awayTeam.goalies;
+
+    console.log('🚀 ~ onMounted ~ gameDetails:', gameDetails.value);
+  } catch (error) {
+    console.error('Error fetching game details:', error);
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <style scoped>
