@@ -111,7 +111,7 @@
                 <td>{{ item.shotsAgainst }}</td>
                 <td>{{ item.saves }}</td>
                 <td>{{ item.goalsAgainst }}</td>
-                <td>{{ item.savePctg }}</td>
+                <td>{{ formatNumber(item.savePctg) }}</td>
                 <td>{{ item.toi }}</td>
               </tr>
             </template>
@@ -165,7 +165,7 @@
                 <td>{{ item.shotsAgainst }}</td>
                 <td>{{ item.saves }}</td>
                 <td>{{ item.goalsAgainst }}</td>
-                <td>{{ item.savePctg }}</td>
+                <td>{{ formatNumber(item.savePctg) }}</td>
                 <td>{{ item.toi }}</td>
               </tr>
             </template>
@@ -233,6 +233,11 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+const formatNumber = (num) => {
+  if (!num) return 0;
+  return parseFloat(num).toFixed(3);
+};
 </script>
 
 <style scoped>
