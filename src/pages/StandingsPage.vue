@@ -46,20 +46,34 @@
           </tr>
         </tbody>
       </v-table>
-      <div class="text-sm mt-2">👑 = Current Champion</div>
+      <div class="text-sm my-2">👑 = Current Champion</div>
     </div>
+    <template v-if="totalGamesPlayed">
+      <h2 class="text-center text-xl font-bold">Season Progress</h2>
+      <v-progress-linear
+        v-model="totalGamesPlayed"
+        color="primary"
+        height="20"
+        class="my-4"
+      >
+        <template v-slot:default="{ value }">
+          <strong>{{ Math.ceil(value) }}%</strong>
+        </template>
+      </v-progress-linear>
+    </template>
   </v-container>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { getAllPlayers } from '../services/dynamodbService';
+import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
 import { useThemeStore } from '@/store/themeStore';
 
 const loading = ref(true);
 const allPlayersData = ref(null);
 const currentChampion = ref(null);
+const totalGamesPlayed = ref(0);
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -81,6 +95,9 @@ onMounted(async () => {
     currentChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampionTeam)
     );
+    // Get percentage of games played
+    totalGamesPlayed.value = (await getGameRecords()).length;
+    totalGamesPlayed.value = (totalGamesPlayed.value / 90) * 100;
     loading.value = false;
   } catch (error) {
     console.error('Error fetching player data:', error);

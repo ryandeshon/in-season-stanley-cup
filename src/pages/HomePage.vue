@@ -179,19 +179,6 @@
         </div>
       </template>
     </template>
-    <template v-if="totalGamesPlayed">
-      <h2 class="text-center text-xl font-bold">Season Progress</h2>
-      <v-progress-linear
-        v-model="totalGamesPlayed"
-        color="primary"
-        height="20"
-        class="my-4"
-      >
-        <template v-slot:default="{ value }">
-          <strong>{{ Math.ceil(value) }}%</strong>
-        </template>
-      </v-progress-linear>
-    </template>
   </v-container>
 </template>
 
@@ -199,7 +186,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
-import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
+import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import PlayerCard from '@/components/PlayerCard.vue';
 import { useThemeStore } from '@/store/themeStore'; // Import the theme store
@@ -223,7 +210,6 @@ const isGameOver = ref(false);
 const isGameLive = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
-const totalGamesPlayed = ref(0);
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -279,9 +265,6 @@ onMounted(async () => {
     currentChampion.value = await getCurrentChampion();
     gameID.value = await getGameId();
     allPlayersData.value = await getAllPlayers();
-    // Get percentage of games played
-    totalGamesPlayed.value = (await getGameRecords()).length;
-    totalGamesPlayed.value = (totalGamesPlayed.value / 90) * 100;
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
