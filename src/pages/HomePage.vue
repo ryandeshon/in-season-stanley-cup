@@ -2,7 +2,7 @@
   <v-container class="max-w-[570px] min-h-32">
     <h1 class="text-4xl font-bold mb-4">In Season Cup</h1>
     <template v-if="loading">
-      <div class="flex justify-center items-center mt-10 h-40">
+      <div class="flex justify-center items-center mt-4 h-40">
         <v-progress-circular
           indeterminate
           color="primary"
@@ -127,7 +127,7 @@
         </div>
 
         <template v-if="potentialLoading">
-          <div class="flex justify-center items-center mt-10 h-40">
+          <div class="flex justify-center items-center mt-4 h-40">
             <v-progress-circular
               indeterminate
               color="primary"
@@ -136,7 +136,7 @@
         </template>
         <div v-else class="text-center mb-4">
           <h2 class="text-xl font-bold">Possible Upcoming Match-ups</h2>
-          <v-table class="mt-10">
+          <v-table class="mt-4">
             <thead>
               <tr>
                 <th class="text-center"><strong>Date</strong></th>
@@ -179,6 +179,19 @@
         </div>
       </template>
     </template>
+    <template v-if="totalGamesPlayed">
+      <h2 class="text-center text-xl font-bold">Season Progress</h2>
+      <v-progress-linear
+        v-model="totalGamesPlayed"
+        color="primary"
+        height="20"
+        class="my-4"
+      >
+        <template v-slot:default="{ value }">
+          <strong>{{ Math.ceil(value) }}%</strong>
+        </template>
+      </v-progress-linear>
+    </template>
   </v-container>
 </template>
 
@@ -186,7 +199,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
-import { getAllPlayers } from '../services/dynamodbService';
+import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import PlayerCard from '@/components/PlayerCard.vue';
 import { useThemeStore } from '@/store/themeStore'; // Import the theme store
@@ -203,7 +216,6 @@ const todaysLoser = ref({});
 const allPlayersData = ref({});
 const playerChampion = ref({});
 const playerChallenger = ref({});
-// const boxScore = ref({});
 const possibleMatchUps = ref([]);
 const secondsRemaining = ref(null);
 const isGameToday = ref(false);
@@ -211,6 +223,7 @@ const isGameOver = ref(false);
 const isGameLive = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+const totalGamesPlayed = ref(0);
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -266,6 +279,9 @@ onMounted(async () => {
     currentChampion.value = await getCurrentChampion();
     gameID.value = await getGameId();
     allPlayersData.value = await getAllPlayers();
+    // Get percentage of games played
+    totalGamesPlayed.value = (await getGameRecords()).length;
+    totalGamesPlayed.value = (totalGamesPlayed.value / 90) * 100;
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
