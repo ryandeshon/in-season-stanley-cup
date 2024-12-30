@@ -270,13 +270,13 @@ onMounted(async () => {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
   isGameToday.value = gameID.value !== null;
-  getPossibleMatchUps();
   if (isGameToday.value) {
     getGameInfo();
   } else {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
     );
+    getPossibleMatchUps(currentChampion.value);
     loading.value = false;
   }
 });
@@ -318,6 +318,7 @@ function getGameInfo() {
         );
         todaysWinner.value.player = getWinningPlayer;
         todaysLoser.value.player = getLosingPlayer;
+        getPossibleMatchUps(todaysWinner.value.abbrev);
       }
       loading.value = false;
     });
@@ -349,7 +350,7 @@ function getQuote() {
   return quotes[randomIndex];
 }
 
-async function getPossibleMatchUps() {
+async function getPossibleMatchUps(championTeam) {
   const upcomingGames = [];
   const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
   const scheduleData = await nhlApi.getSchedule(tomorrow);
@@ -358,8 +359,8 @@ async function getPossibleMatchUps() {
     date.games.forEach((game) => {
       const { id, homeTeam, awayTeam, startTimeUTC } = game;
       if (
-        homeTeam.abbrev === currentChampion.value ||
-        awayTeam.abbrev === currentChampion.value
+        homeTeam.abbrev === championTeam ||
+        awayTeam.abbrev === championTeam
       ) {
         upcomingGames.push({
           id: id,
