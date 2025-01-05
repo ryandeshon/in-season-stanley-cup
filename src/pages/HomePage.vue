@@ -238,7 +238,7 @@ const firstGameNonChampionTeam = computed(() => {
   }
   const firstGame = possibleMatchUps.value[0];
   const nonChampionTeam =
-    firstGame.homeTeam.abbrev === currentChampion.value
+    firstGame.homeTeam.abbrev === todaysWinner.value.abbrev
       ? firstGame.awayTeam
       : firstGame.homeTeam;
   const player = allPlayersData.value.find((player) =>
