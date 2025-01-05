@@ -51,7 +51,7 @@
     <template v-if="totalGamesPlayed">
       <h2 class="text-center text-xl font-bold">Season Progress</h2>
       <v-progress-linear
-        v-model="totalGamesPlayed"
+        v-model="totalGamesPercentage"
         color="primary"
         height="20"
         class="my-4"
@@ -60,6 +60,9 @@
           <strong>{{ Math.ceil(value) }}%</strong>
         </template>
       </v-progress-linear>
+      <div class="text-center text-sm">
+        <span>{{ totalGamesPlayed }} Games Played</span>
+      </div>
     </template>
   </v-container>
 </template>
@@ -74,6 +77,7 @@ const loading = ref(true);
 const allPlayersData = ref(null);
 const currentChampion = ref(null);
 const totalGamesPlayed = ref(0);
+const totalGamesPercentage = ref(0);
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -97,7 +101,7 @@ onMounted(async () => {
     );
     // Get percentage of games played
     totalGamesPlayed.value = (await getGameRecords()).length;
-    totalGamesPlayed.value = (totalGamesPlayed.value / 90) * 100;
+    totalGamesPercentage.value = (totalGamesPlayed.value / 90) * 100;
     loading.value = false;
   } catch (error) {
     console.error('Error fetching player data:', error);
