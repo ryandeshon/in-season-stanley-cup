@@ -152,7 +152,10 @@
                   <div
                     class="flex flex-col-reverse sm:flex-row sm:gap-2 justify-center items-center"
                   >
-                    {{ getTeamOwner(game.homeTeam.abbrev).name }}
+                    <router-link
+                      :to="`/player/${getTeamOwner(game.homeTeam.abbrev).name}`"
+                      >{{ getTeamOwner(game.homeTeam.abbrev).name }}
+                    </router-link>
                     <img
                       :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_${isDarkOrLight}.svg`"
                       :alt="game.homeTeam.abbrev"
@@ -170,7 +173,10 @@
                       :alt="game.awayTeam.abbrev"
                       class="w-10 h-10"
                     />
-                    {{ getTeamOwner(game.awayTeam.abbrev).name }}
+                    <router-link
+                      :to="`/player/${getTeamOwner(game.awayTeam.abbrev).name}`"
+                      >{{ getTeamOwner(game.awayTeam.abbrev).name }}
+                    </router-link>
                   </div>
                 </td>
               </tr>

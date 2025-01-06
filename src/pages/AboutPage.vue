@@ -85,3 +85,8 @@ export default {
   name: 'AboutPage',
 };
 </script>
+<style scoped>
+p > a {
+  text-decoration: underline;
+}
+</style>
