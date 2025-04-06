@@ -4,6 +4,7 @@ import StandingsPage from '../pages/StandingsPage.vue';
 import AboutPage from '../pages/AboutPage.vue';
 import PlayerProfile from '../pages/PlayerProfile.vue';
 import GamePage from '../pages/GamePage.vue';
+import DraftPage from '../pages/DraftPage.vue';
 
 const routes = [
   { path: '/', component: HomePage },
@@ -19,6 +20,12 @@ const routes = [
     path: '/game/:id', // Add a new route for game details
     name: 'GamePage',
     component: GamePage,
+    props: true,
+  },
+  {
+    path: '/draft/:id', // Add a new route for game details
+    name: 'DraftPage',
+    component: DraftPage,
     props: true,
   },
 ];
