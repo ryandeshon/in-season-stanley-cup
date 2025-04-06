@@ -1,98 +1,120 @@
 <template>
-  <div class="container mx-auto py-10">
-    <div class="grid grid-cols-4 gap-4 mb-8">
-      {{ currentPlayerId }}
-      <div
-        v-for="player in players"
+  <v-container class="py-10">
+    {{ currentPickerName }}
+    <v-row class="mb-8" dense>
+      <v-col
+        v-for="player in allPlayersData"
         :key="player.playerId"
-        class="flex flex-col items-center"
+        cols="12"
+        sm="3"
+        class="text-center"
       >
-        <img
-          :src="player.avatarUrl"
-          class="w-24 h-24 rounded-full mb-2 border-2 border-gray-300"
+        <PlayerCard
+          :player="player"
+          image-type="Winner"
+          :show-team-logo="false"
         />
-        <h3 class="text-xl font-bold mb-2">{{ player.name }}</h3>
-        <ul class="list-disc text-sm text-gray-600">
-          <li v-for="team in player.teams" :key="team">{{ team }}</li>
-        </ul>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
 
-    <div class="text-center text-xl font-semibold mb-4">
-      <span v-if="currentPickerId === currentPlayerId" class="text-green-500"
+    <div class="text-center text-h5 font-weight-semibold mb-4">
+      <span v-if="currentPickerName === currentPlayerName" class="text-success"
         >It's your turn!</span
       >
-      <span v-else class="text-gray-500"
+      <span v-else class="text-secondary"
         >Waiting for {{ currentPickerName }}...</span
       >
-      <div class="mt-2 text-sm text-gray-500">
+      <div class="mt-2 text-body-2 text-secondary">
         Time Remaining: {{ countdown }} seconds
       </div>
     </div>
 
-    <div class="grid grid-cols-6 gap-4">
-      <div v-for="team in allTeams" :key="team.id" class="relative">
-        <img
-          :src="team.logo"
-          :class="[
-            'cursor-pointer border-2 rounded',
-            team.available
-              ? 'border-green-400 hover:border-green-600'
-              : 'grayscale opacity-50 border-gray-300 cursor-not-allowed',
-          ]"
-          @click="selectTeam(team)"
-        />
-        <span
-          v-if="!team.available"
-          class="absolute top-1 right-1 bg-gray-800 text-white text-xs px-1 rounded"
-        >
-          Picked
-        </span>
-      </div>
-    </div>
-  </div>
+    <v-row dense>
+      <v-col v-for="team in nhlTeams" :key="team" cols="2">
+        <v-card class="cursor-pointer" outlined>
+          <v-img
+            :src="`https://assets.nhle.com/logos/nhl/svg/${team}_dark.svg`"
+            height="100px"
+          ></v-img>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { getAllPlayers } from '../services/dynamodbService';
+import PlayerCard from '@/components/PlayerCard.vue';
 
 const route = useRoute();
-const currentPlayerId = route.params.playerId;
+const currentPlayerName = route.params.playerName;
 
-const players = ref([]);
-const allTeams = ref([]);
-const currentPickerId = ref('');
+const allPlayersData = ref([]);
 const countdown = ref(60);
 
 const currentPickerName = computed(() => {
-  const picker = players.value.find(
-    (p) => p.playerId === currentPickerId.value
+  const picker = allPlayersData.value.find(
+    (p) => p.playerId === currentPickerName.value
   );
   return picker ? picker.name : '';
 });
 
-const fetchDraftState = async () => {
-  // Fetch from DynamoDB or your API
-};
+const nhlTeams = ref([
+  'ANA',
+  'ARI',
+  'BOS',
+  'BUF',
+  'CGY',
+  'CAR',
+  'CHI',
+  'COL',
+  'CBJ',
+  'DAL',
+  'DET',
+  'EDM',
+  'FLA',
+  'LAK',
+  'MIN',
+  'MTL',
+  'NSH',
+  'NJD',
+  'NYI',
+  'NYR',
+  'OTT',
+  'PHI',
+  'PIT',
+  'SJS',
+  'SEA',
+  'STL',
+  'TBL',
+  'TOR',
+  'VAN',
+  'VGK',
+  'WSH',
+  'WPG',
+]);
 
-const selectTeam = (team) => {
-  if (!team.available || currentPickerId.value !== currentPlayerId) return;
-
-  // API call to select team
-};
+onMounted(async () => {
+  try {
+    allPlayersData.value = await getAllPlayers();
+  } catch (error) {
+    console.error('Error fetching players:', error);
+    allPlayersData.value = [];
+  }
+});
 
 onMounted(() => {
-  fetchDraftState();
-
   setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) countdown.value = 60;
-    fetchDraftState();
   }, 1000);
 });
 </script>
 
 <style scoped>
-/* Additional custom styling if necessary */
+.cursor-pointer {
+  cursor: pointer;
+}
 </style>

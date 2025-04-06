@@ -24,18 +24,20 @@
           }"
           :alt="`${props.player?.name} Avatar`"
         />
-        <div v-if="props.team" class="team-logo">
-          <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${props.team.abbrev}_light.svg`"
-            :alt="`${team.placeName.default} Logo`"
-          />
-        </div>
-        <div v-else class="team-logo">
-          <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${props.currentChampion}_light.svg`"
-            :alt="`${props.currentChampion} Logo`"
-          />
-        </div>
+        <template v-if="showTeamLogo">
+          <div v-if="props.team" class="team-logo">
+            <img
+              :src="`https://assets.nhle.com/logos/nhl/svg/${props.team.abbrev}_light.svg`"
+              :alt="`${team.placeName.default} Logo`"
+            />
+          </div>
+          <div v-else class="team-logo">
+            <img
+              :src="`https://assets.nhle.com/logos/nhl/svg/${props.currentChampion}_light.svg`"
+              :alt="`${props.currentChampion} Logo`"
+            />
+          </div>
+        </template>
       </div>
     </v-card-text>
   </v-card>
@@ -87,6 +89,10 @@ const props = defineProps({
   isMirrorMatch: {
     type: Boolean,
     default: false,
+  },
+  showTeamLogo: {
+    type: Boolean,
+    default: true,
   },
 });
 
