@@ -97,6 +97,21 @@ export const updatePlayerAttributes = async (playerName, updatedAttributes) => {
   }
 };
 
+// Get Draft Players
+export const getDraftPlayers = async () => {
+  const params = {
+    TableName: 'PlayersDraft', // ← Updated table
+  };
+
+  try {
+    const data = await dynamodb.scan(params).promise();
+    return data.Items;
+  } catch (error) {
+    console.error('Error fetching all players:', error);
+    throw error;
+  }
+};
+
 // ✅ Fetch Draft State
 export const getDraftState = async () => {
   const params = {
@@ -187,19 +202,22 @@ export const addTeamToPlayer = async (playerName, teamAbbreviation) => {
 
 // ✅ Select Team for Player
 export const selectTeamForPlayer = async (playerId, teamAbbreviation) => {
-  const response = await fetch(
-    `${import.meta.env.VUE_APP_DRAFT_API_URL}/select-team`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId, teamAbbreviation }),
-    }
-  );
+  const params = {
+    TableName: 'PlayersDraft',
+    Key: { id: playerId },
+    UpdateExpression:
+      'SET teams = list_append(if_not_exists(teams, :emptyList), :team)',
+    ExpressionAttributeValues: {
+      ':team': [teamAbbreviation],
+      ':emptyList': [],
+    },
+  };
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to select team.');
+  try {
+    const result = await dynamodb.update(params).promise();
+    return result;
+  } catch (error) {
+    console.error('Error updating player teams:', error);
+    throw error;
   }
-
-  return await response.json();
 };

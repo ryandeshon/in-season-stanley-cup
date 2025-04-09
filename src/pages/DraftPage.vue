@@ -90,10 +90,10 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import {
-  getAllPlayers,
+  getDraftPlayers,
   getDraftState,
-  // selectTeamForPlayer,
-  // updateDraftState,
+  selectTeamForPlayer,
+  updateDraftState,
 } from '../services/dynamodbService';
 import PlayerCard from '@/components/PlayerCard.vue';
 
@@ -105,7 +105,7 @@ const allPlayersData = ref([]);
 const currentPickerId = ref('');
 // const countdown = ref(60);
 const draftState = ref(null);
-
+const availableTeams = ref([]);
 const nhlTeams = ref([
   'ANA',
   'BOS',
@@ -150,33 +150,29 @@ const currentPicker = computed(() =>
 
 // async function manuallyAdvanceDraft() {
 //   try {
-//     const newDeadline = Math.floor(Date.now() / 1000) + 60;
-
 //     await updateDraftState({
 //       currentPicker: '1', // or get from rotated order
-//       pickDeadline: newDeadline,
 //       currentPickNumber: draftState.value.currentPickNumber + 1,
 //     });
-
 //     await loadInitialData(); // reload UI
 //   } catch (error) {
 //     console.error('Failed to update draft state:', error);
-//     alert('Could not advance draft.');
 //   }
 // }
 
 // Fetch initial data from backend
 async function loadInitialData() {
   try {
-    allPlayersData.value = await getAllPlayers();
+    allPlayersData.value = await getDraftPlayers();
     draftState.value = await getDraftState();
-    console.log('🚀 ~ loadInitialData ~ draftState:', draftState);
+    availableTeams.value = draftState.value.availableTeams;
+
+    console.log('🚀 ~ loadInitialData ~ draftState:', draftState.value);
 
     allPlayersData.value.forEach((player) => {
       if (player.name === playerName) {
         currentPlayer.value = player;
       }
-      player.teams = [];
     });
 
     currentPickerId.value = draftState.value.currentPicker;
@@ -214,23 +210,26 @@ async function selectTeam(team) {
   //   alert("It's not your turn!");
   //   return;
   // }
+  if (!currentPlayer.value) return;
 
-  if (currentPlayer.value) {
-    currentPlayer.value.teams.push(team);
+  try {
+    // Add the selected team to the current player's teams array
+    await selectTeamForPlayer(currentPlayer.value.id, team);
+
+    // Remove the selected team from the availableTeams array in DraftState
+    const updatedTeams = availableTeams.value.filter((t) => t !== team);
+    await updateDraftState({ availableTeams: updatedTeams });
+    await loadInitialData(); // refresh everything
+  } catch (error) {
+    console.error('Error selecting team:', error);
+    alert('Something went wrong.');
   }
-
-  // try {
-  //   await selectTeamForPlayer(playerName, team);
-  //   alert('Team successfully selected!');
-  //   await loadInitialData(); // refresh state
-  // } catch (error) {
-  //   alert(error.message);
-  // }
 }
 
 // Computed property to grayscale picked teams
 const pickedTeams = computed(() => {
-  return allPlayersData.value.flatMap((player) => player.teams);
+  const picked = allPlayersData.value.flatMap((player) => player.teams || []);
+  return picked;
 });
 </script>
 
