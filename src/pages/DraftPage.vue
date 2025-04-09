@@ -1,6 +1,25 @@
 <template>
   <v-container class="py-10">
-    <v-row class="mb-8" dense>
+    <div class="text-center mb-8">
+      <h2 class="text-h4 font-weight-bold">Draft in Progress</h2>
+      <div class="text-subtitle-1">
+        <span v-if="currentPicker">
+          Current Pick:
+          <strong>{{ currentPicker.name }}</strong>
+        </span>
+      </div>
+      <!-- <div class="mt-2 text-secondary">
+        <span
+          v-if="currentPickerId === playerName"
+          class="text-success"
+        >
+          It's your turn!
+        </span>
+        <span v-else> Waiting for {{ currentPickerId }} to pick... </span>
+      </div> -->
+    </div>
+
+    <v-row class="mb-10" dense>
       <v-col
         v-for="player in allPlayersData"
         :key="player.playerId"
@@ -12,34 +31,55 @@
           :player="player"
           image-type="Winner"
           :show-team-logo="false"
+          class="border-4"
+          :class="{
+            'border-success': player.id === currentPickerId,
+            'border-primary':
+              player.id !== currentPickerId && player.name === playerName,
+          }"
         />
+        <div class="text-caption my-2 font-italic">Selected Teams:</div>
+        <v-row justify="center" dense>
+          <v-col
+            v-for="team in player.teams"
+            :key="team"
+            cols="3"
+            class="d-flex justify-center"
+          >
+            <v-img
+              :src="`https://assets.nhle.com/logos/nhl/svg/${team}_dark.svg`"
+              width="40"
+              height="40"
+              :alt="team"
+            />
+          </v-col>
+        </v-row>
       </v-col>
     </v-row>
 
-    <div class="text-center text-h5 font-weight-semibold mb-4">
-      <span v-if="currentPickerName === currentPlayerName" class="text-success">
-        It's your turn!
-      </span>
-      <span v-else class="text-secondary">
-        Waiting for {{ currentPickerName }}...
-      </span>
-      <div class="mt-2 text-body-2 text-secondary">
-        Time Remaining: {{ countdown }} seconds
-      </div>
-    </div>
-
+    <h3 class="text-h5 mb-4 text-center font-weight-medium">Available Teams</h3>
     <v-row dense>
-      <v-col v-for="team in nhlTeams" :key="team" cols="2">
+      <v-col
+        v-for="team in nhlTeams"
+        :key="team"
+        cols="2"
+        class="flex justify-center"
+      >
         <v-card
-          class="cursor-pointer"
-          :class="{ picked: pickedTeams.includes(team) }"
           outlined
+          :elevation="pickedTeams.includes(team) ? 0 : 2"
+          class="w-full p-2"
+          :class="{
+            picked: pickedTeams.includes(team),
+            'cursor-pointer':
+              currentPickerId === playerName && !pickedTeams.includes(team),
+          }"
           @click="selectTeam(team)"
         >
           <v-img
             :src="`https://assets.nhle.com/logos/nhl/svg/${team}_dark.svg`"
-            height="100px"
-          ></v-img>
+            class="pa-3"
+          />
         </v-card>
       </v-col>
     </v-row>
@@ -52,21 +92,22 @@ import { useRoute } from 'vue-router';
 import {
   getAllPlayers,
   getDraftState,
-  selectTeamForPlayer,
+  // selectTeamForPlayer,
+  // updateDraftState,
 } from '../services/dynamodbService';
 import PlayerCard from '@/components/PlayerCard.vue';
 
 const route = useRoute();
-const currentPlayerName = route.params.name;
+const playerName = route.params.name;
+const currentPlayer = ref(null);
 
 const allPlayersData = ref([]);
-const currentPickerName = ref('');
-const countdown = ref(60);
+const currentPickerId = ref('');
+// const countdown = ref(60);
 const draftState = ref(null);
 
 const nhlTeams = ref([
   'ANA',
-  'ARI',
   'BOS',
   'BUF',
   'CGY',
@@ -93,56 +134,98 @@ const nhlTeams = ref([
   'STL',
   'TBL',
   'TOR',
+  'UTA',
   'VAN',
   'VGK',
   'WSH',
   'WPG',
 ]);
 
+const currentPicker = computed(() =>
+  allPlayersData.value.find((player) => {
+    console.log('🚀 ~ player:', player);
+    return player.id === currentPickerId.value;
+  })
+);
+
+// async function manuallyAdvanceDraft() {
+//   try {
+//     const newDeadline = Math.floor(Date.now() / 1000) + 60;
+
+//     await updateDraftState({
+//       currentPicker: '1', // or get from rotated order
+//       pickDeadline: newDeadline,
+//       currentPickNumber: draftState.value.currentPickNumber + 1,
+//     });
+
+//     await loadInitialData(); // reload UI
+//   } catch (error) {
+//     console.error('Failed to update draft state:', error);
+//     alert('Could not advance draft.');
+//   }
+// }
+
 // Fetch initial data from backend
 async function loadInitialData() {
   try {
     allPlayersData.value = await getAllPlayers();
     draftState.value = await getDraftState();
+    console.log('🚀 ~ loadInitialData ~ draftState:', draftState);
 
-    currentPickerName.value = draftState.value.currentPicker;
-    countdown.value = calculateRemainingTime(draftState.value.pickDeadline);
+    allPlayersData.value.forEach((player) => {
+      if (player.name === playerName) {
+        currentPlayer.value = player;
+      }
+      player.teams = [];
+    });
+
+    currentPickerId.value = draftState.value.currentPicker;
+    console.log(
+      '🚀 ~ loadInitialData ~ draftState.value.currentPicker:',
+      draftState.value.currentPicker
+    );
+    // countdown.value = calculateRemainingTime(draftState.value.pickDeadline);
   } catch (error) {
     console.error('Error fetching data:', error);
   }
 }
 
 // Countdown timer synced with backend
-function calculateRemainingTime(deadline) {
-  const now = Math.floor(Date.now() / 1000);
-  return Math.max(deadline - now, 0);
-}
+// function calculateRemainingTime(deadline) {
+//   const now = Math.floor(Date.now() / 1000);
+//   return Math.max(deadline - now, 0);
+// }
 
 onMounted(() => {
   loadInitialData();
+  // manuallyAdvanceDraft();
 
-  setInterval(async () => {
-    countdown.value--;
-    if (countdown.value <= 0) {
-      await loadInitialData(); // reload draft state when timer ends
-    }
-  }, 1000);
+  // setInterval(async () => {
+  //   countdown.value--;
+  //   if (countdown.value <= 0) {
+  //     await loadInitialData(); // reload draft state when timer ends
+  //   }
+  // }, 1000);
 });
 
 // Team selection logic (only when it's player's turn)
 async function selectTeam(team) {
-  if (currentPickerName.value !== currentPlayerName) {
-    alert("It's not your turn!");
-    return;
+  // if (currentPickerId.value !== currentPlayer.value.id) {
+  //   alert("It's not your turn!");
+  //   return;
+  // }
+
+  if (currentPlayer.value) {
+    currentPlayer.value.teams.push(team);
   }
 
-  try {
-    await selectTeamForPlayer(currentPlayerName, team);
-    alert('Team successfully selected!');
-    await loadInitialData(); // refresh state
-  } catch (error) {
-    alert(error.message);
-  }
+  // try {
+  //   await selectTeamForPlayer(playerName, team);
+  //   alert('Team successfully selected!');
+  //   await loadInitialData(); // refresh state
+  // } catch (error) {
+  //   alert(error.message);
+  // }
 }
 
 // Computed property to grayscale picked teams
@@ -157,6 +240,13 @@ const pickedTeams = computed(() => {
 }
 .picked {
   filter: grayscale(100%);
-  opacity: 0.6;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.border-success {
+  border-color: #4caf50 !important;
+}
+.border-primary {
+  border-color: #2196f3 !important;
 }
 </style>
