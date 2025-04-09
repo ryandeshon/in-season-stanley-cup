@@ -23,7 +23,7 @@
       <v-col
         v-for="player in allPlayersData"
         :key="player.playerId"
-        cols="12"
+        cols="6"
         sm="3"
         class="text-center"
       >
@@ -62,7 +62,9 @@
       <v-col
         v-for="team in nhlTeams"
         :key="team"
-        cols="2"
+        cols="12"
+        sm="6"
+        md="3"
         class="flex justify-center"
       >
         <v-card
@@ -79,6 +81,8 @@
           <v-img
             :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
             class="pa-3"
+            height="80"
+            contain
           />
         </v-card>
       </v-col>
