@@ -195,7 +195,7 @@ import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import PlayerCard from '@/components/PlayerCard.vue';
-import { useThemeStore } from '@/store/themeStore'; // Import the theme store
+import { useThemeStore } from '@/store/themeStore';
 
 import quotes from '@/utilities/quotes.json';
 

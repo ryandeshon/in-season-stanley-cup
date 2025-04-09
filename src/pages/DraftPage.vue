@@ -47,7 +47,7 @@
             class="d-flex justify-center"
           >
             <v-img
-              :src="`https://assets.nhle.com/logos/nhl/svg/${team}_dark.svg`"
+              :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
               width="40"
               height="40"
               :alt="team"
@@ -77,7 +77,7 @@
           @click="selectTeam(team)"
         >
           <v-img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${team}_dark.svg`"
+            :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
             class="pa-3"
           />
         </v-card>
@@ -99,7 +99,11 @@ import {
   updateDraftState,
   resetAllPlayerTeams,
 } from '../services/dynamodbService';
+import { useThemeStore } from '@/store/themeStore';
 import PlayerCard from '@/components/PlayerCard.vue';
+
+const themeStore = useThemeStore();
+const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
 
 const route = useRoute();
 const playerName = route.params.name;
