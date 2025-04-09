@@ -83,6 +83,9 @@
         </v-card>
       </v-col>
     </v-row>
+    <v-row class="mt-10" justify="center">
+      <v-btn @click="resetTeams"> Reset All Teams (Test Only) </v-btn>
+    </v-row>
   </v-container>
 </template>
 
@@ -94,6 +97,7 @@ import {
   getDraftState,
   selectTeamForPlayer,
   updateDraftState,
+  resetAllPlayerTeams,
 } from '../services/dynamodbService';
 import PlayerCard from '@/components/PlayerCard.vue';
 
@@ -206,19 +210,34 @@ onMounted(() => {
 
 // Team selection logic (only when it's player's turn)
 async function selectTeam(team) {
-  // if (currentPickerId.value !== currentPlayer.value.id) {
-  //   alert("It's not your turn!");
-  //   return;
-  // }
-  if (!currentPlayer.value) return;
+  if (
+    !currentPlayer.value ||
+    currentPlayer.value.id !== currentPickerId.value
+  ) {
+    alert("It's not your turn!");
+    return;
+  }
 
   try {
-    // Add the selected team to the current player's teams array
+    // Step 1: Add selected team to the player's list
     await selectTeamForPlayer(currentPlayer.value.id, team);
 
-    // Remove the selected team from the availableTeams array in DraftState
+    // Step 2: Remove team from available list
     const updatedTeams = availableTeams.value.filter((t) => t !== team);
-    await updateDraftState({ availableTeams: updatedTeams });
+
+    // Step 3: Rotate to the next player
+    const pickOrder = draftState.value.pickOrder;
+    const currentIndex = pickOrder.indexOf(currentPickerId.value);
+    const nextIndex = (currentIndex + 1) % pickOrder.length;
+    const nextPicker = pickOrder[nextIndex];
+
+    // Step 4: Update draft state
+    await updateDraftState({
+      availableTeams: updatedTeams,
+      currentPicker: nextPicker,
+      currentPickNumber: draftState.value.currentPickNumber + 1,
+    });
+
     await loadInitialData(); // refresh everything
   } catch (error) {
     console.error('Error selecting team:', error);
@@ -231,6 +250,21 @@ const pickedTeams = computed(() => {
   const picked = allPlayersData.value.flatMap((player) => player.teams || []);
   return picked;
 });
+
+// Reset teams (for testing)
+async function resetTeams() {
+  const confirmed = confirm('Are you sure you want to reset all teams?');
+
+  if (!confirmed) return;
+
+  try {
+    await resetAllPlayerTeams();
+    await loadInitialData(); // refresh players and teams
+    alert('Teams have been reset.');
+  } catch (error) {
+    alert('Failed to reset teams.');
+  }
+}
 </script>
 
 <style scoped>

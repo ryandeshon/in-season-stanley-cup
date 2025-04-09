@@ -221,3 +221,26 @@ export const selectTeamForPlayer = async (playerId, teamAbbreviation) => {
     throw error;
   }
 };
+
+// ✅ Reset All Player Teams
+export const resetAllPlayerTeams = async () => {
+  const allPlayers = await getDraftPlayers(); // make sure this fetches from PlayersDraft
+
+  const updatePromises = allPlayers.map((player) => {
+    return dynamodb
+      .update({
+        TableName: 'PlayersDraft',
+        Key: { id: player.id },
+        UpdateExpression: 'REMOVE teams',
+      })
+      .promise();
+  });
+
+  try {
+    await Promise.all(updatePromises);
+    return true;
+  } catch (error) {
+    console.error('Error resetting player teams:', error);
+    throw error;
+  }
+};
