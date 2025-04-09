@@ -94,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   getDraftPlayers,
@@ -108,6 +108,13 @@ import PlayerCard from '@/components/PlayerCard.vue';
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
+watch(
+  () => themeStore.isDarkTheme,
+  (newVal) => {
+    isDarkOrLight.value = newVal ? 'dark' : 'light';
+  },
+  { immediate: true }
+);
 
 const route = useRoute();
 const playerName = route.params.name;
