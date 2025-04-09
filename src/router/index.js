@@ -23,7 +23,7 @@ const routes = [
     props: true,
   },
   {
-    path: '/draft/:name', // Add a new route for game details
+    path: '/draft/:name?', // Make the :name parameter optional
     name: 'DraftPage',
     component: DraftPage,
     props: true,
