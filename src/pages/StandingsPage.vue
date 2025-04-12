@@ -101,7 +101,7 @@ onMounted(async () => {
     );
     // Get percentage of games played
     totalGamesPlayed.value = (await getGameRecords()).length;
-    totalGamesPercentage.value = (totalGamesPlayed.value / 90) * 100;
+    totalGamesPercentage.value = (totalGamesPlayed.value / 85) * 100;
     loading.value = false;
   } catch (error) {
     console.error('Error fetching player data:', error);
