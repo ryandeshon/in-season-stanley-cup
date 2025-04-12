@@ -1,4 +1,11 @@
 <template>
+  <v-alert
+    v-if="!isConnected"
+    type="warning"
+    class="fixed m-auto w-full text-center mb-4 z-50"
+  >
+    WebSocket disconnected. Trying to reconnect...
+  </v-alert>
   <v-container class="py-10">
     <div class="text-center mb-8">
       <h2 class="text-h4 font-weight-bold">Draft in Progress</h2>
@@ -94,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   getDraftPlayers,
@@ -103,8 +110,24 @@ import {
   updateDraftState,
   resetAllPlayerTeams,
 } from '../services/dynamodbService';
+import {
+  initSocket,
+  closeSocket,
+  clearSocketHandlers,
+  // sendSocketMessage,
+  useSocket,
+} from '@/services/socketClient';
 import { useThemeStore } from '@/store/themeStore';
 import PlayerCard from '@/components/PlayerCard.vue';
+
+const { isConnected, lastMessage } = useSocket();
+
+watch(lastMessage, (data) => {
+  if (data?.type === 'draftUpdate') {
+    draftState.value = data.payload;
+    loadInitialData(); // optional
+  }
+});
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -212,6 +235,7 @@ async function loadInitialData() {
 // }
 
 onMounted(() => {
+  initSocket();
   loadInitialData();
   // manuallyAdvanceDraft();
 
@@ -221,6 +245,11 @@ onMounted(() => {
   //     await loadInitialData(); // reload draft state when timer ends
   //   }
   // }, 1000);
+});
+
+onBeforeUnmount(() => {
+  closeSocket();
+  clearSocketHandlers();
 });
 
 // Team selection logic (only when it's player's turn)
