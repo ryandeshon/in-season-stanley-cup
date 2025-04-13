@@ -114,7 +114,7 @@ import {
   initSocket,
   closeSocket,
   clearSocketHandlers,
-  // sendSocketMessage,
+  sendSocketMessage,
   useSocket,
 } from '@/services/socketClient';
 import { useThemeStore } from '@/store/themeStore';
@@ -234,6 +234,13 @@ async function loadInitialData() {
 //   return Math.max(deadline - now, 0);
 // }
 
+watch(lastMessage, (data) => {
+  if (data?.type === 'draftUpdate') {
+    draftState.value = data.payload;
+    loadInitialData(); // or patch specific things
+  }
+});
+
 onMounted(() => {
   initSocket();
   loadInitialData();
@@ -281,6 +288,8 @@ async function selectTeam(team) {
       currentPicker: nextPicker,
       currentPickNumber: draftState.value.currentPickNumber + 1,
     });
+    const updatedState = await getDraftState(); // re-fetch full state
+    sendSocketMessage('draftUpdate', updatedState); // 🔥 broadcast
 
     await loadInitialData(); // refresh everything
   } catch (error) {
