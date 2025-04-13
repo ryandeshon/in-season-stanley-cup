@@ -1,6 +1,6 @@
 <template>
   <v-alert
-    v-if="!isConnected"
+    v-if="isDisconnected"
     type="warning"
     class="fixed m-auto w-full text-center mb-4 z-50"
   >
@@ -122,6 +122,11 @@ import PlayerCard from '@/components/PlayerCard.vue';
 
 const { isConnected, lastMessage } = useSocket();
 
+const isDisconnected = ref(false);
+watch(isConnected, (newVal) => {
+  isDisconnected.value = !newVal;
+});
+
 watch(lastMessage, (data) => {
   if (data?.type === 'draftUpdate') {
     draftState.value = data.payload;
@@ -185,7 +190,6 @@ const nhlTeams = ref([
 
 const currentPicker = computed(() =>
   allPlayersData.value.find((player) => {
-    console.log('🚀 ~ player:', player);
     return player.id === currentPickerId.value;
   })
 );
@@ -209,19 +213,13 @@ async function loadInitialData() {
     draftState.value = await getDraftState();
     availableTeams.value = draftState.value.availableTeams;
 
-    console.log('🚀 ~ loadInitialData ~ draftState:', draftState.value);
-
     allPlayersData.value.forEach((player) => {
-      if (player.name === playerName) {
+      if (player.name == playerName) {
         currentPlayer.value = player;
       }
     });
 
     currentPickerId.value = draftState.value.currentPicker;
-    console.log(
-      '🚀 ~ loadInitialData ~ draftState.value.currentPicker:',
-      draftState.value.currentPicker
-    );
     // countdown.value = calculateRemainingTime(draftState.value.pickDeadline);
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -235,6 +233,7 @@ async function loadInitialData() {
 // }
 
 watch(lastMessage, (data) => {
+  console.log('🚀 ~ watch ~ data:', data);
   if (data?.type === 'draftUpdate') {
     draftState.value = data.payload;
     loadInitialData(); // or patch specific things
