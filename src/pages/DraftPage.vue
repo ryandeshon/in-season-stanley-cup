@@ -236,7 +236,7 @@ watch(lastMessage, (data) => {
   console.log('🚀 ~ watch ~ data:', data);
   if (data?.type === 'draftUpdate') {
     draftState.value = data.payload;
-    loadInitialData(); // or patch specific things
+    loadInitialData(); // or use patching for better perf
   }
 });
 
@@ -288,7 +288,7 @@ async function selectTeam(team) {
       currentPickNumber: draftState.value.currentPickNumber + 1,
     });
     const updatedState = await getDraftState(); // re-fetch full state
-    sendSocketMessage('draftUpdate', updatedState); // 🔥 broadcast
+    sendSocketMessage('default', updatedState); // 🔥 broadcast
 
     await loadInitialData(); // refresh everything
   } catch (error) {

@@ -10,20 +10,21 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
     return socket.value;
 
   socket.value = new WebSocket(process.env.VUE_APP_WEB_SOCKET_URL);
-  console.log('🚀 ~ initSocket ~ socket.value:', socket.value);
 
   socket.value.onopen = () => {
     isConnected.value = true;
     onOpen?.();
     console.log('✅ WebSocket connected');
   };
-
   socket.value.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    lastMessage.value = data;
-
-    onMessage?.(data);
-    messageHandlers.forEach((fn) => fn(data));
+    try {
+      const data = JSON.parse(event.data);
+      lastMessage.value = data;
+      onMessage?.(data);
+      messageHandlers.forEach((fn) => fn(data));
+    } catch (err) {
+      console.error('💥 Failed to parse message:', event.data);
+    }
   };
 
   socket.value.onclose = () => {
