@@ -165,6 +165,13 @@ export const handler = async (event) => {
     // Check the game result
     const result = await checkGameResult(gameID);
 
+    if (result.gameType !== 2) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Not a regular season game' }),
+      };
+    }
+
     if (result) {
       // Save the winner to DynamoDB
       const { wTeam, wScore, lTeam, lScore } = result;
