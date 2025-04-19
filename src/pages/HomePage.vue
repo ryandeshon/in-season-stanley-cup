@@ -1,6 +1,11 @@
 <template>
   <v-container class="max-w-[570px] min-h-32">
-    <h1 class="text-4xl font-bold mb-4">In Season Cup</h1>
+    <h1
+      class="text-4xl font-bold mb-4"
+      :class="{ 'text-center': isSeasonOver }"
+    >
+      In Season Cup <span v-if="isSeasonOver">Champion</span>
+    </h1>
     <template v-if="loading">
       <div class="flex justify-center items-center mt-4 h-40">
         <v-progress-circular
@@ -9,6 +14,8 @@
         ></v-progress-circular>
       </div>
     </template>
+
+    <SeasonChampion v-else-if="isSeasonOver" />
 
     <template v-else>
       <!-- Winner for tonight -->
@@ -195,7 +202,8 @@ import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import PlayerCard from '@/components/PlayerCard.vue';
-import { useThemeStore } from '@/store/themeStore';
+import SeasonChampion from '@/pages/SeasonChampion.vue';
+import { useThemeStore } from '@/store/themeStore'; // Import the theme store
 
 import quotes from '@/utilities/quotes.json';
 
@@ -214,6 +222,7 @@ const secondsRemaining = ref(null);
 const isGameToday = ref(false);
 const isGameOver = ref(false);
 const isGameLive = ref(false);
+const isSeasonOver = ref(true);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
 
