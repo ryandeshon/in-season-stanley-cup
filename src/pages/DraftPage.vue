@@ -16,7 +16,7 @@
     </v-row>
 
     <v-col class="text-center mb-8" justify="center" v-else>
-      <h2 class="text-h4 font-weight-bold">Draft in Progress</h2>
+      <h1 class="text-4xl font-bold mb-4">Draft in Progress</h1>
       <div class="text-subtitle-1">
         <span v-if="currentPicker">
           Current Pick:
@@ -41,7 +41,7 @@
           :class="{
             'border-success': player.id === currentPickerId,
             'border-primary':
-              player.id !== currentPickerId && player.name === playerName,
+              player.id !== currentPickerId && player.name == playerName,
           }"
         />
         <div class="text-caption my-2 font-italic">Selected Teams:</div>
@@ -63,7 +63,7 @@
       </v-col>
     </v-row>
 
-    <h3 class="text-h5 mb-4 text-center font-weight-medium">Available Teams</h3>
+    <h2 class="text-center text-xl font-bold">Available Teams</h2>
     <v-row dense>
       <v-col
         v-for="team in nhlTeams"
