@@ -7,7 +7,15 @@
     WebSocket disconnected. Trying to reconnect...
   </v-alert>
   <v-container class="py-10">
-    <div class="text-center mb-8">
+    <v-row
+      class="text-center mb-8"
+      justify="center"
+      v-if="!draftState?.draftStarted"
+    >
+      <v-btn @click="startDraft" color="primary"> Start Draft </v-btn>
+    </v-row>
+
+    <v-col class="text-center mb-8" justify="center" v-else>
       <h2 class="text-h4 font-weight-bold">Draft in Progress</h2>
       <div class="text-subtitle-1">
         <span v-if="currentPicker">
@@ -15,20 +23,11 @@
           <strong>{{ currentPicker.name }}</strong>
         </span>
       </div>
-      <!-- <div class="mt-2 text-secondary">
-        <span
-          v-if="currentPickerId === playerName"
-          class="text-success"
-        >
-          It's your turn!
-        </span>
-        <span v-else> Waiting for {{ currentPickerId }} to pick... </span>
-      </div> -->
-    </div>
+    </v-col>
 
     <v-row class="mb-10" dense>
       <v-col
-        v-for="player in allPlayersData"
+        v-for="player in orderedPlayers"
         :key="player.playerId"
         cols="6"
         sm="3"
@@ -150,7 +149,6 @@ const currentPlayer = ref(null);
 
 const allPlayersData = ref([]);
 const currentPickerId = ref('');
-// const countdown = ref(60);
 const draftState = ref(null);
 const availableTeams = ref([]);
 const nhlTeams = ref([
@@ -194,18 +192,6 @@ const currentPicker = computed(() =>
   })
 );
 
-// async function manuallyAdvanceDraft() {
-//   try {
-//     await updateDraftState({
-//       currentPicker: '1', // or get from rotated order
-//       currentPickNumber: draftState.value.currentPickNumber + 1,
-//     });
-//     await loadInitialData(); // reload UI
-//   } catch (error) {
-//     console.error('Failed to update draft state:', error);
-//   }
-// }
-
 // Fetch initial data from backend
 async function loadInitialData() {
   try {
@@ -220,17 +206,10 @@ async function loadInitialData() {
     });
 
     currentPickerId.value = draftState.value.currentPicker;
-    // countdown.value = calculateRemainingTime(draftState.value.pickDeadline);
   } catch (error) {
     console.error('Error fetching data:', error);
   }
 }
-
-// Countdown timer synced with backend
-// function calculateRemainingTime(deadline) {
-//   const now = Math.floor(Date.now() / 1000);
-//   return Math.max(deadline - now, 0);
-// }
 
 watch(lastMessage, (data) => {
   console.log('🚀 ~ watch ~ data:', data);
@@ -243,14 +222,6 @@ watch(lastMessage, (data) => {
 onMounted(() => {
   initSocket();
   loadInitialData();
-  // manuallyAdvanceDraft();
-
-  // setInterval(async () => {
-  //   countdown.value--;
-  //   if (countdown.value <= 0) {
-  //     await loadInitialData(); // reload draft state when timer ends
-  //   }
-  // }, 1000);
 });
 
 onBeforeUnmount(() => {
@@ -312,11 +283,63 @@ async function resetTeams() {
   try {
     await resetAllPlayerTeams();
     await loadInitialData(); // refresh players and teams
+    await updateDraftState({
+      draftStarted: false,
+      pickOrder: [],
+      currentPicker: null,
+      currentPickNumber: 0,
+      availableTeams: [...nhlTeams.value],
+    });
     alert('Teams have been reset.');
   } catch (error) {
     alert('Failed to reset teams.');
   }
 }
+
+// Utility function to shuffle an array
+function shuffle(array) {
+  let currentIndex = array.length;
+  while (currentIndex !== 0) {
+    const randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+  return array;
+}
+
+async function startDraft() {
+  try {
+    const players = await getDraftPlayers();
+    const shuffled = shuffle(players.map((p) => p.id));
+
+    const newState = {
+      pickOrder: shuffled,
+      currentPicker: shuffled[0],
+      currentPickNumber: 1,
+      draftStarted: true, // ✅ Flag the draft as started
+    };
+
+    await updateDraftState(newState);
+    const updatedState = await getDraftState();
+
+    sendSocketMessage('default', updatedState); // broadcast to all clients
+    await loadInitialData(); // refresh local view
+  } catch (error) {
+    console.error('Failed to start draft:', error);
+    alert('Could not start the draft.');
+  }
+}
+
+const orderedPlayers = computed(() => {
+  if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
+
+  return draftState.value.pickOrder
+    .map((id) => allPlayersData.value.find((p) => p.id === id))
+    .filter(Boolean);
+});
 </script>
 
 <style scoped>
