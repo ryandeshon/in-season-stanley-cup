@@ -41,7 +41,8 @@
           :class="{
             'border-success': player.id === currentPickerId,
             'border-primary':
-              player.id !== currentPickerId && player.name == playerName,
+              player.id !== currentPickerId &&
+              player.name.toLowerCase() === playerName.toLowerCase(),
           }"
         />
         <div class="text-caption my-2 font-italic">Selected Teams:</div>
@@ -94,7 +95,7 @@
       </v-col>
     </v-row>
     <v-row class="mt-10" justify="center">
-      <v-btn @click="resetTeams"> Reset All Teams (Test Only) </v-btn>
+      <v-btn @click="resetTeams"> Reset Draft (Test Only) </v-btn>
     </v-row>
   </v-container>
 </template>
@@ -145,6 +146,7 @@ watch(
 
 const route = useRoute();
 const playerName = route.params.name;
+console.log('🚀 ~ playerName:', playerName);
 const currentPlayer = ref(null);
 
 const allPlayersData = ref([]);
@@ -200,7 +202,7 @@ async function loadInitialData() {
     availableTeams.value = draftState.value.availableTeams;
 
     allPlayersData.value.forEach((player) => {
-      if (player.name == playerName) {
+      if (player.name.toLowerCase() === playerName.toLowerCase()) {
         currentPlayer.value = player;
       }
     });
