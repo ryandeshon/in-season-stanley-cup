@@ -6,7 +6,14 @@
   >
     WebSocket disconnected. Trying to reconnect...
   </v-alert>
-  <v-container class="py-10">
+  <v-alert
+    v-if="isYourTurn"
+    type="success"
+    class="fixed m-auto w-full text-center mb-4 z-50"
+  >
+    Its your turn to pick a team!
+  </v-alert>
+  <v-container class="max-w-screen-lg py-10">
     <v-row
       class="text-center mb-8"
       justify="center"
@@ -39,9 +46,9 @@
           :show-team-logo="false"
           class="border-4"
           :class="{
-            'border-success': player.id === currentPickerId,
+            'border-success': currentPickerId === player.id,
             'border-primary':
-              player.id !== currentPickerId &&
+              !isYourTurn &&
               player.name.toLowerCase() === playerName.toLowerCase(),
           }"
         />
@@ -146,13 +153,13 @@ watch(
 
 const route = useRoute();
 const playerName = route.params.name;
-console.log('🚀 ~ playerName:', playerName);
 const currentPlayer = ref(null);
 
 const allPlayersData = ref([]);
 const currentPickerId = ref('');
 const draftState = ref(null);
 const availableTeams = ref([]);
+const isYourTurn = ref(false);
 const nhlTeams = ref([
   'ANA',
   'BOS',
@@ -208,6 +215,7 @@ async function loadInitialData() {
     });
 
     currentPickerId.value = draftState.value.currentPicker;
+    isYourTurn.value = currentPlayer?.value.id === currentPickerId.value;
   } catch (error) {
     console.error('Error fetching data:', error);
   }
