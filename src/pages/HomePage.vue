@@ -201,6 +201,7 @@ import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
+import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
 import { useThemeStore } from '@/store/themeStore'; // Import the theme store
@@ -222,9 +223,15 @@ const secondsRemaining = ref(null);
 const isGameToday = ref(false);
 const isGameOver = ref(false);
 const isGameLive = ref(false);
-const isSeasonOver = ref(true);
+const isSeasonOver = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+// WebSocket
+const { lastMessage, isConnected } = useSocket();
+const isDisconnected = ref(false);
+watch(isConnected, (newVal) => {
+  isDisconnected.value = !newVal;
+});
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -275,6 +282,21 @@ watch(
   }
 );
 
+// Watch for WebSocket game updates
+watch(lastMessage, (data) => {
+  console.log('🚀 ~ watch ~ data:', data);
+  if (data?.type === 'liveGameUpdate') {
+    console.log('🔥 Received live update:', data);
+    // Update whatever fields are affected by the change
+    const updatedGame = data.payload;
+
+    todaysGame.value = updatedGame;
+    secondsRemaining.value = updatedGame.clock?.secondsRemaining || 0;
+    isGameOver.value = ['FINAL', 'OFF'].includes(updatedGame.gameState);
+    isGameLive.value = ['LIVE', 'CRIT'].includes(updatedGame.gameState);
+  }
+});
+
 onMounted(async () => {
   try {
     currentChampion.value = await getCurrentChampion();
@@ -286,6 +308,7 @@ onMounted(async () => {
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
     getGameInfo();
+    initSocket();
   } else {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
@@ -293,6 +316,12 @@ onMounted(async () => {
     getPossibleMatchUps(currentChampion.value);
     loading.value = false;
   }
+
+  setInterval(() => {
+    if (!isGameOver.value && !isDisconnected.value) {
+      getGameInfo();
+    }
+  }, 60000);
 });
 
 function getGameInfo() {
