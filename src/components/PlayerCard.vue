@@ -12,7 +12,7 @@
       </p>
       <div v-if="props.isGameLive" class="text-sm">
         <div>Score: {{ props.team?.score }}</div>
-        <div>SOG: {{ props.team?.sog }}</div>
+        <div v-if="props.team?.sog > 0">SOG: {{ props.team?.sog }}</div>
       </div>
       <div class="avatar">
         <img
