@@ -1,18 +1,33 @@
 <template>
-  <v-alert
-    v-if="isDisconnected"
-    type="warning"
-    class="fixed m-auto w-full text-center mb-4 z-50"
-  >
-    WebSocket disconnected. Trying to reconnect...
-  </v-alert>
-  <v-alert
-    v-if="isYourTurn"
-    type="success"
-    class="fixed m-auto w-full text-center mb-4 z-50"
-  >
-    Its your turn to pick a team!
-  </v-alert>
+  <transition name="fade">
+    <v-alert
+      v-if="isDisconnected"
+      type="warning"
+      class="fixed m-auto w-full text-center mb-4 z-50"
+    >
+      WebSocket disconnected. Trying to reconnect...
+    </v-alert>
+  </transition>
+  <transition name="fade">
+    <v-alert
+      v-if="isYourTurn"
+      type="success"
+      class="fixed m-auto w-full text-center mb-4 z-50"
+      closable
+    >
+      It's your turn to pick a team!
+    </v-alert>
+  </transition>
+  <transition name="fade">
+    <v-alert
+      v-if="showIsNotYourTurn"
+      type="error"
+      class="fixed m-auto w-full text-center mb-4 z-50"
+      closable
+    >
+      It isn't your turn!
+    </v-alert>
+  </transition>
   <v-container class="max-w-screen-lg py-10">
     <v-row
       class="text-center mb-8"
@@ -126,6 +141,8 @@ import {
 } from '@/services/socketClient';
 import { useThemeStore } from '@/store/themeStore';
 import PlayerCard from '@/components/PlayerCard.vue';
+import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
+import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
 const { isConnected, lastMessage } = useSocket();
 
@@ -140,6 +157,19 @@ watch(lastMessage, (data) => {
     loadInitialData(); // optional
   }
 });
+
+const showIsNotYourTurn = ref(false);
+// Initialize audio objects with imported files
+const successSound = new Audio(successSoundFile);
+const errorSound = new Audio(errorSoundFile);
+const audioReady = ref(false);
+
+// Call this function on user interaction to preload audio
+function preloadAudio() {
+  successSound.load();
+  errorSound.load();
+  audioReady.value = true;
+}
 
 const themeStore = useThemeStore();
 const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
@@ -245,7 +275,16 @@ async function selectTeam(team) {
     !currentPlayer.value ||
     currentPlayer.value.id !== currentPickerId.value
   ) {
-    alert("It's not your turn!");
+    showIsNotYourTurn.value = true;
+    console.log('🚀 ~ selectTeam ~ audioReady.value:', audioReady.value);
+    if (audioReady.value) {
+      errorSound.play();
+    } else {
+      preloadAudio(); // preload audio on user interaction
+    }
+    setTimeout(() => {
+      showIsNotYourTurn.value = false;
+    }, 3000);
     return;
   }
 
@@ -321,6 +360,7 @@ function shuffle(array) {
 }
 
 async function startDraft() {
+  preloadAudio(); // preload audio on user interaction
   try {
     const players = await getDraftPlayers();
     const shuffled = shuffle(players.map((p) => p.id));
@@ -350,6 +390,12 @@ const orderedPlayers = computed(() => {
     .map((id) => allPlayersData.value.find((p) => p.id === id))
     .filter(Boolean);
 });
+
+watch(isYourTurn, (newVal) => {
+  if (newVal && audioReady.value) {
+    successSound.play();
+  }
+});
 </script>
 
 <style scoped>
@@ -366,5 +412,13 @@ const orderedPlayers = computed(() => {
 }
 .border-primary {
   border-color: #2196f3 !important;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
