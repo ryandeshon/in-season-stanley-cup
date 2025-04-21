@@ -5,12 +5,12 @@
       type="warning"
       class="fixed m-auto w-full text-center mb-4 z-50"
     >
-      WebSocket disconnected. Trying to reconnect...
+      Connection disconnected. Trying to reconnect...
     </v-alert>
   </transition>
   <transition name="fade">
     <v-alert
-      v-if="isYourTurn"
+      v-if="isYourTurn && !isDraftOver"
       type="success"
       class="fixed m-auto w-full text-center mb-4 z-50"
       closable
@@ -28,94 +28,140 @@
       It isn't your turn!
     </v-alert>
   </transition>
-  <v-container class="max-w-screen-lg py-10">
-    <v-row
-      class="text-center mb-8"
-      justify="center"
-      v-if="!draftState?.draftStarted"
-    >
-      <v-btn @click="startDraft" color="primary"> Start Draft </v-btn>
-    </v-row>
-
-    <v-col class="text-center mb-8" justify="center" v-else>
-      <h1 class="text-4xl font-bold mb-4">Draft in Progress</h1>
-      <div class="text-subtitle-1">
-        <span v-if="currentPicker">
-          Current Pick:
-          <strong>{{ currentPicker.name }}</strong>
-        </span>
+  <v-container class="max-w-screen-lg">
+    <template v-if="isLoading">
+      <div class="flex justify-center items-center mt-10">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+        ></v-progress-circular>
       </div>
-    </v-col>
-
-    <v-row class="mb-10" dense>
-      <v-col
-        v-for="player in orderedPlayers"
-        :key="player.playerId"
-        cols="6"
-        sm="3"
-        class="text-center"
-      >
-        <PlayerCard
-          :player="player"
-          image-type="Winner"
-          :show-team-logo="false"
-          class="border-4"
-          :class="{
-            'border-success': currentPickerId === player.id,
-            'border-primary':
-              !isYourTurn &&
-              player.name.toLowerCase() === playerName.toLowerCase(),
-          }"
-        />
-        <div class="text-caption my-2 font-italic">Selected Teams:</div>
-        <v-row justify="center" dense>
-          <v-col
-            v-for="team in player.teams"
-            :key="team"
-            cols="3"
-            class="d-flex justify-center"
+    </template>
+    <template v-else>
+      <div v-if="isDraftOver">
+        <h1 class="text-4xl font-bold mb-10">Draft is Over</h1>
+        <v-row
+          v-for="player in orderedPlayers"
+          :key="player.playerId"
+          cols="6"
+          sm="3"
+          justify="center"
+          class="text-center mb-4"
+        >
+          <PlayerCard
+            :player="player"
+            image-type="Winner"
+            :show-team-logo="false"
+          />
+          <div
+            class="flex flex-row items-center justify-center mx-4 flex-wrap md:flex-nowrap"
           >
-            <v-img
-              :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-              width="40"
-              height="40"
-              :alt="team"
+            <div
+              v-for="team in player.teams"
+              :key="team"
+              class="flex justify-center mb-2 md:mb-0"
+            >
+              <v-img
+                :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
+                width="70"
+                height="70"
+                :alt="team"
+              />
+            </div>
+          </div>
+        </v-row>
+      </div>
+
+      <div class="max-w-screen-lg py-10" v-else>
+        <v-row
+          class="text-center mb-8"
+          justify="center"
+          v-if="!draftState?.draftStarted"
+        >
+          <v-btn @click="startDraft" color="primary">Start Draft</v-btn>
+        </v-row>
+
+        <v-col class="text-center mb-8" justify="center" v-else>
+          <h1 class="text-4xl font-bold mb-4">Draft in Progress</h1>
+          <div class="text-subtitle-1">
+            <span v-if="currentPicker">
+              Current Pick:
+              <strong>{{ currentPicker.name }}</strong>
+            </span>
+          </div>
+        </v-col>
+
+        <v-row class="mb-10" dense>
+          <v-col
+            v-for="player in orderedPlayers"
+            :key="player.playerId"
+            cols="6"
+            sm="3"
+            class="text-center"
+          >
+            <PlayerCard
+              :player="player"
+              image-type="Winner"
+              :show-team-logo="false"
+              class="border-4"
+              :class="{
+                'border-success': currentPickerId === player.id,
+                'border-primary':
+                  !isYourTurn &&
+                  player.name.toLowerCase() === playerName.toLowerCase(),
+              }"
             />
+            <div class="text-caption my-2 font-italic">Selected Teams:</div>
+            <v-row justify="center" dense>
+              <v-col
+                v-for="team in player.teams"
+                :key="team"
+                cols="3"
+                class="d-flex justify-center"
+              >
+                <v-img
+                  :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
+                  width="40"
+                  height="40"
+                  :alt="team"
+                />
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
-      </v-col>
-    </v-row>
 
-    <h2 class="text-center text-xl font-bold">Available Teams</h2>
-    <v-row dense>
-      <v-col
-        v-for="team in nhlTeams"
-        :key="team"
-        cols="12"
-        sm="6"
-        md="3"
-        class="flex justify-center"
-      >
-        <v-card
-          outlined
-          :elevation="pickedTeams.includes(team) ? 0 : 2"
-          class="w-full p-2"
-          :class="{
-            picked: pickedTeams.includes(team),
-            'cursor-pointer':
-              currentPickerId === playerName && !pickedTeams.includes(team),
-          }"
-          @click="selectTeam(team)"
-        >
-          <v-img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-            class="pa-3"
-            height="80"
-            contain
-          />
-        </v-card>
-      </v-col>
-    </v-row>
+        <h2 class="text-center text-xl font-bold">Available Teams</h2>
+        <v-row dense>
+          <v-col
+            v-for="team in nhlTeams"
+            :key="team"
+            cols="12"
+            sm="6"
+            md="3"
+            class="flex justify-center"
+          >
+            <v-card
+              outlined
+              :elevation="pickedTeams.includes(team) ? 0 : 2"
+              class="w-full p-2"
+              :class="{
+                picked: pickedTeams.includes(team),
+                'cursor-pointer':
+                  currentPickerId === playerName && !pickedTeams.includes(team),
+              }"
+              @click="selectTeam(team)"
+            >
+              <v-img
+                :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
+                class="pa-3"
+                height="80"
+                contain
+              />
+            </v-card>
+          </v-col>
+        </v-row>
+      </div>
+    </template>
     <v-row class="mt-10" justify="center">
       <v-btn @click="resetTeams"> Reset Draft (Test Only) </v-btn>
     </v-row>
@@ -145,6 +191,7 @@ import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
 const { isConnected, lastMessage } = useSocket();
+const isLoading = ref(true);
 
 const isDisconnected = ref(false);
 watch(isConnected, (newVal) => {
@@ -190,6 +237,7 @@ const currentPickerId = ref('');
 const draftState = ref(null);
 const availableTeams = ref([]);
 const isYourTurn = ref(false);
+const isDraftOver = ref(false);
 const nhlTeams = ref([
   'ANA',
   'BOS',
@@ -246,6 +294,7 @@ async function loadInitialData() {
 
     currentPickerId.value = draftState.value.currentPicker;
     isYourTurn.value = currentPlayer?.value.id === currentPickerId.value;
+    isLoading.value = false;
   } catch (error) {
     console.error('Error fetching data:', error);
   }
@@ -256,6 +305,12 @@ watch(lastMessage, (data) => {
   if (data?.type === 'draftUpdate') {
     draftState.value = data.payload;
     loadInitialData(); // or use patching for better perf
+  }
+});
+
+watch(availableTeams, (newVal) => {
+  if (newVal.length === 0) {
+    isDraftOver.value = true;
   }
 });
 
@@ -331,7 +386,6 @@ async function resetTeams() {
 
   try {
     await resetAllPlayerTeams();
-    await loadInitialData(); // refresh players and teams
     await updateDraftState({
       draftStarted: false,
       pickOrder: [],
@@ -339,6 +393,7 @@ async function resetTeams() {
       currentPickNumber: 0,
       availableTeams: [...nhlTeams.value],
     });
+    await loadInitialData(); // refresh players and teams
     alert('Teams have been reset.');
   } catch (error) {
     alert('Failed to reset teams.');
