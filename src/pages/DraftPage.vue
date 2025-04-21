@@ -72,7 +72,7 @@
         </v-row>
       </div>
 
-      <div class="max-w-screen-lg py-10" v-else>
+      <div v-else>
         <v-row
           class="text-center mb-8"
           justify="center"
@@ -89,6 +89,10 @@
               <strong>{{ currentPicker.name }}</strong>
             </span>
           </div>
+
+          <v-btn @click="advanceDraft" color="primary" class="mb-4"
+            >Advance Draft</v-btn
+          >
         </v-col>
 
         <v-row class="mb-10" dense>
@@ -394,6 +398,7 @@ async function resetTeams() {
       availableTeams: [...nhlTeams.value],
     });
     await loadInitialData(); // refresh players and teams
+    isDraftOver.value = false;
     alert('Teams have been reset.');
   } catch (error) {
     alert('Failed to reset teams.');
@@ -435,6 +440,48 @@ async function startDraft() {
   } catch (error) {
     console.error('Failed to start draft:', error);
     alert('Could not start the draft.');
+  }
+}
+
+async function advanceDraft() {
+  try {
+    const pickOrder = draftState.value.pickOrder;
+    const currentIndex = pickOrder.indexOf(currentPickerId.value);
+    const nextIndex = (currentIndex + 1) % pickOrder.length;
+    const nextPicker = pickOrder[nextIndex];
+
+    // Pick a random team from available teams
+    if (availableTeams.value.length > 0) {
+      const randomTeamIndex = Math.floor(
+        Math.random() * availableTeams.value.length
+      );
+      const randomTeam = availableTeams.value[randomTeamIndex];
+
+      // Assign the random team to the current picker
+      await selectTeamForPlayer(currentPickerId.value, randomTeam);
+
+      // Remove the team from available teams
+      const updatedTeams = availableTeams.value.filter((t) => t !== randomTeam);
+
+      await updateDraftState({
+        availableTeams: updatedTeams,
+        currentPicker: nextPicker,
+        currentPickNumber: draftState.value.currentPickNumber + 1,
+      });
+    } else {
+      // If no teams are available, just advance the draft
+      await updateDraftState({
+        currentPicker: nextPicker,
+        currentPickNumber: draftState.value.currentPickNumber + 1,
+      });
+    }
+
+    const updatedState = await getDraftState();
+    sendSocketMessage('default', updatedState); // broadcast to all clients
+    await loadInitialData(); // refresh local view
+  } catch (error) {
+    console.error('Failed to advance draft:', error);
+    alert('Could not advance the draft.');
   }
 }
 
