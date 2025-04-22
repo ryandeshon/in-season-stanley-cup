@@ -4,6 +4,9 @@ const socket = ref(null);
 const isConnected = ref(false);
 const lastMessage = ref(null);
 let messageHandlers = [];
+let reconnectTimeout = null;
+let reconnectAttempts = 0; // Track the number of reconnection attempts
+const maxReconnectAttempts = 10; // Set the maximum number of attempts
 
 export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
   if (socket.value && socket.value.readyState === WebSocket.OPEN)
@@ -13,6 +16,7 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
 
   socket.value.onopen = () => {
     isConnected.value = true;
+    reconnectAttempts = 0; // Reset attempts on successful connection
     onOpen?.();
     console.log('✅ WebSocket connected');
   };
@@ -31,6 +35,7 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
     isConnected.value = false;
     onClose?.();
     console.log('❌ WebSocket closed');
+    scheduleReconnect(); // Schedule reconnection
   };
 
   socket.value.onerror = (error) => {
@@ -39,6 +44,18 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
   };
 
   return socket.value;
+}
+
+function scheduleReconnect() {
+  if (reconnectTimeout || reconnectAttempts >= maxReconnectAttempts) return; // Stop if max attempts reached
+  reconnectTimeout = setTimeout(() => {
+    reconnectAttempts++;
+    console.log(
+      `🔄 Attempting to reconnect WebSocket... (${reconnectAttempts}/${maxReconnectAttempts})`
+    );
+    initSocket();
+    reconnectTimeout = null;
+  }, 5000); // Retry every 5 seconds
 }
 
 export function sendSocketMessage(action, payload) {
@@ -65,6 +82,10 @@ export function onSocketMessage(handler) {
 
 export function clearSocketHandlers() {
   messageHandlers = [];
+}
+
+export function resetReconnectAttempts() {
+  reconnectAttempts = 0; // Reset the counter when needed
 }
 
 export function useSocket() {
