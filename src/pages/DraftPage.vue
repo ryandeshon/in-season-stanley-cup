@@ -50,7 +50,7 @@
         >
           <PlayerCard
             :player="player"
-            image-type="Winner"
+            image-type="Simpsons"
             :show-team-logo="false"
           />
           <div
@@ -90,7 +90,11 @@
             </span>
           </div>
 
-          <v-btn @click="advanceDraft" color="primary" class="mb-4"
+          <v-btn
+            @click="advanceDraft"
+            color="primary"
+            class="mb-4"
+            :disabled="buttonEnabled"
             >Advance Draft</v-btn
           >
         </v-col>
@@ -105,7 +109,7 @@
           >
             <PlayerCard
               :player="player"
-              image-type="Winner"
+              image-type="Simpsons"
               :show-team-logo="false"
               class="border-4"
               :class="{
@@ -196,6 +200,7 @@ import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
 const { isConnected, lastMessage } = useSocket();
 const isLoading = ref(true);
+const buttonEnabled = ref(true);
 
 const isDisconnected = ref(false);
 watch(isConnected, (newVal) => {
@@ -299,6 +304,7 @@ async function loadInitialData() {
     currentPickerId.value = draftState.value.currentPicker;
     isYourTurn.value = currentPlayer?.value.id === currentPickerId.value;
     isLoading.value = false;
+    buttonEnabled.value = false;
   } catch (error) {
     console.error('Error fetching data:', error);
   }
@@ -334,6 +340,7 @@ async function selectTeam(team) {
     !currentPlayer.value ||
     currentPlayer.value.id !== currentPickerId.value
   ) {
+    buttonEnabled.value = true;
     showIsNotYourTurn.value = true;
     console.log('🚀 ~ selectTeam ~ audioReady.value:', audioReady.value);
     if (audioReady.value) {

@@ -48,6 +48,10 @@ import bozWinnerImage from '@/assets/players/boz-winner.png';
 import terryWinnerImage from '@/assets/players/terry-winner.png';
 import cooperWinnerImage from '@/assets/players/cooper-winner.png';
 import ryanWinnerImage from '@/assets/players/ryan-winner.png';
+import bozSimpsonsWinnerImage from '@/assets/players//simpsons/boz-winner.png';
+import terrySimpsonsWinnerImage from '@/assets/players//simpsons/terry-winner.png';
+import cooperSimpsonsWinnerImage from '@/assets/players//simpsons/cooper-winner.png';
+import ryanSimpsonsWinnerImage from '@/assets/players//simpsons/ryan-winner.png';
 import bozChallengerImage from '@/assets/players/boz-challenger.png';
 import terryChallengerImage from '@/assets/players/terry-challenger.png';
 import cooperChallengerImage from '@/assets/players/cooper-challenger.png';
@@ -101,21 +105,25 @@ const images = {
     Winner: bozWinnerImage,
     Challenger: bozChallengerImage,
     Sad: bozSadImage,
+    Simpsons: bozSimpsonsWinnerImage,
   },
   Terry: {
     Winner: terryWinnerImage,
     Challenger: terryChallengerImage,
     Sad: terrySadImage,
+    Simpsons: terrySimpsonsWinnerImage,
   },
   Cooper: {
     Winner: cooperWinnerImage,
     Challenger: cooperChallengerImage,
     Sad: cooperSadImage,
+    Simpsons: cooperSimpsonsWinnerImage,
   },
   Ryan: {
     Winner: ryanWinnerImage,
     Challenger: ryanChallengerImage,
     Sad: ryanSadImage,
+    Simpsons: ryanSimpsonsWinnerImage,
   },
 };
 
