@@ -27,7 +27,7 @@
         <template v-if="showTeamLogo">
           <div v-if="props.team" class="team-logo">
             <img
-              :src="`https://assets.nhle.com/logos/nhl/svg/${props.team.abbrev}_light.svg`"
+              :src="`https://assets.nhle.com/logos/nhl/svg/${props.team?.abbrev}_light.svg`"
               :alt="`${team.placeName.default} Logo`"
             />
           </div>

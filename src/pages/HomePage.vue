@@ -371,16 +371,16 @@ function getTeamsInfo() {
   const homeTeam = todaysGame.value.homeTeam;
   const awayTeam = todaysGame.value.awayTeam;
   const getChampionTeam =
-    currentChampion.value === homeTeam.abbrev ? homeTeam : awayTeam;
+    currentChampion.value === homeTeam?.abbrev ? homeTeam : awayTeam;
   const getChallengerTeam =
-    currentChampion.value === homeTeam.abbrev ? awayTeam : homeTeam;
+    currentChampion.value === homeTeam?.abbrev ? awayTeam : homeTeam;
 
   playerChampion.value = allPlayersData.value.find((player) =>
-    player.teams.includes(getChampionTeam.abbrev)
+    player.teams.includes(getChampionTeam?.abbrev)
   );
   playerChampion.value.championTeam = getChampionTeam;
   playerChallenger.value = allPlayersData.value.find((player) =>
-    player.teams.includes(getChallengerTeam.abbrev)
+    player.teams.includes(getChallengerTeam?.abbrev)
   );
   playerChallenger.value.challengerTeam = getChallengerTeam;
 
