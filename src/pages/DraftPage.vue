@@ -5,7 +5,7 @@
       type="warning"
       class="fixed m-auto w-full text-center mb-4 z-50"
     >
-      Connection disconnected. Trying to reconnect...
+      Disconnected. Trying to reconnect...
     </v-alert>
   </transition>
   <transition name="fade">
@@ -25,7 +25,7 @@
       class="fixed m-auto w-full text-center mb-4 z-50"
       closable
     >
-      It isn't your turn!
+      It's not your turn!
     </v-alert>
   </transition>
   <v-container class="max-w-screen-lg">
