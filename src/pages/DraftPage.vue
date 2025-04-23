@@ -74,7 +74,7 @@
 
       <div v-else>
         <v-row
-          class="text-center mb-8"
+          class="text-center my-8"
           justify="center"
           v-if="!draftState?.draftStarted"
         >
@@ -90,7 +90,7 @@
             </span>
           </div>
 
-          <v-btn @click="advanceDraft" color="primary" class="mb-4"
+          <v-btn @click="advanceDraft" color="primary" class="my-4"
             >Advance Draft</v-btn
           >
         </v-col>
@@ -166,7 +166,7 @@
         </v-row>
       </div>
     </template>
-    <v-row class="mt-10" justify="center">
+    <v-row class="my-8" justify="center">
       <v-btn @click="resetTeams"> Reset Draft (Test Only) </v-btn>
     </v-row>
   </v-container>

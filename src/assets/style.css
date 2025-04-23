@@ -1,3 +1,6 @@
+/* Import the Simpsons font */
+@import url('https://fonts.cdnfonts.com/css/homer-simpson-revised');
+
 /* Base styles */
 .v-application {
   font-family: var(--font-body);
