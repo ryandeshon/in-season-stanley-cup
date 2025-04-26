@@ -330,6 +330,9 @@ onBeforeUnmount(() => {
 
 // Team selection logic (only when it's player's turn)
 async function selectTeam(team) {
+  if (!audioReady.value) {
+    preloadAudio(); // preload audio on user interaction
+  }
   if (
     !currentPlayer.value ||
     currentPlayer.value.id !== currentPickerId.value
@@ -337,8 +340,6 @@ async function selectTeam(team) {
     showIsNotYourTurn.value = true;
     if (audioReady.value) {
       errorSound.play();
-    } else {
-      preloadAudio(); // preload audio on user interaction
     }
     setTimeout(() => {
       showIsNotYourTurn.value = false;
