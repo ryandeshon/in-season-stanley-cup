@@ -27,7 +27,7 @@
         <div v-if="props.team" class="team-logo">
           <img
             :src="`https://assets.nhle.com/logos/nhl/svg/${props.team.abbrev}_light.svg`"
-            :alt="`${team.placeName.default} Logo`"
+            :alt="`${props.team.placeName.default} Logo`"
           />
         </div>
         <div v-else class="team-logo">

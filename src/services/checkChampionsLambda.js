@@ -83,7 +83,7 @@ async function saveGameIDToDatabase(gameID) {
 }
 
 // Main handler
-export const handler = async (event) => {
+export const handler = async () => {
   try {
     const champion = await getCurrentChampion();
     if (!champion) {
