@@ -288,6 +288,7 @@ async function loadInitialData() {
   try {
     allPlayersData.value = await getDraftPlayers();
     draftState.value = await getDraftState();
+    console.log('🚀 ~ loadInitialData ~ draftState.value:', draftState.value);
     availableTeams.value = draftState.value.availableTeams;
 
     allPlayersData.value.forEach((player) => {
@@ -295,6 +296,11 @@ async function loadInitialData() {
         currentPlayer.value = player;
       }
     });
+    if (!currentPlayer.value) {
+      alert('Player not found. Please check your URL.');
+      isLoading.value = false;
+      return;
+    }
 
     currentPickerId.value = draftState.value.currentPicker;
     isYourTurn.value = currentPlayer?.value.id === currentPickerId.value;
