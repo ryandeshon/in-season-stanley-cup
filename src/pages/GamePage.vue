@@ -75,7 +75,7 @@
               { key: 'assists', title: 'Assists' },
               { key: 'sog', title: 'SOG' },
               { key: 'plusMinus', title: '+/-' },
-              { hits: 'hits', title: 'Hits' },
+              { key: 'hits', title: 'Hits' },
             ]"
           >
             <template #item="{ item, index }">
@@ -129,7 +129,7 @@
               { key: 'assists', title: 'Assists' },
               { key: 'sog', title: 'SOG' },
               { key: 'plusMinus', title: '+/-' },
-              { hits: 'hits', title: 'Hits' },
+              { key: 'hits', title: 'Hits' },
             ]"
           >
             <template #item="{ item, index }">

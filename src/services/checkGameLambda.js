@@ -151,7 +151,7 @@ async function checkGameResults(gameID) {
 }
 
 // Main handler
-export const handler = async (event) => {
+export const handler = async () => {
   try {
     const gameID = await getGameID();
     // If there is no game stop checking
