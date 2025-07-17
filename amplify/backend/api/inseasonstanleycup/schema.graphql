@@ -1,8 +1,0 @@
-type Player @model @auth(rules: [{ allow: public }]) {
-  id: ID!
-  name: String!
-  teams: [String]!
-  daysAsChampion: Int!
-  titleDefenses: Int!
-  championships: Int!
-}

@@ -1,72 +1,15 @@
 {
-  "main": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-inseasonstanleycup-main-31987-authRole",
-      "UnauthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-main-31987-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-main-31987-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-inseasonstanleycup-main-31987-deployment",
-      "UnauthRoleName": "amplify-inseasonstanleycup-main-31987-unauthRole",
-      "StackName": "amplify-inseasonstanleycup-main-31987",
-      "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-main-31987/66b40b30-8420-11ef-9b85-0affcc3fac61",
-      "AmplifyAppId": "dgll3ubwnxkqv"
-    },
-    "categories": {
-      "api": {
-        "inseasonstanleycup": {}
-      },
-      "function": {
-        "nhlApiProxy": {
-          "deploymentBucketName": "amplify-inseasonstanleycup-main-31987-deployment",
-          "s3Key": "amplify-builds/nhlApiProxy-457a6e6b74545a636a41-build.zip"
-        }
-      }
-    }
-  },
-  "dev": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-inseasonstanleycup-dev-cf9e5-authRole",
-      "UnauthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-dev-cf9e5-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-dev-cf9e5-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-inseasonstanleycup-dev-cf9e5-deployment",
-      "UnauthRoleName": "amplify-inseasonstanleycup-dev-cf9e5-unauthRole",
-      "StackName": "amplify-inseasonstanleycup-dev-cf9e5",
-      "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-dev-cf9e5/e73c7ae0-8280-11ef-b643-0affebcbdce5",
-      "AmplifyAppId": "dgll3ubwnxkqv"
-    }
-  },
   "inseason": {
     "awscloudformation": {
-      "AuthRoleName": "amplify-inseasonstanleycup-inseason-93213-authRole",
-      "UnauthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-inseason-93213-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-inseason-93213-authRole",
+      "AuthRoleName": "amplify-inseasonstanleycup-inseason-857e5-authRole",
+      "UnauthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-inseason-857e5-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::896453848695:role/amplify-inseasonstanleycup-inseason-857e5-authRole",
       "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-inseasonstanleycup-inseason-93213-deployment",
-      "UnauthRoleName": "amplify-inseasonstanleycup-inseason-93213-unauthRole",
-      "StackName": "amplify-inseasonstanleycup-inseason-93213",
-      "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-inseason-93213/93634be0-8d90-11ef-8e69-0afffe28ddcf",
-      "AmplifyAppId": "dm7o24ucghmq4"
-    },
-    "categories": {
-      "function": {
-        "nhlProxy": {
-          "deploymentBucketName": "amplify-inseasonstanleycup-inseason-93213-deployment",
-          "s3Key": "amplify-builds/nhlProxy-6c7272674e6a73393852-build.zip"
-        }
-      },
-      "api": {
-        "inseasonstanleycup": {}
-      },
-      "hosting": {
-        "amplifyhosting": {
-          "appId": "dm7o24ucghmq4",
-          "type": "cicd"
-        }
-      },
-      "auth": {
-        "inseasonstanleycup4fc4bef1": {}
-      }
+      "DeploymentBucketName": "amplify-inseasonstanleycup-inseason-857e5-deployment",
+      "UnauthRoleName": "amplify-inseasonstanleycup-inseason-857e5-unauthRole",
+      "StackName": "amplify-inseasonstanleycup-inseason-857e5",
+      "StackId": "arn:aws:cloudformation:us-east-1:896453848695:stack/amplify-inseasonstanleycup-inseason-857e5/9eb26760-62b5-11f0-b05f-0e83e15a34eb",
+      "AmplifyAppId": "d2035onwm2yvhk"
     }
   }
 }

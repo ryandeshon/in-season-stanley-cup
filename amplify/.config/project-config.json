@@ -1,7 +1,5 @@
 {
-  "providers": [
-    "awscloudformation"
-  ],
+  "whyContinueWithGen1": "I am a current Gen 1 user",
   "projectName": "inseasonstanleycup",
   "version": "3.1",
   "frontend": "javascript",
@@ -13,5 +11,8 @@
       "BuildCommand": "yarn build",
       "StartCommand": "yarn serve"
     }
-  }
+  },
+  "providers": [
+    "awscloudformation"
+  ]
 }
