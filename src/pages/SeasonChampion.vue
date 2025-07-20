@@ -45,7 +45,7 @@ import { ref, onMounted, watch } from 'vue';
 import { getPlayerData } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
-import cooperChampionImage from '@/assets/players/cooper-champion.png';
+import cooperChampionImage from '@/assets/players/nhl94/cooper-champion.png';
 
 const theme = useTheme();
 const isDarkOrLight = ref(theme.global.name.value);

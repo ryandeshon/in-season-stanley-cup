@@ -50,7 +50,7 @@
         >
           <PlayerCard
             :player="player"
-            image-type="Simpsons"
+            image-type="Happy"
             :show-team-logo="false"
           />
           <div

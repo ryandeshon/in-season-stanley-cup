@@ -45,7 +45,7 @@
           <PlayerCard
             :player="todaysWinner.player"
             :team="todaysWinner"
-            image-type="Winner"
+            image-type="Happy"
             :is-game-live="isGameLive"
           />
           <div>
@@ -129,7 +129,7 @@
             :player="playerChampion"
             :current-champion="currentChampion"
             subtitle="is not Defending the Championship Today"
-            image-type="Winner"
+            image-type="Happy"
           />
         </div>
 
@@ -390,7 +390,11 @@ function getTeamsInfo() {
 
 function getQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
-  return quotes[randomIndex];
+  const selectedQuote = quotes[randomIndex];
+
+  // Replace {name} placeholder with the losing player's name
+  const playerName = todaysLoser.value.player?.name || 'opponent';
+  return selectedQuote.replace(/{name}/g, playerName);
 }
 
 async function getPossibleMatchUps(championTeam) {

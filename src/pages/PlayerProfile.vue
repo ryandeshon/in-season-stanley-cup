@@ -117,10 +117,10 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { getPlayerData, getGameRecords } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
-import bozWinnerImage from '@/assets/players/boz-winner.png';
-import terryWinnerImage from '@/assets/players/terry-winner.png';
-import cooperWinnerImage from '@/assets/players/cooper-winner.png';
-import ryanWinnerImage from '@/assets/players/ryan-winner.png';
+import bozHappyImage from '@/assets/players/simpsons/boz-happy.png';
+import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
+import cooperHappyImage from '@/assets/players/simpsons/cooper-happy.png';
+import ryanHappyImage from '@/assets/players/simpsons/ryan-happy.png';
 
 const props = defineProps(['name']);
 
@@ -141,17 +141,17 @@ const playersGamesPlayed = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const displayedGames = ref([]);
-const bozWinnerImageRef = ref(bozWinnerImage);
-const terryWinnerImageRef = ref(terryWinnerImage);
-const cooperWinnerImageRef = ref(cooperWinnerImage);
-const ryanWinnerImageRef = ref(ryanWinnerImage);
+const bozHappyImageRef = ref(bozHappyImage);
+const terryHappyImageRef = ref(terryHappyImage);
+const cooperHappyImageRef = ref(cooperHappyImage);
+const ryanHappyImageRef = ref(ryanHappyImage);
 
 const avatarImage = computed(() => {
   const avatarImages = {
-    Boz: bozWinnerImageRef.value,
-    Terry: terryWinnerImageRef.value,
-    Cooper: cooperWinnerImageRef.value,
-    Ryan: ryanWinnerImageRef.value,
+    Boz: bozHappyImageRef.value,
+    Terry: terryHappyImageRef.value,
+    Cooper: cooperHappyImageRef.value,
+    Ryan: ryanHappyImageRef.value,
   };
   return avatarImages[player.value?.name] || null;
 });

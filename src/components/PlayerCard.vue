@@ -1,5 +1,11 @@
 <template>
-  <v-card class="pb-3 sm:min-w-52">
+  <v-card
+    class="pb-3 sm:min-w-52 border-spacing-2 border-2 border-black rounded-lg"
+    :class="{
+      'border-white': isDarkOrLight === 'dark',
+      'border-black': isDarkOrLight === 'light',
+    }"
+  >
     <v-card-text class="flex flex-col justify-center items-center">
       <router-link :to="`/player/${props.player?.name}`"
         ><h3 class="text-xl font-bold mb-0">
@@ -44,22 +50,35 @@
 </template>
 
 <script setup>
-import bozWinnerImage from '@/assets/players/boz-winner.png';
-import terryWinnerImage from '@/assets/players/terry-winner.png';
-import cooperWinnerImage from '@/assets/players/cooper-winner.png';
-import ryanWinnerImage from '@/assets/players/ryan-winner.png';
-import bozSimpsonsWinnerImage from '@/assets/players//simpsons/boz-winner.png';
-import terrySimpsonsWinnerImage from '@/assets/players//simpsons/terry-winner.png';
-import cooperSimpsonsWinnerImage from '@/assets/players//simpsons/cooper-winner.png';
-import ryanSimpsonsWinnerImage from '@/assets/players//simpsons/ryan-winner.png';
-import bozChallengerImage from '@/assets/players/boz-challenger.png';
-import terryChallengerImage from '@/assets/players/terry-challenger.png';
-import cooperChallengerImage from '@/assets/players/cooper-challenger.png';
-import ryanChallengerImage from '@/assets/players/ryan-challenger.png';
-import bozSadImage from '@/assets/players/boz-sad.png';
-import terrySadImage from '@/assets/players/terry-sad.png';
-import cooperSadImage from '@/assets/players/cooper-sad.png';
-import ryanSadImage from '@/assets/players/ryan-sad.png';
+import { watch, ref } from 'vue';
+
+import bozAngryImage from '@/assets/players/simpsons/boz-angry.png';
+import bozSadImage from '@/assets/players/simpsons/boz-sad.png';
+import bozHappyImage from '@/assets/players/simpsons/boz-happy.png';
+import bozAnguishImage from '@/assets/players/simpsons/boz-anguish.png';
+import cooperAngryImage from '@/assets/players/simpsons/cooper-angry.png';
+import cooperSadImage from '@/assets/players/simpsons/cooper-sad.png';
+import cooperHappyImage from '@/assets/players/simpsons/cooper-happy.png';
+import cooperAnguishImage from '@/assets/players/simpsons/cooper-anguish.png';
+import ryanAngryImage from '@/assets/players/simpsons/ryan-angry.png';
+import ryanSadImage from '@/assets/players/simpsons/ryan-sad.png';
+import ryanHappyImage from '@/assets/players/simpsons/ryan-happy.png';
+import ryanAnguishImage from '@/assets/players/simpsons/ryan-anguish.png';
+import terryAngryImage from '@/assets/players/simpsons/terry-angry.png';
+import terrySadImage from '@/assets/players/simpsons/terry-sad.png';
+import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
+import terryAnguishImage from '@/assets/players/simpsons/terry-anguish.png';
+
+import { useThemeStore } from '@/store/themeStore';
+const themeStore = useThemeStore();
+const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
+watch(
+  () => themeStore.isDarkTheme,
+  (newVal) => {
+    isDarkOrLight.value = newVal ? 'dark' : 'light';
+  },
+  { immediate: true }
+);
 
 const props = defineProps({
   player: {
@@ -76,7 +95,7 @@ const props = defineProps({
   },
   imageType: {
     type: String,
-    default: 'Winner',
+    default: 'Happy',
   },
   currentChampion: {
     type: String,
@@ -102,28 +121,28 @@ const props = defineProps({
 
 const images = {
   Boz: {
-    Winner: bozWinnerImage,
-    Challenger: bozChallengerImage,
+    Happy: bozHappyImage,
+    Angry: bozAngryImage,
     Sad: bozSadImage,
-    Simpsons: bozSimpsonsWinnerImage,
+    Anguish: bozAnguishImage,
   },
   Terry: {
-    Winner: terryWinnerImage,
-    Challenger: terryChallengerImage,
+    Happy: terryHappyImage,
+    Angry: terryAngryImage,
     Sad: terrySadImage,
-    Simpsons: terrySimpsonsWinnerImage,
+    Anguish: terryAnguishImage,
   },
   Cooper: {
-    Winner: cooperWinnerImage,
-    Challenger: cooperChallengerImage,
+    Happy: cooperHappyImage,
+    Angry: cooperAngryImage,
     Sad: cooperSadImage,
-    Simpsons: cooperSimpsonsWinnerImage,
+    Anguish: cooperAnguishImage,
   },
   Ryan: {
-    Winner: ryanWinnerImage,
-    Challenger: ryanChallengerImage,
+    Happy: ryanHappyImage,
+    Angry: ryanAngryImage,
     Sad: ryanSadImage,
-    Simpsons: ryanSimpsonsWinnerImage,
+    Anguish: ryanAnguishImage,
   },
 };
 
