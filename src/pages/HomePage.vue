@@ -45,14 +45,14 @@
           <PlayerCard
             :player="todaysWinner.player"
             :team="todaysWinner"
-            image-type="Happy"
+            :image-type="gameOverWinnerAvatarType"
             :is-game-live="isGameLive"
           />
           <div>
             <PlayerCard
               :player="todaysLoser.player"
               :team="todaysLoser"
-              image-type="Sad"
+              :image-type="gameOverLoserAvatarType"
               :is-game-live="isGameLive"
             />
             <div v-if="firstGameNonChampionTeam" class="next-game-info mt-2">
@@ -93,7 +93,7 @@
             <PlayerCard
               :player="playerChampion"
               :team="playerChampion.championTeam"
-              image-type="Challenger"
+              :image-type="championAvatarType"
               :is-game-live="isGameLive"
               :is-champion="true"
             />
@@ -106,7 +106,7 @@
             <PlayerCard
               :player="playerChallenger"
               :team="playerChallenger.challengerTeam"
-              image-type="Challenger"
+              :image-type="challengerAvatarType"
               :is-game-live="isGameLive"
               :is-mirror-match="isMirrorMatch"
             />
@@ -226,6 +226,12 @@ const isGameLive = ref(false);
 const isSeasonOver = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+// Add new reactive state for avatar management
+const previousHomeScore = ref(0);
+const previousAwayScore = ref(0);
+const recentGoalAgainst = ref({ home: false, away: false });
+const goalTimers = ref({ home: null, away: null });
+
 // WebSocket
 const { lastMessage, isConnected } = useSocket();
 const isDisconnected = ref(false);
@@ -265,6 +271,67 @@ const firstGameNonChampionTeam = computed(() => {
   };
 });
 
+// Add computed properties for dynamic avatars
+const championAvatarType = computed(() => {
+  if (!isGameLive.value) {
+    return 'Challenger';
+  }
+
+  const isChampionHome =
+    currentChampion.value === todaysGame.value.homeTeam?.abbrev;
+  const championScore = isChampionHome
+    ? todaysGame.value.homeTeam?.score
+    : todaysGame.value.awayTeam?.score;
+  const challengerScore = isChampionHome
+    ? todaysGame.value.awayTeam?.score
+    : todaysGame.value.homeTeam?.score;
+
+  // Check for recent goal against champion
+  if (
+    (isChampionHome && recentGoalAgainst.value.home) ||
+    (!isChampionHome && recentGoalAgainst.value.away)
+  ) {
+    return 'Anguish';
+  }
+
+  // Champion winning = Happy, losing = Angry
+  return championScore > challengerScore ? 'Happy' : 'Angry';
+});
+
+const challengerAvatarType = computed(() => {
+  if (!isGameLive.value) {
+    return 'Challenger';
+  }
+
+  const isChampionHome =
+    currentChampion.value === todaysGame.value.homeTeam?.abbrev;
+  const championScore = isChampionHome
+    ? todaysGame.value.homeTeam?.score
+    : todaysGame.value.awayTeam?.score;
+  const challengerScore = isChampionHome
+    ? todaysGame.value.awayTeam?.score
+    : todaysGame.value.homeTeam?.score;
+
+  // Check for recent goal against challenger
+  if (
+    (isChampionHome && recentGoalAgainst.value.away) ||
+    (!isChampionHome && recentGoalAgainst.value.home)
+  ) {
+    return 'Anguish';
+  }
+
+  // Challenger winning = Happy, losing = Angry
+  return challengerScore > championScore ? 'Happy' : 'Angry';
+});
+
+const gameOverWinnerAvatarType = computed(() => {
+  return 'Happy';
+});
+
+const gameOverLoserAvatarType = computed(() => {
+  return 'Sad';
+});
+
 watch(
   () => todaysGame.value.clock?.secondsRemaining,
   (newVal) => {
@@ -288,6 +355,29 @@ watch(lastMessage, (data) => {
     isGameLive.value = ['LIVE', 'CRIT'].includes(updatedGame.gameState);
   }
 });
+
+// Watch for score changes to detect goals
+watch(
+  () => todaysGame.value.homeTeam?.score,
+  (newScore, oldScore) => {
+    if (oldScore !== undefined && newScore > oldScore) {
+      // Goal scored by home team, away team gets anguish
+      triggerAnguishAvatar('away');
+    }
+    previousHomeScore.value = newScore;
+  }
+);
+
+watch(
+  () => todaysGame.value.awayTeam?.score,
+  (newScore, oldScore) => {
+    if (oldScore !== undefined && newScore > oldScore) {
+      // Goal scored by away team, home team gets anguish
+      triggerAnguishAvatar('home');
+    }
+    previousAwayScore.value = newScore;
+  }
+);
 
 onMounted(async () => {
   try {
@@ -420,6 +510,22 @@ function getTeamOwner(teamAbbrev) {
     player.teams.includes(teamAbbrev)
   );
   return teamOwner;
+}
+
+function triggerAnguishAvatar(team) {
+  // Clear existing timer if any
+  if (goalTimers.value[team]) {
+    clearTimeout(goalTimers.value[team]);
+  }
+
+  // Set anguish state
+  recentGoalAgainst.value[team] = true;
+
+  // Clear anguish after 1 minute
+  goalTimers.value[team] = setTimeout(() => {
+    recentGoalAgainst.value[team] = false;
+    goalTimers.value[team] = null;
+  }, 60000);
 }
 </script>
 
