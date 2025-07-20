@@ -4,11 +4,6 @@
       <div class="flex flex-col justify-center items-center my-4">
         <div v-if="player">
           <v-card class="pb-3">
-            <v-card-title
-              ><h2 class="text-lg font-bold">
-                {{ player.name }}
-              </h2></v-card-title
-            >
             <v-card-text class="flex flex-col justify-center items-center">
               <PlayerCard
                 :player="player"
