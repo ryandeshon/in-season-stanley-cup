@@ -1,10 +1,11 @@
 <template>
   <v-card
-    class="pb-3 sm:min-w-52 border-spacing-2 border-2 border-black rounded-lg"
+    class="pb-3 sm:min-w-52 border-spacing-2 border-2 border-black rounded-lg cursor-pointer"
     :class="{
       'border-white': isDarkOrLight === 'dark',
       'border-black': isDarkOrLight === 'light',
     }"
+    @click="$emit('card-click')"
   >
     <v-card-text class="flex flex-col justify-center items-center">
       <router-link :to="`/player/${props.player?.name}`"
@@ -109,6 +110,8 @@ const props = defineProps({
     default: true,
   },
 });
+
+defineEmits(['card-click']);
 
 const images = {
   Boz: {

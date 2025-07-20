@@ -10,15 +10,13 @@
               </h2></v-card-title
             >
             <v-card-text class="flex flex-col justify-center items-center">
-              <div
-                class="relative flex flex-col justify-center items-center text-center my-auto w-52"
-              >
-                <img
-                  :src="avatarImage"
-                  class="my-2"
-                  :alt="`${player?.name} Avatar`"
-                />
-              </div>
+              <PlayerCard
+                :player="player"
+                :show-team-logo="false"
+                :image-type="currentImageType"
+                @card-click="cycleImage"
+                class="mb-4"
+              />
               <span>Title Defenses: {{ player.titleDefenses }}</span>
               <span>Championships: {{ player.championships }}</span>
             </v-card-text>
@@ -113,14 +111,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { getPlayerData, getGameRecords } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
-import bozHappyImage from '@/assets/players/simpsons/boz-happy.png';
-import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
-import cooperHappyImage from '@/assets/players/simpsons/cooper-happy.png';
-import ryanHappyImage from '@/assets/players/simpsons/ryan-happy.png';
+import PlayerCard from '@/components/PlayerCard.vue';
 
 const props = defineProps(['name']);
 
@@ -141,20 +136,16 @@ const playersGamesPlayed = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const displayedGames = ref([]);
-const bozHappyImageRef = ref(bozHappyImage);
-const terryHappyImageRef = ref(terryHappyImage);
-const cooperHappyImageRef = ref(cooperHappyImage);
-const ryanHappyImageRef = ref(ryanHappyImage);
 
-const avatarImage = computed(() => {
-  const avatarImages = {
-    Boz: bozHappyImageRef.value,
-    Terry: terryHappyImageRef.value,
-    Cooper: cooperHappyImageRef.value,
-    Ryan: ryanHappyImageRef.value,
-  };
-  return avatarImages[player.value?.name] || null;
-});
+const currentImageType = ref('Happy');
+
+const imageTypes = ['Happy', 'Sad', 'Angry', 'Anguish'];
+
+const cycleImage = () => {
+  const currentIndex = imageTypes.indexOf(currentImageType.value);
+  const nextIndex = (currentIndex + 1) % imageTypes.length;
+  currentImageType.value = imageTypes[nextIndex];
+};
 
 const loadMore = () => {
   if (!playersGamesPlayed.value) {
