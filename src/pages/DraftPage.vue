@@ -105,7 +105,7 @@
           >
             <PlayerCard
               :player="player"
-              image-type="Simpsons"
+              image-type="Happy"
               :show-team-logo="false"
               class="border-4"
               :class="{
