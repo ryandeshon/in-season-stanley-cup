@@ -204,7 +204,7 @@ import { getCurrentChampion, getGameId } from '../services/championServices';
 import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
-import { useThemeStore } from '@/store/themeStore'; // Import the theme store
+import { useTheme } from '@/composables/useTheme';
 
 import quotes from '@/utilities/quotes.json';
 
@@ -233,15 +233,7 @@ watch(isConnected, (newVal) => {
   isDisconnected.value = !newVal;
 });
 
-const themeStore = useThemeStore();
-const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
-watch(
-  () => themeStore.isDarkTheme,
-  (newVal) => {
-    isDarkOrLight.value = newVal ? 'dark' : 'light';
-  },
-  { immediate: true }
-);
+const { isDarkOrLight } = useTheme();
 
 const clockTime = computed(() => {
   return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');

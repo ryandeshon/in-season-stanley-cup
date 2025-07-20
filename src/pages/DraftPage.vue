@@ -189,7 +189,7 @@ import {
   sendSocketMessage,
   useSocket,
 } from '@/services/socketClient';
-import { useThemeStore } from '@/store/themeStore';
+import { useTheme } from '@/composables/useTheme';
 import PlayerCard from '@/components/PlayerCard.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
@@ -222,15 +222,7 @@ function preloadAudio() {
   audioReady.value = true;
 }
 
-const themeStore = useThemeStore();
-const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
-watch(
-  () => themeStore.isDarkTheme,
-  (newVal) => {
-    isDarkOrLight.value = newVal ? 'dark' : 'light';
-  },
-  { immediate: true }
-);
+const { isDarkOrLight } = useTheme();
 
 const route = useRoute();
 const playerName = route.params.name;

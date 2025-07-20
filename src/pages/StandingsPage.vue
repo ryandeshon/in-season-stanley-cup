@@ -68,10 +68,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
-import { useThemeStore } from '@/store/themeStore';
+import { useTheme } from '@/composables/useTheme';
 
 const loading = ref(true);
 const allPlayersData = ref(null);
@@ -79,15 +79,7 @@ const currentChampion = ref(null);
 const totalGamesPlayed = ref(0);
 const totalGamesPercentage = ref(0);
 
-const themeStore = useThemeStore();
-const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
-watch(
-  () => themeStore.isDarkTheme,
-  (newVal) => {
-    isDarkOrLight.value = newVal ? 'dark' : 'light';
-  },
-  { immediate: true }
-);
+const { isDarkOrLight } = useTheme();
 
 onMounted(async () => {
   try {

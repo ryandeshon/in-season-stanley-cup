@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { watch, ref } from 'vue';
+import { useTheme } from '@/composables/useTheme';
 
 import bozAngryImage from '@/assets/players/simpsons/boz-angry.png';
 import bozSadImage from '@/assets/players/simpsons/boz-sad.png';
@@ -69,16 +69,7 @@ import terrySadImage from '@/assets/players/simpsons/terry-sad.png';
 import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
 import terryAnguishImage from '@/assets/players/simpsons/terry-anguish.png';
 
-import { useThemeStore } from '@/store/themeStore';
-const themeStore = useThemeStore();
-const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
-watch(
-  () => themeStore.isDarkTheme,
-  (newVal) => {
-    isDarkOrLight.value = newVal ? 'dark' : 'light';
-  },
-  { immediate: true }
-);
+const { isDarkOrLight } = useTheme();
 
 const props = defineProps({
   player: {
