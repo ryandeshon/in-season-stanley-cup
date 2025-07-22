@@ -35,11 +35,7 @@
             </td>
             <td class="flex flex-wrap justify-center items-center">
               <div v-for="team in standing.teams" :key="team">
-                <img
-                  :src="`/team-logos/${team}.png`"
-                  :alt="team"
-                  class="w-6 h-6"
-                />
+                <TeamLogo :team="team" width="50" height="50" />
               </div>
             </td>
             <td class="text-left">{{ standing.titleDefenses }}</td>
@@ -71,6 +67,7 @@
 import { ref, onMounted } from 'vue';
 import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
+import TeamLogo from '@/components/TeamLogo.vue';
 
 const loading = ref(true);
 const allPlayersData = ref(null);

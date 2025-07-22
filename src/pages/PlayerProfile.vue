@@ -80,11 +80,7 @@
                   <td
                     class="text-center flex gap-2 justify-center items-center"
                   >
-                    <img
-                      :src="`/team-logos/${team}.png`"
-                      :alt="team"
-                      class="w-10 h-10"
-                    />
+                    <TeamLogo :team="team" width="70" height="70" />
                   </td>
                   <td class="text-center">
                     {{ getWins(team) }} - {{ getLosses(team) }}
@@ -111,6 +107,7 @@ import { getPlayerData, getGameRecords } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
+import TeamLogo from '@/components/TeamLogo.vue';
 
 const props = defineProps(['name']);
 

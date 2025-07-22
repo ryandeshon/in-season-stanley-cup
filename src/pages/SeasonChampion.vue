@@ -29,7 +29,7 @@
       </p>
       <div class="grid gap-2 grid-cols-4 md:grid-cols-8">
         <div v-for="team in player.teams" :key="team">
-          <img :src="`/team-logos/${team}.png`" :alt="team" class="w-12 h-12" />
+          <TeamLogo :team="team" width="50" height="50" />
         </div>
       </div>
     </div>
@@ -42,6 +42,7 @@ import { getPlayerData } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
 import cooperChampionImage from '@/assets/players/nhl94/cooper-champion.png';
+import TeamLogo from '@/components/TeamLogo.vue';
 
 const theme = useTheme();
 const isDarkOrLight = ref(theme.global.name.value);
