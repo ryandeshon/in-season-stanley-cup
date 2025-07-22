@@ -7,6 +7,7 @@
       </router-link>
       <v-spacer></v-spacer>
       <div class="flex justify-center items-center gap-1">
+        <v-btn text to="/draft">Draft</v-btn>
         <v-btn text to="/standings">Standings</v-btn>
         <v-btn text to="/about">About</v-btn>
         <v-spacer></v-spacer>
@@ -34,19 +35,17 @@
 </template>
 
 <script setup>
-import { useThemeStore } from '@/store/themeStore';
+import { useTheme } from '@/composables/useTheme';
 import { watch } from 'vue';
-import { useTheme } from 'vuetify';
+import { useTheme as useVuetifyTheme } from 'vuetify';
 import logo from '@/assets/in-season-logo.png';
 
-const themeStore = useThemeStore();
-const isDarkTheme = themeStore.isDarkTheme;
-const toggleTheme = themeStore.toggleTheme;
+const { isDarkTheme, toggleTheme } = useTheme();
 
-const theme = useTheme();
+const theme = useVuetifyTheme();
 
 watch(
-  () => themeStore.isDarkTheme,
+  () => isDarkTheme.value,
   (newVal) => {
     theme.global.name.value = newVal ? 'dark' : 'light';
   },

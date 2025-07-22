@@ -4,31 +4,29 @@
       <div class="flex flex-col justify-center items-center my-4">
         <div v-if="player">
           <v-card class="pb-3">
-            <v-card-title
-              ><h2 class="text-lg font-bold">
-                {{ player.name }}
-              </h2></v-card-title
-            >
             <v-card-text class="flex flex-col justify-center items-center">
-              <div
-                class="relative flex flex-col justify-center items-center text-center my-auto w-52"
+              <PlayerCard
+                :player="player"
+                :show-team-logo="false"
+                :image-type="currentImageType"
+                :clickable="true"
+                @card-click="cycleImage"
+                class="mb-4"
+              />
+              <span class="text-lg"
+                >Title Defenses: {{ player.titleDefenses }}</span
               >
-                <img
-                  :src="avatarImage"
-                  class="my-2"
-                  :alt="`${player?.name} Avatar`"
-                />
-              </div>
-              <span>Title Defenses: {{ player.titleDefenses }}</span>
-              <span>Championships: {{ player.championships }}</span>
+              <span class="text-lg"
+                >Championships: {{ player.championships }}</span
+              >
             </v-card-text>
           </v-card>
           <div v-if="playersGamesPlayed" class="mt-5 grid gap-5">
             <v-table>
               <thead>
                 <tr>
-                  <th class="text-center">Match Up</th>
-                  <th class="text-center">Result</th>
+                  <th class="text-center font-bold">Match Up</th>
+                  <th class="text-center font-bold">Result</th>
                 </tr>
               </thead>
               <tbody>
@@ -36,32 +34,18 @@
                   <td
                     class="text-center flex gap-2 justify-center items-center"
                   >
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.wTeam}_${isDarkOrLight}.svg`"
-                      :alt="game.wTeam"
-                      class="w-6 h-6"
-                    />
+                    <TeamLogo :team="game.wTeam" />
                     vs.
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.lTeam}_${isDarkOrLight}.svg`"
-                      :alt="game.lTeam"
-                      class="w-6 h-6"
-                    />
+                    <TeamLogo :team="game.lTeam" />
                   </td>
 
                   <td class="text-center">
                     <div
                       class="text-center flex gap-2 justify-center items-center"
                     >
-                      <img
-                        v-if="getResults(game).team"
-                        :src="`https://assets.nhle.com/logos/nhl/svg/${getResults(game).team}_${isDarkOrLight}.svg`"
-                        :alt="game.wTeam"
-                        class="w-6 h-6"
-                      />
+                      <TeamLogo :team="getResults(game).team" />
                       <router-link
                         :to="{ name: 'GamePage', params: { id: game.id } }"
-                        class="contents"
                         >{{ getResults(game).result }}</router-link
                       >
                     </div>
@@ -87,11 +71,7 @@
                   <td
                     class="text-center flex gap-2 justify-center items-center"
                   >
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-                      :alt="team"
-                      class="w-10 h-10"
-                    />
+                    <TeamLogo :team="team" width="70" height="70" />
                   </td>
                   <td class="text-center">
                     {{ getWins(team) }} - {{ getLosses(team) }}
@@ -113,14 +93,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { getPlayerData, getGameRecords } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
-import bozWinnerImage from '@/assets/players/boz-winner.png';
-import terryWinnerImage from '@/assets/players/terry-winner.png';
-import cooperWinnerImage from '@/assets/players/cooper-winner.png';
-import ryanWinnerImage from '@/assets/players/ryan-winner.png';
+import PlayerCard from '@/components/PlayerCard.vue';
+import TeamLogo from '@/components/TeamLogo.vue';
 
 const props = defineProps(['name']);
 
@@ -141,20 +119,16 @@ const playersGamesPlayed = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const displayedGames = ref([]);
-const bozWinnerImageRef = ref(bozWinnerImage);
-const terryWinnerImageRef = ref(terryWinnerImage);
-const cooperWinnerImageRef = ref(cooperWinnerImage);
-const ryanWinnerImageRef = ref(ryanWinnerImage);
 
-const avatarImage = computed(() => {
-  const avatarImages = {
-    Boz: bozWinnerImageRef.value,
-    Terry: terryWinnerImageRef.value,
-    Cooper: cooperWinnerImageRef.value,
-    Ryan: ryanWinnerImageRef.value,
-  };
-  return avatarImages[player.value?.name] || null;
-});
+const currentImageType = ref('Happy');
+
+const imageTypes = ['Happy', 'Sad', 'Angry', 'Anguish'];
+
+const cycleImage = () => {
+  const currentIndex = imageTypes.indexOf(currentImageType.value);
+  const nextIndex = (currentIndex + 1) % imageTypes.length;
+  currentImageType.value = imageTypes[nextIndex];
+};
 
 const loadMore = () => {
   if (!playersGamesPlayed.value) {

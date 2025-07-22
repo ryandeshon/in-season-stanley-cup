@@ -1,6 +1,17 @@
 <template>
-  <v-card class="pb-3 sm:min-w-52">
-    <v-card-text class="flex flex-col justify-center items-center">
+  <v-card
+    class="sm:min-w-52 border-spacing-2 border-2 border-black rounded-lg"
+    :class="{
+      'border-white': isDarkOrLight === 'dark',
+      'border-black': isDarkOrLight === 'light',
+    }"
+    :ripple="clickable"
+    @click="clickable && $emit('card-click')"
+  >
+    <v-card-text
+      class="flex flex-col justify-center items-center"
+      :class="showTeamLogo ? 'mb-6' : 'pb-0'"
+    >
       <router-link :to="`/player/${props.player?.name}`"
         ><h3 class="text-xl font-bold mb-0">
           {{ props.player?.name }}
@@ -12,48 +23,53 @@
       </p>
       <div v-if="props.isGameLive" class="text-sm">
         <div>Score: {{ props.team?.score }}</div>
-        <div>SOG: {{ props.team?.sog }}</div>
+        <div v-if="props.team?.sog > 0">SOG: {{ props.team?.sog }}</div>
       </div>
       <div class="avatar">
         <img
           :src="getImage(props.player?.name, props.imageType)"
-          class="my-2"
           :class="{
             'saturate-50 contrast-125 brightness-75': props.isMirrorMatch,
             '-scale-x-100': props.isChampion,
           }"
           :alt="`${props.player?.name} Avatar`"
         />
-        <div v-if="props.team" class="team-logo">
-          <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${props.team.abbrev}_light.svg`"
-            :alt="`${props.team.placeName.default} Logo`"
-          />
-        </div>
-        <div v-else class="team-logo">
-          <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${props.currentChampion}_light.svg`"
-            :alt="`${props.currentChampion} Logo`"
-          />
-        </div>
+        <template v-if="showTeamLogo">
+          <div v-if="props.team" class="team-logo">
+            <TeamLogo :team="props.team.abbrev" :width="55" :height="55" />
+          </div>
+          <div v-else class="team-logo">
+            <TeamLogo :team="props.currentChampion" :width="55" :height="55" />
+          </div>
+        </template>
       </div>
     </v-card-text>
   </v-card>
 </template>
 
 <script setup>
-import bozWinnerImage from '@/assets/players/boz-winner.png';
-import terryWinnerImage from '@/assets/players/terry-winner.png';
-import cooperWinnerImage from '@/assets/players/cooper-winner.png';
-import ryanWinnerImage from '@/assets/players/ryan-winner.png';
-import bozChallengerImage from '@/assets/players/boz-challenger.png';
-import terryChallengerImage from '@/assets/players/terry-challenger.png';
-import cooperChallengerImage from '@/assets/players/cooper-challenger.png';
-import ryanChallengerImage from '@/assets/players/ryan-challenger.png';
-import bozSadImage from '@/assets/players/boz-sad.png';
-import terrySadImage from '@/assets/players/terry-sad.png';
-import cooperSadImage from '@/assets/players/cooper-sad.png';
-import ryanSadImage from '@/assets/players/ryan-sad.png';
+import { useTheme } from '@/composables/useTheme';
+
+import bozAngryImage from '@/assets/players/simpsons/boz-angry.png';
+import bozSadImage from '@/assets/players/simpsons/boz-sad.png';
+import bozHappyImage from '@/assets/players/simpsons/boz-happy.png';
+import bozAnguishImage from '@/assets/players/simpsons/boz-anguish.png';
+import cooperAngryImage from '@/assets/players/simpsons/cooper-angry.png';
+import cooperSadImage from '@/assets/players/simpsons/cooper-sad.png';
+import cooperHappyImage from '@/assets/players/simpsons/cooper-happy.png';
+import cooperAnguishImage from '@/assets/players/simpsons/cooper-anguish.png';
+import ryanAngryImage from '@/assets/players/simpsons/ryan-angry.png';
+import ryanSadImage from '@/assets/players/simpsons/ryan-sad.png';
+import ryanHappyImage from '@/assets/players/simpsons/ryan-happy.png';
+import ryanAnguishImage from '@/assets/players/simpsons/ryan-anguish.png';
+import terryAngryImage from '@/assets/players/simpsons/terry-angry.png';
+import terrySadImage from '@/assets/players/simpsons/terry-sad.png';
+import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
+import terryAnguishImage from '@/assets/players/simpsons/terry-anguish.png';
+
+import TeamLogo from '@/components/TeamLogo.vue';
+
+const { isDarkOrLight } = useTheme();
 
 const props = defineProps({
   player: {
@@ -70,7 +86,7 @@ const props = defineProps({
   },
   imageType: {
     type: String,
-    default: 'Winner',
+    default: 'Happy',
   },
   currentChampion: {
     type: String,
@@ -88,28 +104,42 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showTeamLogo: {
+    type: Boolean,
+    default: true,
+  },
+  clickable: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+defineEmits(['card-click']);
 
 const images = {
   Boz: {
-    Winner: bozWinnerImage,
-    Challenger: bozChallengerImage,
+    Happy: bozHappyImage,
+    Angry: bozAngryImage,
     Sad: bozSadImage,
+    Anguish: bozAnguishImage,
   },
   Terry: {
-    Winner: terryWinnerImage,
-    Challenger: terryChallengerImage,
+    Happy: terryHappyImage,
+    Angry: terryAngryImage,
     Sad: terrySadImage,
+    Anguish: terryAnguishImage,
   },
   Cooper: {
-    Winner: cooperWinnerImage,
-    Challenger: cooperChallengerImage,
+    Happy: cooperHappyImage,
+    Angry: cooperAngryImage,
     Sad: cooperSadImage,
+    Anguish: cooperAnguishImage,
   },
   Ryan: {
-    Winner: ryanWinnerImage,
-    Challenger: ryanChallengerImage,
+    Happy: ryanHappyImage,
+    Angry: ryanAngryImage,
     Sad: ryanSadImage,
+    Anguish: ryanAnguishImage,
   },
 };
 
@@ -123,6 +153,6 @@ const getImage = (playerName, type) => {
   @apply relative flex flex-col justify-center items-center text-center my-auto w-28 sm:w-52;
 }
 .team-logo {
-  @apply absolute flex align-middle justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
+  @apply absolute flex items-center justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2 left-1/2 transform -translate-x-1/2;
 }
 </style>
