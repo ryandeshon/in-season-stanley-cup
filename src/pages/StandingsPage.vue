@@ -29,9 +29,12 @@
               <router-link :to="`/player/${standing.name}`">{{
                 standing.name
               }}</router-link>
-              <span v-if="standing.name === currentChampion.name" class="ml-1"
-                >👑</span
-              >
+              <img
+                v-if="standing.name === currentChampion.name"
+                :src="Crown"
+                alt="Crown"
+                class="inline ml-1 w-8 h-8"
+              />
             </td>
             <td class="align-top">
               <div class="flex flex-wrap justify-center items-start gap-1 py-2">
@@ -50,7 +53,10 @@
           </tr>
         </tbody>
       </v-table>
-      <div class="text-sm my-2">👑 = Current Champion</div>
+      <div class="text-sm my-2">
+        <img :src="Crown" alt="Crown" class="inline w-8 h-8 mr-1" /> = Current
+        Champion
+      </div>
     </div>
     <template v-if="totalGamesPlayed">
       <h2 class="text-center text-xl font-bold">Season Progress</h2>
@@ -76,6 +82,7 @@ import { ref, onMounted } from 'vue';
 import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
 import TeamLogo from '@/components/TeamLogo.vue';
+import Crown from '@/assets/crown.png';
 
 const loading = ref(true);
 const allPlayersData = ref(null);
