@@ -13,10 +13,10 @@
     <div v-else>
       <v-table>
         <thead>
-          <tr>
+          <tr class="font-bold text-lg">
             <th class="text-left">Player</th>
             <th class="text-center">Teams</th>
-            <th class="text-left">Title Defenses</th>
+            <th class="text-center">Title Defenses</th>
           </tr>
         </thead>
         <tbody>
@@ -25,7 +25,7 @@
             :key="standing.name"
             class="py-2"
           >
-            <td class="text-left font-bold">
+            <td class="text-left font-bold align-middle">
               <router-link :to="`/player/${standing.name}`">{{
                 standing.name
               }}</router-link>
@@ -33,17 +33,20 @@
                 >👑</span
               >
             </td>
-            <td class="flex flex-wrap justify-center items-center py-2">
-              <TeamLogo
-                v-for="team in standing.teams"
-                :key="team"
-                :team="team"
-                class="py-2"
-                width="50"
-                height="50"
-              />
+            <td class="align-top">
+              <div class="flex flex-wrap justify-center items-start gap-1 py-2">
+                <TeamLogo
+                  v-for="team in standing.teams"
+                  :key="team"
+                  :team="team"
+                  width="40"
+                  height="40"
+                />
+              </div>
             </td>
-            <td class="text-left">{{ standing.titleDefenses }}</td>
+            <td class="text-center align-middle">
+              {{ standing.titleDefenses }}
+            </td>
           </tr>
         </tbody>
       </v-table>
