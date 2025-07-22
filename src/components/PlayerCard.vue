@@ -1,13 +1,17 @@
 <template>
   <v-card
-    class="pb-3 sm:min-w-52 border-spacing-2 border-2 border-black rounded-lg cursor-pointer"
+    class="sm:min-w-52 border-spacing-2 border-2 border-black rounded-lg"
     :class="{
       'border-white': isDarkOrLight === 'dark',
       'border-black': isDarkOrLight === 'light',
     }"
-    @click="$emit('card-click')"
+    :ripple="clickable"
+    @click="clickable && $emit('card-click')"
   >
-    <v-card-text class="flex flex-col justify-center items-center">
+    <v-card-text
+      class="flex flex-col justify-center items-center"
+      :class="showTeamLogo ? 'mb-6' : 'pb-0'"
+    >
       <router-link :to="`/player/${props.player?.name}`"
         ><h3 class="text-xl font-bold mb-0">
           {{ props.player?.name }}
@@ -24,7 +28,6 @@
       <div class="avatar">
         <img
           :src="getImage(props.player?.name, props.imageType)"
-          class="my-2"
           :class="{
             'saturate-50 contrast-125 brightness-75': props.isMirrorMatch,
             '-scale-x-100': props.isChampion,
@@ -105,6 +108,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  clickable: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 defineEmits(['card-click']);
@@ -146,6 +153,6 @@ const getImage = (playerName, type) => {
   @apply relative flex flex-col justify-center items-center text-center my-auto w-28 sm:w-52;
 }
 .team-logo {
-  @apply absolute flex align-middle justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2;
+  @apply absolute flex items-center justify-center -bottom-6 w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full border-2 left-1/2 transform -translate-x-1/2;
 }
 </style>

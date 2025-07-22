@@ -51,7 +51,7 @@ const simpsonsDarkTheme = {
   dark: true,
   colors: {
     background: '#1E1E1E', // near-black charcoal
-    surface: '#2E2E2E', // softer charcoal
+    surface: '#666666', // softer charcoal
     primary: '#FFB300', // goldenrod
     secondary: '#64B5F6', // lighter blue for contrast
     error: '#EF5350', // muted red

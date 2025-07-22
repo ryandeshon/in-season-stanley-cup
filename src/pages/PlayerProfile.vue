@@ -9,19 +9,24 @@
                 :player="player"
                 :show-team-logo="false"
                 :image-type="currentImageType"
+                :clickable="true"
                 @card-click="cycleImage"
                 class="mb-4"
               />
-              <span>Title Defenses: {{ player.titleDefenses }}</span>
-              <span>Championships: {{ player.championships }}</span>
+              <span class="text-lg"
+                >Title Defenses: {{ player.titleDefenses }}</span
+              >
+              <span class="text-lg"
+                >Championships: {{ player.championships }}</span
+              >
             </v-card-text>
           </v-card>
           <div v-if="playersGamesPlayed" class="mt-5 grid gap-5">
             <v-table>
               <thead>
                 <tr>
-                  <th class="text-center">Match Up</th>
-                  <th class="text-center">Result</th>
+                  <th class="text-center font-bold">Match Up</th>
+                  <th class="text-center font-bold">Result</th>
                 </tr>
               </thead>
               <tbody>
@@ -29,32 +34,18 @@
                   <td
                     class="text-center flex gap-2 justify-center items-center"
                   >
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.wTeam}_${isDarkOrLight}.svg`"
-                      :alt="game.wTeam"
-                      class="w-6 h-6"
-                    />
+                    <TeamLogo :team="game.wTeam" />
                     vs.
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.lTeam}_${isDarkOrLight}.svg`"
-                      :alt="game.lTeam"
-                      class="w-6 h-6"
-                    />
+                    <TeamLogo :team="game.lTeam" />
                   </td>
 
                   <td class="text-center">
                     <div
                       class="text-center flex gap-2 justify-center items-center"
                     >
-                      <img
-                        v-if="getResults(game).team"
-                        :src="`https://assets.nhle.com/logos/nhl/svg/${getResults(game).team}_${isDarkOrLight}.svg`"
-                        :alt="game.wTeam"
-                        class="w-6 h-6"
-                      />
+                      <TeamLogo :team="getResults(game).team" />
                       <router-link
                         :to="{ name: 'GamePage', params: { id: game.id } }"
-                        class="contents"
                         >{{ getResults(game).result }}</router-link
                       >
                     </div>

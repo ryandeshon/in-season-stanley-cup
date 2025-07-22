@@ -54,7 +54,7 @@
             :show-team-logo="false"
           />
           <div
-            class="flex flex-row items-center justify-center mx-4 flex-wrap md:flex-nowrap"
+            class="flex flex-row items-center justify-center m-4 flex-wrap md:flex-nowrap"
           >
             <div
               v-for="team in player.teams"
