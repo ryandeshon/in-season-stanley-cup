@@ -36,7 +36,7 @@
             <td class="flex flex-wrap justify-center items-center">
               <div v-for="team in standing.teams" :key="team">
                 <img
-                  :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
+                  :src="`/team-logos/${team}.png`"
                   :alt="team"
                   class="w-6 h-6"
                 />
@@ -71,15 +71,12 @@
 import { ref, onMounted } from 'vue';
 import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
-import { useTheme } from '@/composables/useTheme';
 
 const loading = ref(true);
 const allPlayersData = ref(null);
 const currentChampion = ref(null);
 const totalGamesPlayed = ref(0);
 const totalGamesPercentage = ref(0);
-
-const { isDarkOrLight } = useTheme();
 
 onMounted(async () => {
   try {

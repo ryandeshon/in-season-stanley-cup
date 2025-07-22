@@ -61,12 +61,7 @@
               :key="team"
               class="flex justify-center mb-2 md:mb-0"
             >
-              <v-img
-                :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-                width="70"
-                height="70"
-                :alt="team"
-              />
+              <TeamLogo :team="team" width="70" height="70" />
             </div>
           </div>
         </v-row>
@@ -123,12 +118,7 @@
                 cols="3"
                 class="d-flex justify-center"
               >
-                <v-img
-                  :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-                  width="40"
-                  height="40"
-                  :alt="team"
-                />
+                <TeamLogo :team="team" />
               </v-col>
             </v-row>
           </v-col>
@@ -155,12 +145,7 @@
               }"
               @click="selectTeam(team)"
             >
-              <v-img
-                :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-                class="pa-3"
-                height="80"
-                contain
-              />
+              <TeamLogo :team="team" class="pa-3" height="80" contain />
             </v-card>
           </v-col>
         </v-row>
@@ -189,8 +174,8 @@ import {
   sendSocketMessage,
   useSocket,
 } from '@/services/socketClient';
-import { useTheme } from '@/composables/useTheme';
 import PlayerCard from '@/components/PlayerCard.vue';
+import TeamLogo from '@/components/TeamLogo.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
@@ -221,8 +206,6 @@ function preloadAudio() {
   errorSound.load();
   audioReady.value = true;
 }
-
-const { isDarkOrLight } = useTheme();
 
 const route = useRoute();
 const playerName = route.params.name;

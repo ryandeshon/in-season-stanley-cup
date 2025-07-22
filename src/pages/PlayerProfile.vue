@@ -81,7 +81,7 @@
                     class="text-center flex gap-2 justify-center items-center"
                   >
                     <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
+                      :src="`/team-logos/${team}.png`"
                       :alt="team"
                       class="w-10 h-10"
                     />

@@ -29,11 +29,7 @@
       </p>
       <div class="grid gap-2 grid-cols-4 md:grid-cols-8">
         <div v-for="team in player.teams" :key="team">
-          <img
-            :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-            :alt="team"
-            class="w-12 h-12"
-          />
+          <img :src="`/team-logos/${team}.png`" :alt="team" class="w-12 h-12" />
         </div>
       </div>
     </div>
