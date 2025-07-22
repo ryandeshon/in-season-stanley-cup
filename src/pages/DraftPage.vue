@@ -94,8 +94,9 @@
           <v-col
             v-for="player in orderedPlayers"
             :key="player.playerId"
-            cols="6"
-            sm="3"
+            cols="12"
+            sm="6"
+            md="3"
             class="text-center"
           >
             <PlayerCard
@@ -137,7 +138,7 @@
             <v-card
               outlined
               :elevation="pickedTeams.includes(team) ? 0 : 2"
-              class="w-full p-2"
+              class="w-full p-4 flex items-center justify-center"
               :class="{
                 picked: pickedTeams.includes(team),
                 'cursor-pointer':
@@ -145,7 +146,7 @@
               }"
               @click="selectTeam(team)"
             >
-              <TeamLogo :team="team" class="pa-3" height="80" contain />
+              <TeamLogo :team="team" width="100" height="100" />
             </v-card>
           </v-col>
         </v-row>
