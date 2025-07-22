@@ -33,16 +33,10 @@
         />
         <template v-if="showTeamLogo">
           <div v-if="props.team" class="team-logo">
-            <img
-              :src="`https://assets.nhle.com/logos/nhl/svg/${props.team?.abbrev}_light.svg`"
-              :alt="`${team.placeName.default} Logo`"
-            />
+            <TeamLogo :team="props.team.abbrev" :width="55" :height="55" />
           </div>
           <div v-else class="team-logo">
-            <img
-              :src="`https://assets.nhle.com/logos/nhl/svg/${props.currentChampion}_light.svg`"
-              :alt="`${props.currentChampion} Logo`"
-            />
+            <TeamLogo :team="props.currentChampion" :width="55" :height="55" />
           </div>
         </template>
       </div>
@@ -69,6 +63,8 @@ import terryAngryImage from '@/assets/players/simpsons/terry-angry.png';
 import terrySadImage from '@/assets/players/simpsons/terry-sad.png';
 import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
 import terryAnguishImage from '@/assets/players/simpsons/terry-anguish.png';
+
+import TeamLogo from '@/components/TeamLogo.vue';
 
 const { isDarkOrLight } = useTheme();
 

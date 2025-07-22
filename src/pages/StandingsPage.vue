@@ -33,10 +33,15 @@
                 >👑</span
               >
             </td>
-            <td class="flex flex-wrap justify-center items-center">
-              <div v-for="team in standing.teams" :key="team">
-                <TeamLogo :team="team" width="50" height="50" />
-              </div>
+            <td class="flex flex-wrap justify-center items-center py-2">
+              <TeamLogo
+                v-for="team in standing.teams"
+                :key="team"
+                :team="team"
+                class="py-2"
+                width="50"
+                height="50"
+              />
             </td>
             <td class="text-left">{{ standing.titleDefenses }}</td>
           </tr>
