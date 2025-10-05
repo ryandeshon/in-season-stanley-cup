@@ -84,9 +84,7 @@
 
         <div v-if="!draftState?.draftStarted" class="text-center my-8">
           <h1 class="text-4xl font-bold mb-4">Draft Not Started</h1>
-          <p class="text-lg text-gray-600">
-            The draft has not been started yet.
-          </p>
+          <p class="text-lg">The draft has not been started yet.</p>
         </div>
 
         <v-row class="mb-10" dense>

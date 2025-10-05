@@ -18,9 +18,7 @@
     <template v-else>
       <div class="text-center mb-8">
         <h1 class="text-4xl font-bold mb-4">Draft Admin Panel</h1>
-        <p class="text-lg text-gray-600 mb-8">
-          Administrative tools for managing the draft
-        </p>
+        <p class="text-lg mb-8">Administrative tools for managing the draft</p>
       </div>
 
       <v-row justify="center" class="mb-8">
@@ -107,7 +105,7 @@
               </v-chip-group>
             </div>
             <div v-else>
-              <p class="text-gray-600">Draft has not been started yet.</p>
+              <p>Draft has not been started yet.</p>
             </div>
           </v-card>
         </v-col>
