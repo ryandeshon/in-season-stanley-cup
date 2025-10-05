@@ -223,7 +223,7 @@ const secondsRemaining = ref(null);
 const isGameToday = ref(false);
 const isGameOver = ref(false);
 const isGameLive = ref(false);
-const isSeasonOver = ref(false);
+const isSeasonOver = ref(true);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
 // Add new reactive state for avatar management
@@ -380,6 +380,12 @@ watch(
 );
 
 onMounted(async () => {
+  // If season is over, skip all game and team data fetching
+  if (isSeasonOver.value) {
+    loading.value = false;
+    return;
+  }
+
   try {
     currentChampion.value = await getCurrentChampion();
     gameID.value = await getGameId();
