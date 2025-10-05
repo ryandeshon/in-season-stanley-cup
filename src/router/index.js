@@ -5,6 +5,7 @@ import AboutPage from '../pages/AboutPage.vue';
 import PlayerProfile from '../pages/PlayerProfile.vue';
 import GamePage from '../pages/GamePage.vue';
 import DraftPage from '../pages/DraftPage.vue';
+import DraftAdminPage from '../pages/DraftAdminPage.vue';
 
 const routes = [
   { path: '/', component: HomePage },
@@ -27,6 +28,11 @@ const routes = [
     name: 'DraftPage',
     component: DraftPage,
     props: true,
+  },
+  {
+    path: '/draft/admin',
+    name: 'DraftAdminPage',
+    component: DraftAdminPage,
   },
 ];
 
