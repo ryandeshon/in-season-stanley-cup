@@ -63,7 +63,7 @@
               <PlayerCard
                 :player="firstGameNonChampionTeam.player"
                 :team="firstGameNonChampionTeam.team"
-                image-type="Challenger"
+                image-type="Angry"
               />
             </div>
           </div>
