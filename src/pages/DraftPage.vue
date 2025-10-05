@@ -68,15 +68,11 @@
       </div>
 
       <div v-else>
-        <v-row
-          class="text-center my-8"
+        <v-col
+          class="text-center mb-8"
           justify="center"
-          v-if="!draftState?.draftStarted"
+          v-if="draftState?.draftStarted"
         >
-          <v-btn @click="startDraft" color="primary">Start Draft</v-btn>
-        </v-row>
-
-        <v-col class="text-center mb-8" justify="center" v-else>
           <h1 class="text-4xl font-bold mb-4">Draft in Progress</h1>
           <div class="text-subtitle-1">
             <span v-if="currentPicker">
@@ -84,11 +80,14 @@
               <strong>{{ currentPicker.name }}</strong>
             </span>
           </div>
-
-          <v-btn @click="advanceDraft" color="primary" class="my-4"
-            >Advance Draft</v-btn
-          >
         </v-col>
+
+        <div v-if="!draftState?.draftStarted" class="text-center my-8">
+          <h1 class="text-4xl font-bold mb-4">Draft Not Started</h1>
+          <p class="text-lg text-gray-600">
+            The draft has not been started yet.
+          </p>
+        </div>
 
         <v-row class="mb-10" dense>
           <v-col
@@ -152,9 +151,6 @@
         </v-row>
       </div>
     </template>
-    <v-row class="my-8" justify="center">
-      <v-btn @click="resetTeams"> Reset Draft (Test Only) </v-btn>
-    </v-row>
   </v-container>
 </template>
 
@@ -166,7 +162,6 @@ import {
   getDraftState,
   selectTeamForPlayer,
   updateDraftState,
-  resetAllPlayerTeams,
 } from '../services/dynamodbService';
 import {
   initSocket,
@@ -363,109 +358,6 @@ const pickedTeams = computed(() => {
   const picked = allPlayersData.value.flatMap((player) => player.teams || []);
   return picked;
 });
-
-// Reset teams (for testing)
-async function resetTeams() {
-  const confirmed = confirm('Are you sure you want to reset all teams?');
-
-  if (!confirmed) return;
-
-  try {
-    await resetAllPlayerTeams();
-    await updateDraftState({
-      draftStarted: false,
-      pickOrder: [],
-      currentPicker: null,
-      currentPickNumber: 0,
-      availableTeams: [...nhlTeams.value],
-    });
-    await loadInitialData(); // refresh players and teams
-    isDraftOver.value = false;
-    alert('Teams have been reset.');
-  } catch (error) {
-    alert('Failed to reset teams.');
-  }
-}
-
-// Utility function to shuffle an array
-function shuffle(array) {
-  let currentIndex = array.length;
-  while (currentIndex !== 0) {
-    const randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex],
-      array[currentIndex],
-    ];
-  }
-  return array;
-}
-
-async function startDraft() {
-  preloadAudio(); // preload audio on user interaction
-  try {
-    const players = await getDraftPlayers();
-    const shuffled = shuffle(players.map((p) => p.id));
-
-    const newState = {
-      pickOrder: shuffled,
-      currentPicker: shuffled[0],
-      currentPickNumber: 1,
-      draftStarted: true, // ✅ Flag the draft as started
-    };
-
-    await updateDraftState(newState);
-    const updatedState = await getDraftState();
-
-    sendSocketMessage('default', updatedState); // broadcast to all clients
-    await loadInitialData(); // refresh local view
-  } catch (error) {
-    console.error('Failed to start draft:', error);
-    alert('Could not start the draft.');
-  }
-}
-
-async function advanceDraft() {
-  try {
-    const pickOrder = draftState.value.pickOrder;
-    const currentIndex = pickOrder.indexOf(currentPickerId.value);
-    const nextIndex = (currentIndex + 1) % pickOrder.length;
-    const nextPicker = pickOrder[nextIndex];
-
-    // Pick a random team from available teams
-    if (availableTeams.value.length > 0) {
-      const randomTeamIndex = Math.floor(
-        Math.random() * availableTeams.value.length
-      );
-      const randomTeam = availableTeams.value[randomTeamIndex];
-
-      // Assign the random team to the current picker
-      await selectTeamForPlayer(currentPickerId.value, randomTeam);
-
-      // Remove the team from available teams
-      const updatedTeams = availableTeams.value.filter((t) => t !== randomTeam);
-
-      await updateDraftState({
-        availableTeams: updatedTeams,
-        currentPicker: nextPicker,
-        currentPickNumber: draftState.value.currentPickNumber + 1,
-      });
-    } else {
-      // If no teams are available, just advance the draft
-      await updateDraftState({
-        currentPicker: nextPicker,
-        currentPickNumber: draftState.value.currentPickNumber + 1,
-      });
-    }
-
-    const updatedState = await getDraftState();
-    sendSocketMessage('default', updatedState); // broadcast to all clients
-    await loadInitialData(); // refresh local view
-  } catch (error) {
-    console.error('Failed to advance draft:', error);
-    alert('Could not advance the draft.');
-  }
-}
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
