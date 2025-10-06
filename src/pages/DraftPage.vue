@@ -317,6 +317,34 @@ watch(availableTeams, (newVal) => {
   }
 });
 
+// Watch for draft state changes to update UI reactively
+watch(
+  () => draftState.value?.draftStarted,
+  (newVal, oldVal) => {
+    // If draft just started, play success sound and show notification
+    if (newVal && !oldVal && audioReady.value) {
+      successSound.play();
+      console.log('🎉 Draft has started!');
+    }
+  }
+);
+
+// Watch for current picker changes to update turn status
+watch(
+  () => draftState.value?.currentPicker,
+  (newPickerId) => {
+    if (newPickerId && currentPlayer.value) {
+      const wasYourTurn = isYourTurn.value;
+      isYourTurn.value = currentPlayer.value.id === newPickerId;
+
+      // If it just became this player's turn, play sound
+      if (isYourTurn.value && !wasYourTurn && audioReady.value) {
+        successSound.play();
+      }
+    }
+  }
+);
+
 onMounted(() => {
   initSocket();
   loadInitialData();
