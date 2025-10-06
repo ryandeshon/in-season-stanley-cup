@@ -13,10 +13,10 @@
     <div v-else>
       <v-table>
         <thead>
-          <tr>
+          <tr class="font-bold text-lg">
             <th class="text-left">Player</th>
             <th class="text-center">Teams</th>
-            <th class="text-left">Title Defenses</th>
+            <th class="text-center">Title Defenses</th>
           </tr>
         </thead>
         <tbody>
@@ -25,28 +25,38 @@
             :key="standing.name"
             class="py-2"
           >
-            <td class="text-left font-bold">
+            <td class="text-left font-bold align-middle">
               <router-link :to="`/player/${standing.name}`">{{
                 standing.name
               }}</router-link>
-              <span v-if="standing.name === currentChampion.name" class="ml-1"
-                >👑</span
-              >
+              <img
+                v-if="standing.name === currentChampion?.name"
+                :src="Crown"
+                alt="Crown"
+                class="inline ml-1 w-8 h-8"
+              />
             </td>
-            <td class="flex flex-wrap justify-center items-center">
-              <div v-for="team in standing.teams" :key="team">
-                <img
-                  :src="`https://assets.nhle.com/logos/nhl/svg/${team}_${isDarkOrLight}.svg`"
-                  :alt="team"
-                  class="w-6 h-6"
+            <td class="align-top">
+              <div class="flex flex-wrap justify-center items-start gap-1 py-2">
+                <TeamLogo
+                  v-for="team in standing.teams"
+                  :key="team"
+                  :team="team"
+                  width="40"
+                  height="40"
                 />
               </div>
             </td>
-            <td class="text-left">{{ standing.titleDefenses }}</td>
+            <td class="text-center align-middle">
+              {{ standing.titleDefenses }}
+            </td>
           </tr>
         </tbody>
       </v-table>
-      <div class="text-sm my-2">👑 = Current Champion</div>
+      <div class="text-sm my-2">
+        <img :src="Crown" alt="Crown" class="inline w-8 h-8 mr-1" /> = Current
+        Champion
+      </div>
     </div>
     <template v-if="totalGamesPlayed">
       <h2 class="text-center text-xl font-bold">Season Progress</h2>
@@ -68,26 +78,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
 import { getCurrentChampion } from '../services/championServices';
-import { useThemeStore } from '@/store/themeStore';
+import TeamLogo from '@/components/TeamLogo.vue';
+import Crown from '@/assets/crown.png';
 
 const loading = ref(true);
 const allPlayersData = ref(null);
 const currentChampion = ref(null);
 const totalGamesPlayed = ref(0);
 const totalGamesPercentage = ref(0);
-
-const themeStore = useThemeStore();
-const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
-watch(
-  () => themeStore.isDarkTheme,
-  (newVal) => {
-    isDarkOrLight.value = newVal ? 'dark' : 'light';
-  },
-  { immediate: true }
-);
 
 onMounted(async () => {
   try {

@@ -45,14 +45,14 @@
           <PlayerCard
             :player="todaysWinner.player"
             :team="todaysWinner"
-            image-type="Winner"
+            :image-type="gameOverWinnerAvatarType"
             :is-game-live="isGameLive"
           />
           <div>
             <PlayerCard
               :player="todaysLoser.player"
               :team="todaysLoser"
-              image-type="Sad"
+              :image-type="gameOverLoserAvatarType"
               :is-game-live="isGameLive"
             />
             <div v-if="firstGameNonChampionTeam" class="next-game-info mt-2">
@@ -63,7 +63,7 @@
               <PlayerCard
                 :player="firstGameNonChampionTeam.player"
                 :team="firstGameNonChampionTeam.team"
-                image-type="Challenger"
+                image-type="Angry"
               />
             </div>
           </div>
@@ -93,7 +93,7 @@
             <PlayerCard
               :player="playerChampion"
               :team="playerChampion.championTeam"
-              image-type="Challenger"
+              :image-type="championAvatarType"
               :is-game-live="isGameLive"
               :is-champion="true"
             />
@@ -106,7 +106,7 @@
             <PlayerCard
               :player="playerChallenger"
               :team="playerChallenger.challengerTeam"
-              image-type="Challenger"
+              :image-type="challengerAvatarType"
               :is-game-live="isGameLive"
               :is-mirror-match="isMirrorMatch"
             />
@@ -129,7 +129,7 @@
             :player="playerChampion"
             :current-champion="currentChampion"
             subtitle="is not Defending the Championship Today"
-            image-type="Winner"
+            image-type="Happy"
           />
         </div>
 
@@ -201,9 +201,10 @@ import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { getAllPlayers } from '../services/dynamodbService';
 import { getCurrentChampion, getGameId } from '../services/championServices';
+import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
-import { useThemeStore } from '@/store/themeStore'; // Import the theme store
+import { useTheme } from '@/composables/useTheme';
 
 import quotes from '@/utilities/quotes.json';
 
@@ -225,16 +226,20 @@ const isGameLive = ref(false);
 const isSeasonOver = ref(true);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+// Add new reactive state for avatar management
+const previousHomeScore = ref(0);
+const previousAwayScore = ref(0);
+const recentGoalAgainst = ref({ home: false, away: false });
+const goalTimers = ref({ home: null, away: null });
 
-const themeStore = useThemeStore();
-const isDarkOrLight = ref(themeStore.isDarkTheme ? 'dark' : 'light');
-watch(
-  () => themeStore.isDarkTheme,
-  (newVal) => {
-    isDarkOrLight.value = newVal ? 'dark' : 'light';
-  },
-  { immediate: true }
-);
+// WebSocket
+const { lastMessage, isConnected } = useSocket();
+const isDisconnected = ref(false);
+watch(isConnected, (newVal) => {
+  isDisconnected.value = !newVal;
+});
+
+const { isDarkOrLight } = useTheme();
 
 const clockTime = computed(() => {
   return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');
@@ -266,6 +271,67 @@ const firstGameNonChampionTeam = computed(() => {
   };
 });
 
+// Add computed properties for dynamic avatars
+const championAvatarType = computed(() => {
+  if (!isGameLive.value) {
+    return 'Challenger';
+  }
+
+  const isChampionHome =
+    currentChampion.value === todaysGame.value.homeTeam?.abbrev;
+  const championScore = isChampionHome
+    ? todaysGame.value.homeTeam?.score
+    : todaysGame.value.awayTeam?.score;
+  const challengerScore = isChampionHome
+    ? todaysGame.value.awayTeam?.score
+    : todaysGame.value.homeTeam?.score;
+
+  // Check for recent goal against champion
+  if (
+    (isChampionHome && recentGoalAgainst.value.home) ||
+    (!isChampionHome && recentGoalAgainst.value.away)
+  ) {
+    return 'Anguish';
+  }
+
+  // Champion winning = Happy, losing = Angry
+  return championScore > challengerScore ? 'Happy' : 'Angry';
+});
+
+const challengerAvatarType = computed(() => {
+  if (!isGameLive.value) {
+    return 'Challenger';
+  }
+
+  const isChampionHome =
+    currentChampion.value === todaysGame.value.homeTeam?.abbrev;
+  const championScore = isChampionHome
+    ? todaysGame.value.homeTeam?.score
+    : todaysGame.value.awayTeam?.score;
+  const challengerScore = isChampionHome
+    ? todaysGame.value.awayTeam?.score
+    : todaysGame.value.homeTeam?.score;
+
+  // Check for recent goal against challenger
+  if (
+    (isChampionHome && recentGoalAgainst.value.away) ||
+    (!isChampionHome && recentGoalAgainst.value.home)
+  ) {
+    return 'Anguish';
+  }
+
+  // Challenger winning = Happy, losing = Angry
+  return challengerScore > championScore ? 'Happy' : 'Angry';
+});
+
+const gameOverWinnerAvatarType = computed(() => {
+  return 'Happy';
+});
+
+const gameOverLoserAvatarType = computed(() => {
+  return 'Sad';
+});
+
 watch(
   () => todaysGame.value.clock?.secondsRemaining,
   (newVal) => {
@@ -275,7 +341,51 @@ watch(
   }
 );
 
+// Watch for WebSocket game updates
+watch(lastMessage, (data) => {
+  console.log('🚀 ~ watch ~ data:', data);
+  if (data?.type === 'liveGameUpdate') {
+    console.log('🔥 Received live update:', data);
+    // Update whatever fields are affected by the change
+    const updatedGame = data.payload;
+
+    todaysGame.value = updatedGame;
+    secondsRemaining.value = updatedGame.clock?.secondsRemaining || 0;
+    isGameOver.value = ['FINAL', 'OFF'].includes(updatedGame.gameState);
+    isGameLive.value = ['LIVE', 'CRIT'].includes(updatedGame.gameState);
+  }
+});
+
+// Watch for score changes to detect goals
+watch(
+  () => todaysGame.value.homeTeam?.score,
+  (newScore, oldScore) => {
+    if (oldScore !== undefined && newScore > oldScore) {
+      // Goal scored by home team, away team gets anguish
+      triggerAnguishAvatar('away');
+    }
+    previousHomeScore.value = newScore;
+  }
+);
+
+watch(
+  () => todaysGame.value.awayTeam?.score,
+  (newScore, oldScore) => {
+    if (oldScore !== undefined && newScore > oldScore) {
+      // Goal scored by away team, home team gets anguish
+      triggerAnguishAvatar('home');
+    }
+    previousAwayScore.value = newScore;
+  }
+);
+
 onMounted(async () => {
+  // If season is over, skip all game and team data fetching
+  if (isSeasonOver.value) {
+    loading.value = false;
+    return;
+  }
+
   try {
     currentChampion.value = await getCurrentChampion();
     gameID.value = await getGameId();
@@ -286,6 +396,7 @@ onMounted(async () => {
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
     getGameInfo();
+    initSocket();
   } else {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
@@ -293,6 +404,12 @@ onMounted(async () => {
     getPossibleMatchUps(currentChampion.value);
     loading.value = false;
   }
+
+  setInterval(() => {
+    if (!isGameOver.value && !isDisconnected.value) {
+      getGameInfo();
+    }
+  }, 60000);
 });
 
 function getGameInfo() {
@@ -342,16 +459,16 @@ function getTeamsInfo() {
   const homeTeam = todaysGame.value.homeTeam;
   const awayTeam = todaysGame.value.awayTeam;
   const getChampionTeam =
-    currentChampion.value === homeTeam.abbrev ? homeTeam : awayTeam;
+    currentChampion.value === homeTeam?.abbrev ? homeTeam : awayTeam;
   const getChallengerTeam =
-    currentChampion.value === homeTeam.abbrev ? awayTeam : homeTeam;
+    currentChampion.value === homeTeam?.abbrev ? awayTeam : homeTeam;
 
   playerChampion.value = allPlayersData.value.find((player) =>
-    player.teams.includes(getChampionTeam.abbrev)
+    player.teams.includes(getChampionTeam?.abbrev)
   );
   playerChampion.value.championTeam = getChampionTeam;
   playerChallenger.value = allPlayersData.value.find((player) =>
-    player.teams.includes(getChallengerTeam.abbrev)
+    player.teams.includes(getChallengerTeam?.abbrev)
   );
   playerChallenger.value.challengerTeam = getChallengerTeam;
 
@@ -361,7 +478,11 @@ function getTeamsInfo() {
 
 function getQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
-  return quotes[randomIndex];
+  const selectedQuote = quotes[randomIndex];
+
+  // Replace {name} placeholder with the losing player's name
+  const playerName = todaysLoser.value.player?.name || 'opponent';
+  return selectedQuote.replace(/{name}/g, playerName);
 }
 
 async function getPossibleMatchUps(championTeam) {
@@ -395,6 +516,22 @@ function getTeamOwner(teamAbbrev) {
     player.teams.includes(teamAbbrev)
   );
   return teamOwner;
+}
+
+function triggerAnguishAvatar(team) {
+  // Clear existing timer if any
+  if (goalTimers.value[team]) {
+    clearTimeout(goalTimers.value[team]);
+  }
+
+  // Set anguish state
+  recentGoalAgainst.value[team] = true;
+
+  // Clear anguish after 1 minute
+  goalTimers.value[team] = setTimeout(() => {
+    recentGoalAgainst.value[team] = false;
+    goalTimers.value[team] = null;
+  }, 60000);
 }
 </script>
 
