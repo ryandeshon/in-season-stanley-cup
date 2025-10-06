@@ -223,7 +223,7 @@ const secondsRemaining = ref(null);
 const isGameToday = ref(false);
 const isGameOver = ref(false);
 const isGameLive = ref(false);
-const isSeasonOver = ref(true);
+const isSeasonOver = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
 // Add new reactive state for avatar management
