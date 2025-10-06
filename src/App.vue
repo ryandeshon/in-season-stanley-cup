@@ -7,7 +7,7 @@
       </router-link>
       <v-spacer></v-spacer>
       <div class="flex justify-center items-center gap-1">
-        <v-btn text to="/draft">Draft</v-btn>
+        <!-- <v-btn text to="/draft">Draft</v-btn> -->
         <v-btn text to="/standings">Standings</v-btn>
         <v-btn text to="/about">About</v-btn>
         <v-spacer></v-spacer>
