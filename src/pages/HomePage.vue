@@ -274,7 +274,7 @@ const firstGameNonChampionTeam = computed(() => {
 // Add computed properties for dynamic avatars
 const championAvatarType = computed(() => {
   if (!isGameLive.value) {
-    return 'Challenger';
+    return 'Happy';
   }
 
   const isChampionHome =
@@ -300,7 +300,7 @@ const championAvatarType = computed(() => {
 
 const challengerAvatarType = computed(() => {
   if (!isGameLive.value) {
-    return 'Challenger';
+    return 'Happy';
   }
 
   const isChampionHome =
