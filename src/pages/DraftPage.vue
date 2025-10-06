@@ -194,7 +194,21 @@ watch(isConnected, (newVal) => {
 watch(lastMessage, (data) => {
   if (data?.type === 'draftUpdate') {
     draftState.value = data.payload;
-    loadInitialData(); // optional
+    // Update available teams and current picker from the new state
+    availableTeams.value = data.payload.availableTeams || [];
+    currentPickerId.value = data.payload.currentPicker;
+
+    // Recalculate if it's the current player's turn
+    if (currentPlayer.value) {
+      isYourTurn.value = currentPlayer.value.id === currentPickerId.value;
+    }
+
+    // If draft just started and we don't have player data yet, reload it
+    if (data.payload.draftStarted && allPlayersData.value.length === 0) {
+      loadInitialData();
+    }
+
+    console.log('🚀 ~ Draft state updated via socket:', data.payload);
   }
 });
 
