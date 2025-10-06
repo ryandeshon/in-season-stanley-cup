@@ -30,7 +30,7 @@
                 standing.name
               }}</router-link>
               <img
-                v-if="standing.name === currentChampion.name"
+                v-if="standing.name === currentChampion?.name"
                 :src="Crown"
                 alt="Crown"
                 class="inline ml-1 w-8 h-8"
