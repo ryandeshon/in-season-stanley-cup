@@ -84,7 +84,17 @@
 
         <div v-if="!draftState?.draftStarted" class="text-center my-8">
           <h1 class="text-4xl font-bold mb-4">Draft Not Started</h1>
-          <p class="text-lg">The draft has not been started yet.</p>
+          <p class="text-lg mb-4">The draft has not been started yet.</p>
+          <div class="flex justify-center">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+              size="24"
+              width="3"
+              class="mr-2"
+            />
+            <span class="text-sm"> Waiting for draft to start... </span>
+          </div>
         </div>
 
         <v-row class="mb-10" dense>
