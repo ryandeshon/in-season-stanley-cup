@@ -94,7 +94,8 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { getPlayerData, getGameRecords } from '../services/dynamodbService';
+import { getPlayerData } from '../services/dynamodbService';
+import { useSeasonData } from '@/composables/useSeasonData';
 import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -102,6 +103,7 @@ import TeamLogo from '@/components/TeamLogo.vue';
 
 const props = defineProps(['name']);
 
+const { gameRecords } = useSeasonData();
 const theme = useTheme();
 const isDarkOrLight = ref(theme.global.name.value);
 
@@ -169,18 +171,25 @@ const getLosses = (team) => {
 onMounted(async () => {
   try {
     player.value = await getPlayerData(props.name); // Fetch the player data by name
-    const games = await getGameRecords();
 
-    // Manipulate the data as needed
-    const filteredGames = games.filter(
-      (game) =>
-        player.value.teams.includes(game.lTeam) ||
-        player.value.teams.includes(game.wTeam)
-    );
+    // Wait for gameRecords to be loaded if not already available
+    const waitForGameRecords = () => {
+      if (gameRecords.value && gameRecords.value.length > 0) {
+        // Manipulate the data as needed
+        const filteredGames = gameRecords.value.filter(
+          (game) =>
+            player.value.teams.includes(game.lTeam) ||
+            player.value.teams.includes(game.wTeam)
+        );
+        playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
+        allGamesPlayed.value = gameRecords.value;
+      } else {
+        // Retry after a short delay
+        setTimeout(waitForGameRecords, 100);
+      }
+    };
 
-    // Save the manipulated data into data properties
-    allGamesPlayed.value = games;
-    playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
+    waitForGameRecords();
   } catch (error) {
     console.error('Error fetching player data:', error);
   }

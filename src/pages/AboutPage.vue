@@ -1,21 +1,6 @@
 <template>
   <v-container class="max-w-screen-md">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-4xl font-bold">About</h1>
-      <div class="season-selector">
-        <v-select
-          v-model="selectedSeason"
-          :items="seasonOptions"
-          item-title="label"
-          item-value="value"
-          label="Season"
-          density="compact"
-          variant="outlined"
-          style="min-width: 120px"
-          @update:model-value="handleSeasonChange"
-        ></v-select>
-      </div>
-    </div>
+    <h1 class="text-4xl font-bold mb-4">About</h1>
     <div class="text-left">
       <p>
         Welcome to "In Season Cup", a game where NHL teams battle for daily
@@ -96,44 +81,8 @@
   </v-container>
 </template>
 <script>
-import { ref, onMounted, watch } from 'vue';
-import { useSeasonStore } from '@/store/seasonStore';
-
 export default {
   name: 'AboutPage',
-  setup() {
-    const seasonStore = useSeasonStore();
-    const selectedSeason = ref(seasonStore.currentSeason);
-
-    const seasonOptions = [
-      { label: 'Season 1', value: 'season1' },
-      { label: 'Season 2', value: 'season2' },
-    ];
-
-    const handleSeasonChange = (newSeason) => {
-      seasonStore.setSeason(newSeason);
-    };
-
-    // Watch for changes in the store and update local state
-    watch(
-      () => seasonStore.currentSeason,
-      (newSeason) => {
-        selectedSeason.value = newSeason;
-      }
-    );
-
-    onMounted(() => {
-      // Load season from localStorage on mount
-      seasonStore.loadSeasonFromStorage();
-      selectedSeason.value = seasonStore.currentSeason;
-    });
-
-    return {
-      selectedSeason,
-      seasonOptions,
-      handleSeasonChange,
-    };
-  },
 };
 </script>
 <style scoped>

@@ -78,34 +78,58 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getAllPlayers, getGameRecords } from '../services/dynamodbService';
+import { ref, computed, onMounted } from 'vue';
+import { useSeasonData } from '@/composables/useSeasonData';
 import { getCurrentChampion } from '../services/championServices';
 import TeamLogo from '@/components/TeamLogo.vue';
 import Crown from '@/assets/crown.png';
 
-const loading = ref(true);
-const allPlayersData = ref(null);
+const { players, gameRecords, loading } = useSeasonData();
 const currentChampion = ref(null);
-const totalGamesPlayed = ref(0);
-const totalGamesPercentage = ref(0);
 
-onMounted(async () => {
+// Computed property for sorted players data
+const allPlayersData = computed(() => {
+  if (!players.value) return [];
+  return [...players.value].sort((a, b) => b.titleDefenses - a.titleDefenses);
+});
+
+// Computed properties for game statistics
+const totalGamesPlayed = computed(() => gameRecords.value?.length || 0);
+const totalGamesPercentage = computed(
+  () => (totalGamesPlayed.value / 87) * 100
+);
+
+// Function to update current champion when data changes
+const updateCurrentChampion = async () => {
+  if (!players.value?.length) return;
+
   try {
     const currentChampionTeam = await getCurrentChampion();
-    const data = await getAllPlayers();
-    allPlayersData.value = data.sort(
-      (a, b) => b.titleDefenses - a.titleDefenses
-    );
-    currentChampion.value = allPlayersData.value.find((player) =>
+    currentChampion.value = players.value.find((player) =>
       player.teams.includes(currentChampionTeam)
     );
-    // Get percentage of games played
-    totalGamesPlayed.value = (await getGameRecords()).length;
-    totalGamesPercentage.value = (totalGamesPlayed.value / 87) * 100;
-    loading.value = false;
   } catch (error) {
-    console.error('Error fetching player data:', error);
+    console.error('Error fetching current champion:', error);
   }
+};
+
+onMounted(() => {
+  // Watch for when players data is loaded to update champion
+  const unwatch = () => {
+    if (players.value?.length > 0) {
+      updateCurrentChampion();
+    }
+  };
+
+  // Check immediately if data is already loaded
+  unwatch();
+
+  // Also watch for future data changes
+  const interval = setInterval(() => {
+    if (players.value?.length > 0) {
+      updateCurrentChampion();
+      clearInterval(interval);
+    }
+  }, 100);
 });
 </script>

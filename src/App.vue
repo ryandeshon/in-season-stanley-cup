@@ -1,24 +1,7 @@
 <template>
   <v-app>
-    <!-- App Bar / Navigation Bar -->
-    <v-app-bar app color="primary" class="px-2">
-      <router-link to="/" class="mr-2 h-10">
-        <img :src="logo" alt="In Season Cup Logo" class="h-10" />
-      </router-link>
-      <v-spacer></v-spacer>
-      <div class="flex justify-center items-center gap-1">
-        <!-- <v-btn text to="/draft">Draft</v-btn> -->
-        <v-btn text to="/standings">Standings</v-btn>
-        <v-btn text to="/about">About</v-btn>
-        <v-spacer></v-spacer>
-        <v-btn
-          :icon="isDarkTheme ? 'mdi-lightbulb-outline' : 'mdi-lightbulb'"
-          size="small"
-          text
-          @click="toggleTheme"
-        />
-      </div>
-    </v-app-bar>
+    <!-- Navigation Bar -->
+    <NavigationBar />
 
     <!-- Main Content -->
     <v-main>
@@ -35,21 +18,47 @@
 </template>
 
 <script setup>
+import { watch, computed } from 'vue';
 import { useTheme } from '@/composables/useTheme';
-import { watch } from 'vue';
 import { useTheme as useVuetifyTheme } from 'vuetify';
-import logo from '@/assets/in-season-logo.png';
+import { useSeasonStore } from '@/store/seasonStore';
+import NavigationBar from '@/components/NavigationBar.vue';
 
-const { isDarkTheme, toggleTheme } = useTheme();
-
+const { isDarkTheme } = useTheme();
+const seasonStore = useSeasonStore();
 const theme = useVuetifyTheme();
 
+// Computed theme name based on season and dark/light mode
+const currentThemeName = computed(() => {
+  const season =
+    seasonStore.currentSeason === 'season1' ? 'season1' : 'season2';
+  const mode = isDarkTheme.value ? 'dark' : 'light';
+  return `${season}-${mode}`;
+});
+
+// Watch for theme changes and update Vuetify theme
 watch(
-  () => isDarkTheme.value,
-  (newVal) => {
-    theme.global.name.value = newVal ? 'dark' : 'light';
+  currentThemeName,
+  (newThemeName) => {
+    theme.global.name.value = newThemeName;
   },
   { immediate: true }
+);
+
+// Also watch for dark theme changes to update immediately
+watch(
+  () => isDarkTheme.value,
+  () => {
+    theme.global.name.value = currentThemeName.value;
+  }
+);
+
+// Watch for season changes to update theme
+watch(
+  () => seasonStore.currentSeason,
+  () => {
+    theme.global.name.value = currentThemeName.value;
+  }
 );
 </script>
 
