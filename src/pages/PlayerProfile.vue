@@ -95,7 +95,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { getPlayerData } from '../services/dynamodbService';
-import { useSeasonData } from '@/composables/useSeasonData';
+import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
 import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -103,7 +103,7 @@ import TeamLogo from '@/components/TeamLogo.vue';
 
 const props = defineProps(['name']);
 
-const { gameRecords } = useSeasonData();
+const { gameRecords } = usePlayerSeasonData();
 const theme = useTheme();
 const isDarkOrLight = ref(theme.global.name.value);
 
