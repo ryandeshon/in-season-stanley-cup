@@ -199,7 +199,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
-import { useSeasonData } from '@/composables/useSeasonData';
+import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -208,7 +208,7 @@ import { useTheme } from '@/composables/useTheme';
 
 import quotes from '@/utilities/quotes.json';
 
-const { players: allPlayersData } = useSeasonData();
+const { players: allPlayersData } = useCurrentSeasonData();
 const loading = ref(true);
 const potentialLoading = ref(true);
 const currentChampion = ref(null);
@@ -389,7 +389,7 @@ onMounted(async () => {
   try {
     currentChampion.value = await getCurrentChampion();
     gameID.value = await getGameId();
-    // Players data is now handled by useSeasonData composable
+    // Players data is now handled by useCurrentSeasonData composable (always current season)
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
