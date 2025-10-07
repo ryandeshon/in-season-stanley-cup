@@ -50,22 +50,22 @@
 <script setup>
 import { useTheme } from '@/composables/useTheme';
 
-import bozAngryImage from '@/assets/players/simpsons/boz-angry.png';
-import bozSadImage from '@/assets/players/simpsons/boz-sad.png';
-import bozHappyImage from '@/assets/players/simpsons/boz-happy.png';
-import bozAnguishImage from '@/assets/players/simpsons/boz-anguish.png';
-import cooperAngryImage from '@/assets/players/simpsons/cooper-angry.png';
-import cooperSadImage from '@/assets/players/simpsons/cooper-sad.png';
-import cooperHappyImage from '@/assets/players/simpsons/cooper-happy.png';
-import cooperAnguishImage from '@/assets/players/simpsons/cooper-anguish.png';
-import ryanAngryImage from '@/assets/players/simpsons/ryan-angry.png';
-import ryanSadImage from '@/assets/players/simpsons/ryan-sad.png';
-import ryanHappyImage from '@/assets/players/simpsons/ryan-happy.png';
-import ryanAnguishImage from '@/assets/players/simpsons/ryan-anguish.png';
-import terryAngryImage from '@/assets/players/simpsons/terry-angry.png';
-import terrySadImage from '@/assets/players/simpsons/terry-sad.png';
-import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
-import terryAnguishImage from '@/assets/players/simpsons/terry-anguish.png';
+import bozAngryImage from '@/assets/players/season2/boz-angry.png';
+import bozSadImage from '@/assets/players/season2/boz-sad.png';
+import bozHappyImage from '@/assets/players/season2/boz-happy.png';
+import bozAnguishImage from '@/assets/players/season2/boz-anguish.png';
+import cooperAngryImage from '@/assets/players/season2/cooper-angry.png';
+import cooperSadImage from '@/assets/players/season2/cooper-sad.png';
+import cooperHappyImage from '@/assets/players/season2/cooper-happy.png';
+import cooperAnguishImage from '@/assets/players/season2/cooper-anguish.png';
+import ryanAngryImage from '@/assets/players/season2/ryan-angry.png';
+import ryanSadImage from '@/assets/players/season2/ryan-sad.png';
+import ryanHappyImage from '@/assets/players/season2/ryan-happy.png';
+import ryanAnguishImage from '@/assets/players/season2/ryan-anguish.png';
+import terryAngryImage from '@/assets/players/season2/terry-angry.png';
+import terrySadImage from '@/assets/players/season2/terry-sad.png';
+import terryHappyImage from '@/assets/players/season2/terry-happy.png';
+import terryAnguishImage from '@/assets/players/season2/terry-anguish.png';
 
 import TeamLogo from '@/components/TeamLogo.vue';
 

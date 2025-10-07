@@ -41,7 +41,7 @@ import { ref, onMounted, watch } from 'vue';
 import { getPlayerData } from '../services/dynamodbService';
 import { useTheme } from 'vuetify';
 
-import cooperChampionImage from '@/assets/players/nhl94/cooper-champion.png';
+import cooperChampionImage from '@/assets/players/season1/season-champion.png';
 import TeamLogo from '@/components/TeamLogo.vue';
 
 const theme = useTheme();
