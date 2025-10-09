@@ -79,11 +79,15 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="team in player.teams" :key="team" class="py-2">
-                  <td
-                    class="text-center flex gap-2 justify-center items-center"
-                  >
-                    <TeamLogo :team="team" width="70" height="70" />
+                <tr
+                  v-for="team in player.teams"
+                  :key="team"
+                  class="py-2 align-middle"
+                >
+                  <td class="text-center">
+                    <div class="flex justify-center items-center">
+                      <TeamLogo :team="team" class="!w-10 !h-10" />
+                    </div>
                   </td>
                   <td class="text-center">
                     {{ getWins(team) }} - {{ getLosses(team) }}
