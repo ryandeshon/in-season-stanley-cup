@@ -106,7 +106,6 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { getPlayerData } from '../services/dynamodbService';
 import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
 import { useTheme } from 'vuetify';
 
@@ -116,7 +115,11 @@ import cup from '@/assets/in-season-logo.png';
 
 const props = defineProps(['name']);
 
-const { gameRecords } = usePlayerSeasonData();
+const {
+  gameRecords,
+  player: seasonPlayer,
+  // loading,
+} = usePlayerSeasonData(props.name);
 const theme = useTheme();
 const isDarkOrLight = ref(theme.global.name.value);
 
@@ -128,7 +131,8 @@ watch(
   { immediate: true }
 );
 
-const player = ref(null);
+// Use the player from the composable
+const player = seasonPlayer;
 const allGamesPlayed = ref(null);
 const playersGamesPlayed = ref(null);
 const currentPage = ref(1);
@@ -181,24 +185,19 @@ const getLosses = (team) => {
   return playersGamesPlayed.value.filter((game) => game.lTeam === team).length;
 };
 
-onMounted(async () => {
-  try {
-    player.value = await getPlayerData(props.name); // Fetch the player data by name
+onMounted(() => {
+  // Initial setup - the composable handles data fetching
+  // Just wait for data to be available
+  const waitForData = () => {
+    if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
+      updatePlayerGames();
+    } else {
+      // Retry after a short delay
+      setTimeout(waitForData, 100);
+    }
+  };
 
-    // Wait for gameRecords to be loaded if not already available
-    const waitForGameRecords = () => {
-      if (gameRecords.value && gameRecords.value.length > 0) {
-        updatePlayerGames();
-      } else {
-        // Retry after a short delay
-        setTimeout(waitForGameRecords, 100);
-      }
-    };
-
-    waitForGameRecords();
-  } catch (error) {
-    console.error('Error fetching player data:', error);
-  }
+  waitForData();
 });
 
 // Function to update player games when game records change
