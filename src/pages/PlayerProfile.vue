@@ -188,14 +188,7 @@ onMounted(async () => {
     // Wait for gameRecords to be loaded if not already available
     const waitForGameRecords = () => {
       if (gameRecords.value && gameRecords.value.length > 0) {
-        // Manipulate the data as needed
-        const filteredGames = gameRecords.value.filter(
-          (game) =>
-            player.value.teams.includes(game.lTeam) ||
-            player.value.teams.includes(game.wTeam)
-        );
-        playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
-        allGamesPlayed.value = gameRecords.value;
+        updatePlayerGames();
       } else {
         // Retry after a short delay
         setTimeout(waitForGameRecords, 100);
@@ -207,6 +200,45 @@ onMounted(async () => {
     console.error('Error fetching player data:', error);
   }
 });
+
+// Function to update player games when game records change
+const updatePlayerGames = () => {
+  console.log('updatePlayerGames called');
+  console.log('gameRecords length:', gameRecords.value?.length);
+  console.log('player exists:', !!player.value);
+
+  if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
+    console.log('Filtering games for player:', player.value.name);
+    const filteredGames = gameRecords.value.filter(
+      (game) =>
+        player.value.teams.includes(game.lTeam) ||
+        player.value.teams.includes(game.wTeam)
+    );
+
+    console.log('Filtered games count:', filteredGames.length);
+    playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
+    allGamesPlayed.value = gameRecords.value;
+
+    // Reset displayed games to show new data
+    displayedGames.value = [];
+    currentPage.value = 1;
+    loadMore();
+  } else {
+    console.log('Conditions not met for updatePlayerGames');
+  }
+};
+
+// Watch for gameRecords changes (when season changes)
+watch(
+  () => gameRecords.value,
+  (newGameRecords, oldGameRecords) => {
+    console.log('gameRecords watcher triggered');
+    console.log('New length:', newGameRecords?.length);
+    console.log('Old length:', oldGameRecords?.length);
+    updatePlayerGames();
+  },
+  { deep: true }
+);
 
 watch(playersGamesPlayed, (newVal) => {
   if (newVal && displayedGames.value.length === 0) {
