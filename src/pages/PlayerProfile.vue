@@ -13,11 +13,23 @@
                 @card-click="cycleImage"
                 class="mb-4"
               />
+              <div
+                v-if="player.championships && player.championships > 0"
+                class="flex gap-2 mb-2"
+              >
+                <img
+                  v-for="n in player.championships"
+                  :key="n"
+                  :src="cup"
+                  alt="Stanley Cup"
+                  class="w-10 h-10"
+                />
+              </div>
               <span class="text-lg"
                 >Title Defenses: {{ player.titleDefenses }}</span
               >
-              <span class="text-lg"
-                >Championships: {{ player.championships }}</span
+              <span class="text-md" v-if="player.totalDefenses"
+                >Lifetime Defenses: {{ player.totalDefenses }}</span
               >
             </v-card-text>
           </v-card>
@@ -100,6 +112,7 @@ import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
+import cup from '@/assets/in-season-logo.png';
 
 const props = defineProps(['name']);
 
