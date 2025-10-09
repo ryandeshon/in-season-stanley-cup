@@ -1,9 +1,11 @@
 import dynamodb from '../dynamodb-client';
+import { useSeasonStore } from '../store/seasonStore';
 
 // Function to get a player's data by name
 export const getPlayerData = async (playerName) => {
+  const seasonStore = useSeasonStore();
   const params = {
-    TableName: 'Players',
+    TableName: seasonStore.playersTableName,
     IndexName: 'NameIndex',
     KeyConditionExpression: '#n = :name', // Use a placeholder for `name`
     ExpressionAttributeNames: {
@@ -26,8 +28,9 @@ export const getPlayerData = async (playerName) => {
 
 // Function to get all players
 export const getAllPlayers = async () => {
+  const seasonStore = useSeasonStore();
   const params = {
-    TableName: 'Players',
+    TableName: seasonStore.playersTableName,
   };
 
   try {
@@ -40,8 +43,9 @@ export const getAllPlayers = async () => {
 };
 
 export const getGameRecords = async () => {
+  const seasonStore = useSeasonStore();
   const params = {
-    TableName: 'GameRecords',
+    TableName: seasonStore.gameRecordsTableName,
   };
 
   try {

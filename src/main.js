@@ -10,6 +10,7 @@ import App from './App.vue';
 import router from './router';
 import vuetify from './plugins/vuetify';
 import { useThemeStore } from '@/store/themeStore'; // Import the theme store
+import { useSeasonStore } from '@/store/seasonStore'; // Import the season store
 
 // Import Tailwind CSS
 import './assets/tailwind.css';
@@ -27,6 +28,9 @@ app.mount('#app');
 const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
 // Access the theme store
 const themeStore = useThemeStore();
+// Access the season store and load from localStorage
+const seasonStore = useSeasonStore();
+seasonStore.loadSeasonFromStorage();
 
 if (prefersDarkScheme.matches) {
   themeStore.isDarkTheme = true; // Update the store state

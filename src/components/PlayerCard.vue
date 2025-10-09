@@ -49,27 +49,44 @@
 
 <script setup>
 import { useTheme } from '@/composables/useTheme';
-
-import bozAngryImage from '@/assets/players/simpsons/boz-angry.png';
-import bozSadImage from '@/assets/players/simpsons/boz-sad.png';
-import bozHappyImage from '@/assets/players/simpsons/boz-happy.png';
-import bozAnguishImage from '@/assets/players/simpsons/boz-anguish.png';
-import cooperAngryImage from '@/assets/players/simpsons/cooper-angry.png';
-import cooperSadImage from '@/assets/players/simpsons/cooper-sad.png';
-import cooperHappyImage from '@/assets/players/simpsons/cooper-happy.png';
-import cooperAnguishImage from '@/assets/players/simpsons/cooper-anguish.png';
-import ryanAngryImage from '@/assets/players/simpsons/ryan-angry.png';
-import ryanSadImage from '@/assets/players/simpsons/ryan-sad.png';
-import ryanHappyImage from '@/assets/players/simpsons/ryan-happy.png';
-import ryanAnguishImage from '@/assets/players/simpsons/ryan-anguish.png';
-import terryAngryImage from '@/assets/players/simpsons/terry-angry.png';
-import terrySadImage from '@/assets/players/simpsons/terry-sad.png';
-import terryHappyImage from '@/assets/players/simpsons/terry-happy.png';
-import terryAnguishImage from '@/assets/players/simpsons/terry-anguish.png';
+import { useSeasonStore } from '@/store/seasonStore';
 
 import TeamLogo from '@/components/TeamLogo.vue';
 
 const { isDarkOrLight } = useTheme();
+const seasonStore = useSeasonStore();
+
+// Season 1 images
+import bozAngryImageS1 from '@/assets/players/season1/boz-angry.png';
+import bozSadImageS1 from '@/assets/players/season1/boz-sad.png';
+import bozHappyImageS1 from '@/assets/players/season1/boz-happy.png';
+import cooperAngryImageS1 from '@/assets/players/season1/cooper-angry.png';
+import cooperSadImageS1 from '@/assets/players/season1/cooper-sad.png';
+import cooperHappyImageS1 from '@/assets/players/season1/cooper-happy.png';
+import ryanAngryImageS1 from '@/assets/players/season1/ryan-angry.png';
+import ryanSadImageS1 from '@/assets/players/season1/ryan-sad.png';
+import ryanHappyImageS1 from '@/assets/players/season1/ryan-happy.png';
+import terryAngryImageS1 from '@/assets/players/season1/terry-angry.png';
+import terrySadImageS1 from '@/assets/players/season1/terry-sad.png';
+import terryHappyImageS1 from '@/assets/players/season1/terry-happy.png';
+
+// Season 2 images
+import bozAngryImageS2 from '@/assets/players/season2/boz-angry.png';
+import bozSadImageS2 from '@/assets/players/season2/boz-sad.png';
+import bozHappyImageS2 from '@/assets/players/season2/boz-happy.png';
+import bozAnguishImageS2 from '@/assets/players/season2/boz-anguish.png';
+import cooperAngryImageS2 from '@/assets/players/season2/cooper-angry.png';
+import cooperSadImageS2 from '@/assets/players/season2/cooper-sad.png';
+import cooperHappyImageS2 from '@/assets/players/season2/cooper-happy.png';
+import cooperAnguishImageS2 from '@/assets/players/season2/cooper-anguish.png';
+import ryanAngryImageS2 from '@/assets/players/season2/ryan-angry.png';
+import ryanSadImageS2 from '@/assets/players/season2/ryan-sad.png';
+import ryanHappyImageS2 from '@/assets/players/season2/ryan-happy.png';
+import ryanAnguishImageS2 from '@/assets/players/season2/ryan-anguish.png';
+import terryAngryImageS2 from '@/assets/players/season2/terry-angry.png';
+import terrySadImageS2 from '@/assets/players/season2/terry-sad.png';
+import terryHappyImageS2 from '@/assets/players/season2/terry-happy.png';
+import terryAnguishImageS2 from '@/assets/players/season2/terry-anguish.png';
 
 const props = defineProps({
   player: {
@@ -116,34 +133,63 @@ const props = defineProps({
 
 defineEmits(['card-click']);
 
-const images = {
+const imagesSeason1 = {
   Boz: {
-    Happy: bozHappyImage,
-    Angry: bozAngryImage,
-    Sad: bozSadImage,
-    Anguish: bozAnguishImage,
+    Happy: bozHappyImageS1,
+    Angry: bozAngryImageS1,
+    Sad: bozSadImageS1,
+    Anguish: bozSadImageS1, // Fallback to sad since anguish doesn't exist
   },
   Terry: {
-    Happy: terryHappyImage,
-    Angry: terryAngryImage,
-    Sad: terrySadImage,
-    Anguish: terryAnguishImage,
+    Happy: terryHappyImageS1,
+    Angry: terryAngryImageS1,
+    Sad: terrySadImageS1,
+    Anguish: terrySadImageS1, // Fallback to sad since anguish doesn't exist
   },
   Cooper: {
-    Happy: cooperHappyImage,
-    Angry: cooperAngryImage,
-    Sad: cooperSadImage,
-    Anguish: cooperAnguishImage,
+    Happy: cooperHappyImageS1,
+    Angry: cooperAngryImageS1,
+    Sad: cooperSadImageS1,
+    Anguish: cooperSadImageS1, // Fallback to sad since anguish doesn't exist
   },
   Ryan: {
-    Happy: ryanHappyImage,
-    Angry: ryanAngryImage,
-    Sad: ryanSadImage,
-    Anguish: ryanAnguishImage,
+    Happy: ryanHappyImageS1,
+    Angry: ryanAngryImageS1,
+    Sad: ryanSadImageS1,
+    Anguish: ryanSadImageS1, // Fallback to sad since anguish doesn't exist
+  },
+};
+
+const imagesSeason2 = {
+  Boz: {
+    Happy: bozHappyImageS2,
+    Angry: bozAngryImageS2,
+    Sad: bozSadImageS2,
+    Anguish: bozAnguishImageS2,
+  },
+  Terry: {
+    Happy: terryHappyImageS2,
+    Angry: terryAngryImageS2,
+    Sad: terrySadImageS2,
+    Anguish: terryAnguishImageS2,
+  },
+  Cooper: {
+    Happy: cooperHappyImageS2,
+    Angry: cooperAngryImageS2,
+    Sad: cooperSadImageS2,
+    Anguish: cooperAnguishImageS2,
+  },
+  Ryan: {
+    Happy: ryanHappyImageS2,
+    Angry: ryanAngryImageS2,
+    Sad: ryanSadImageS2,
+    Anguish: ryanAnguishImageS2,
   },
 };
 
 const getImage = (playerName, type) => {
+  const images =
+    seasonStore.currentSeason === 'season1' ? imagesSeason1 : imagesSeason2;
   return images[playerName]?.[type] || null;
 };
 </script>
