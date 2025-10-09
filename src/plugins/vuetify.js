@@ -81,5 +81,11 @@ export default createVuetify({
       lighten: 3,
       darken: 3,
     },
+    // Add CSS variable options to prevent theme errors
+    cspNonce: undefined,
+    options: {
+      customProperties: true,
+      variations: true,
+    },
   },
 });

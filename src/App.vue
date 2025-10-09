@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { watch, computed } from 'vue';
+import { watch, computed, onMounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useTheme as useVuetifyTheme } from 'vuetify';
 import { useSeasonStore } from '@/store/seasonStore';
@@ -28,19 +28,31 @@ const { isDarkTheme } = useTheme();
 const seasonStore = useSeasonStore();
 const theme = useVuetifyTheme();
 
+// Initialize season store early
+onMounted(() => {
+  seasonStore.loadSeasonFromStorage();
+});
+
 // Computed theme name based on season and dark/light mode
 const currentThemeName = computed(() => {
-  const season =
-    seasonStore.currentSeason === 'season1' ? 'season1' : 'season2';
+  // Ensure we have valid values before computing theme name
+  const seasonValue = seasonStore.currentSeason || 'season2';
+  const season = seasonValue === 'season1' ? 'season1' : 'season2';
   const mode = isDarkTheme.value ? 'dark' : 'light';
-  return `${season}-${mode}`;
+  const themeName = `${season}-${mode}`;
+
+  console.log('Computing theme name:', themeName);
+  return themeName;
 });
 
 // Watch for theme changes and update Vuetify theme
 watch(
   currentThemeName,
   (newThemeName) => {
-    theme.global.name.value = newThemeName;
+    console.log('Setting theme to:', newThemeName);
+    if (newThemeName && theme.global?.name) {
+      theme.global.name.value = newThemeName;
+    }
   },
   { immediate: true }
 );
@@ -49,7 +61,9 @@ watch(
 watch(
   () => isDarkTheme.value,
   () => {
-    theme.global.name.value = currentThemeName.value;
+    if (currentThemeName.value && theme.global?.name) {
+      theme.global.name.value = currentThemeName.value;
+    }
   }
 );
 
@@ -57,7 +71,9 @@ watch(
 watch(
   () => seasonStore.currentSeason,
   () => {
-    theme.global.name.value = currentThemeName.value;
+    if (currentThemeName.value && theme.global?.name) {
+      theme.global.name.value = currentThemeName.value;
+    }
   }
 );
 </script>
