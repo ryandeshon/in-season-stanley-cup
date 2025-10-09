@@ -34,8 +34,9 @@ export function usePlayerSeasonData() {
   // Watch for season changes and refetch data
   watch(
     () => seasonStore.currentSeason,
-    () => {
-      console.log(`Season changed to: ${seasonStore.currentSeason}`);
+    (newSeason, oldSeason) => {
+      console.log(`Season changed from ${oldSeason} to: ${newSeason}`);
+      console.log('Fetching new game records...');
       fetchGameRecords();
     }
   );
