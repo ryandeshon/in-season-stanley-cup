@@ -24,6 +24,36 @@ export function usePlayerSeasonData(playerName) {
     } catch (err) {
       console.error('Error fetching game records:', err);
       error.value = err;
+    }
+  };
+
+  // Function to fetch player data for current season
+  const fetchPlayerData = async () => {
+    if (!playerName) return;
+
+    try {
+      console.log(
+        `Fetching player data for ${playerName} in ${seasonStore.seasonDisplayName}...`
+      );
+      console.log(`Players table: ${seasonStore.playersTableName}`);
+
+      const playerData = await getPlayerData(playerName);
+      player.value = playerData;
+
+      console.log(`Loaded player data for ${playerName}:`, playerData);
+    } catch (err) {
+      console.error('Error fetching player data:', err);
+      error.value = err;
+    }
+  };
+
+  // Function to fetch all season data
+  const fetchSeasonData = async () => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      await Promise.all([fetchPlayerData(), fetchGameRecords()]);
     } finally {
       loading.value = false;
     }
@@ -34,22 +64,25 @@ export function usePlayerSeasonData(playerName) {
     () => seasonStore.currentSeason,
     (newSeason, oldSeason) => {
       console.log(`Season changed from ${oldSeason} to: ${newSeason}`);
-      console.log('Fetching new game records...');
-      fetchGameRecords();
+      console.log('Fetching new player and game data...');
+      fetchSeasonData();
     }
   );
 
   // Initial data fetch on mount
   onMounted(() => {
     seasonStore.loadSeasonFromStorage();
-    fetchGameRecords();
+    fetchSeasonData();
   });
 
   return {
     gameRecords,
+    player,
     loading,
     error,
     fetchGameRecords,
+    fetchPlayerData,
+    fetchSeasonData,
     currentSeason: seasonStore.currentSeason,
     seasonDisplayName: seasonStore.seasonDisplayName,
   };
