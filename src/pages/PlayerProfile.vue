@@ -239,6 +239,20 @@ watch(
   { deep: true }
 );
 
+// Watch for player changes (when season changes)
+watch(
+  () => player.value,
+  (newPlayer, oldPlayer) => {
+    console.log('player watcher triggered');
+    console.log('New player:', newPlayer?.name);
+    console.log('Old player:', oldPlayer?.name);
+    if (newPlayer && gameRecords.value?.length > 0) {
+      updatePlayerGames();
+    }
+  },
+  { deep: true }
+);
+
 watch(playersGamesPlayed, (newVal) => {
   if (newVal && displayedGames.value.length === 0) {
     loadMore(); // Load the first set of games when playersGamesPlayed is loaded
