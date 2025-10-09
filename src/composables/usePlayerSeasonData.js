@@ -1,18 +1,16 @@
 import { ref, watch, onMounted } from 'vue';
 import { useSeasonStore } from '@/store/seasonStore';
-import { getGameRecords } from '@/services/dynamodbService';
+import { getGameRecords, getPlayerData } from '@/services/dynamodbService';
 
-export function usePlayerSeasonData() {
+export function usePlayerSeasonData(playerName) {
   const seasonStore = useSeasonStore();
   const gameRecords = ref([]);
+  const player = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
   // Function to fetch game records for current season
   const fetchGameRecords = async () => {
-    loading.value = true;
-    error.value = null;
-
     try {
       console.log(
         `Fetching game records for ${seasonStore.seasonDisplayName}...`
