@@ -1,6 +1,6 @@
 /* Base theme variables */
 :root {
-  /* Font Families */
+  /* Font Families - Default to Season 2 */
   --font-heading: 'Homer Simpson Revised', sans-serif;
   --font-body: 'Open Sans', sans-serif;
 
@@ -8,4 +8,14 @@
   --line-height: 1.6;
   --border-radius: 5px;
   --heading-transform: uppercase;
+}
+
+/* Season 1 specific variables (will be overridden dynamically) */
+[data-season='season1'] {
+  --font-heading: 'Roboto Condensed', sans-serif;
+}
+
+/* Season 2 specific variables (will be overridden dynamically) */
+[data-season='season2'] {
+  --font-heading: 'Homer Simpson Revised', sans-serif;
 }

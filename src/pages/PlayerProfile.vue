@@ -115,7 +115,7 @@ import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
-import cup from '@/assets/in-season-logo.png';
+import cup from '@/assets/in-season-logo-season2.png';
 
 const props = defineProps(['name']);
 

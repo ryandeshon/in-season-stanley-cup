@@ -1,7 +1,7 @@
 <template>
   <v-app-bar app color="primary" class="px-2">
     <router-link to="/" class="mr-2 h-10">
-      <img :src="logo" alt="In Season Cup Logo" class="h-10" />
+      <img :src="currentLogo" alt="In Season Cup Logo" class="h-10" />
     </router-link>
     <v-spacer></v-spacer>
 
@@ -72,22 +72,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useSeasonStore } from '@/store/seasonStore';
-import logo from '@/assets/in-season-logo.png';
+import season1Logo from '@/assets/in-season-logo-season1.png';
+import season2Logo from '@/assets/in-season-logo-season2.png';
 
 const { isDarkTheme, toggleTheme } = useTheme();
 const seasonStore = useSeasonStore();
 const selectedSeason = ref(seasonStore.currentSeason);
 
+// Computed property for current logo based on season
+const currentLogo = computed(() => {
+  return seasonStore.currentSeason === 'season1' ? season1Logo : season2Logo;
+});
+
 const seasonOptions = [
-  { label: 'v1', value: 'season1' },
-  { label: 'v2', value: 'season2' },
+  { label: '1', value: 'season1' },
+  { label: '2', value: 'season2' },
 ];
 
 const handleSeasonChange = (newSeason) => {
   seasonStore.setSeason(newSeason);
+  updateFontForSeason(newSeason);
+};
+
+// Function to update CSS variables for fonts
+const updateFontForSeason = (season) => {
+  const root = document.documentElement;
+  if (season === 'season1') {
+    root.style.setProperty('--font-heading', "'Roboto Condensed', sans-serif");
+  } else {
+    root.style.setProperty(
+      '--font-heading',
+      "'Homer Simpson Revised', sans-serif"
+    );
+  }
+  console.log(`Updated font for ${season}`);
 };
 
 // Watch for changes in the store and update local state
@@ -95,6 +116,7 @@ watch(
   () => seasonStore.currentSeason,
   (newSeason) => {
     selectedSeason.value = newSeason;
+    updateFontForSeason(newSeason);
   }
 );
 
@@ -102,6 +124,8 @@ onMounted(() => {
   // Load season from localStorage on mount
   seasonStore.loadSeasonFromStorage();
   selectedSeason.value = seasonStore.currentSeason;
+  // Set initial font based on current season
+  updateFontForSeason(seasonStore.currentSeason);
 });
 </script>
 

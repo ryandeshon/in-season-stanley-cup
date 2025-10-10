@@ -70,11 +70,14 @@ watch(
 // Watch for season changes to update theme
 watch(
   () => seasonStore.currentSeason,
-  () => {
+  (newSeason) => {
     if (currentThemeName.value && theme.global?.name) {
       theme.global.name.value = currentThemeName.value;
     }
-  }
+    // Update body data attribute for season-specific styles
+    document.body.setAttribute('data-season', newSeason);
+  },
+  { immediate: true }
 );
 </script>
 
