@@ -54,14 +54,16 @@ p {
 }
 
 /* Links */
-a {
-  color: var(--v-theme-primary);
-  text-decoration: none;
-}
+.v-container {
+  a {
+    color: var(--v-theme-primary);
+    text-decoration: none;
+  }
 
-a:hover {
-  color: var(--v-theme-primary-hover);
-  text-decoration: underline;
+  a:hover {
+    color: var(--v-theme-primary-hover);
+    text-decoration: underline;
+  }
 }
 
 /* Buttons */
