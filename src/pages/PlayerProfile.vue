@@ -13,11 +13,23 @@
                 @card-click="cycleImage"
                 class="mb-4"
               />
+              <div
+                v-if="player.championships && player.championships > 0"
+                class="flex gap-2 mb-2"
+              >
+                <img
+                  v-for="n in player.championships"
+                  :key="n"
+                  :src="cup"
+                  alt="Stanley Cup"
+                  class="w-10 h-10"
+                />
+              </div>
               <span class="text-lg"
                 >Title Defenses: {{ player.titleDefenses }}</span
               >
-              <span class="text-lg"
-                >Championships: {{ player.championships }}</span
+              <span class="text-md" v-if="player.totalDefenses"
+                >Lifetime Defenses: {{ player.totalDefenses }}</span
               >
             </v-card-text>
           </v-card>
@@ -67,11 +79,15 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="team in player.teams" :key="team" class="py-2">
-                  <td
-                    class="text-center flex gap-2 justify-center items-center"
-                  >
-                    <TeamLogo :team="team" width="70" height="70" />
+                <tr
+                  v-for="team in player.teams"
+                  :key="team"
+                  class="py-2 align-middle"
+                >
+                  <td class="text-center">
+                    <div class="flex justify-center items-center">
+                      <TeamLogo :team="team" class="!w-10 !h-10" />
+                    </div>
                   </td>
                   <td class="text-center">
                     {{ getWins(team) }} - {{ getLosses(team) }}
@@ -94,14 +110,20 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { getPlayerData, getGameRecords } from '../services/dynamodbService';
+import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
 import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
+import cup from '@/assets/in-season-logo-season2.png';
 
 const props = defineProps(['name']);
 
+const {
+  gameRecords,
+  player: seasonPlayer,
+  // loading,
+} = usePlayerSeasonData(props.name);
 const theme = useTheme();
 const isDarkOrLight = ref(theme.global.name.value);
 
@@ -113,7 +135,8 @@ watch(
   { immediate: true }
 );
 
-const player = ref(null);
+// Use the player from the composable
+const player = seasonPlayer;
 const allGamesPlayed = ref(null);
 const playersGamesPlayed = ref(null);
 const currentPage = ref(1);
@@ -166,25 +189,67 @@ const getLosses = (team) => {
   return playersGamesPlayed.value.filter((game) => game.lTeam === team).length;
 };
 
-onMounted(async () => {
-  try {
-    player.value = await getPlayerData(props.name); // Fetch the player data by name
-    const games = await getGameRecords();
+onMounted(() => {
+  // Initial setup - the composable handles data fetching
+  // Just wait for data to be available
+  const waitForData = () => {
+    if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
+      updatePlayerGames();
+    } else {
+      // Retry after a short delay
+      setTimeout(waitForData, 100);
+    }
+  };
 
-    // Manipulate the data as needed
-    const filteredGames = games.filter(
+  waitForData();
+});
+
+// Function to update player games when game records change
+const updatePlayerGames = () => {
+  if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
+    const filteredGames = gameRecords.value.filter(
       (game) =>
         player.value.teams.includes(game.lTeam) ||
         player.value.teams.includes(game.wTeam)
     );
 
-    // Save the manipulated data into data properties
-    allGamesPlayed.value = games;
     playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
-  } catch (error) {
-    console.error('Error fetching player data:', error);
+    allGamesPlayed.value = gameRecords.value;
+
+    // Reset displayed games to show new data
+    displayedGames.value = [];
+    currentPage.value = 1;
+    loadMore();
+  } else {
+    console.log('Conditions not met for updatePlayerGames');
   }
-});
+};
+
+// Watch for gameRecords changes (when season changes)
+watch(
+  () => gameRecords.value,
+  (newGameRecords, oldGameRecords) => {
+    console.log('gameRecords watcher triggered');
+    console.log('New length:', newGameRecords?.length);
+    console.log('Old length:', oldGameRecords?.length);
+    updatePlayerGames();
+  },
+  { deep: true }
+);
+
+// Watch for player changes (when season changes)
+watch(
+  () => player.value,
+  (newPlayer, oldPlayer) => {
+    console.log('player watcher triggered');
+    console.log('New player:', newPlayer?.name);
+    console.log('Old player:', oldPlayer?.name);
+    if (newPlayer && gameRecords.value?.length > 0) {
+      updatePlayerGames();
+    }
+  },
+  { deep: true }
+);
 
 watch(playersGamesPlayed, (newVal) => {
   if (newVal && displayedGames.value.length === 0) {

@@ -207,8 +207,6 @@ watch(lastMessage, (data) => {
     if (data.payload.draftStarted && allPlayersData.value.length === 0) {
       loadInitialData();
     }
-
-    console.log('🚀 ~ Draft state updated via socket:', data.payload);
   }
 });
 
@@ -281,7 +279,6 @@ async function loadInitialData() {
   try {
     allPlayersData.value = await getDraftPlayers();
     draftState.value = await getDraftState();
-    console.log('🚀 ~ loadInitialData ~ draftState.value:', draftState.value);
     availableTeams.value = draftState.value.availableTeams;
 
     allPlayersData.value.forEach((player) => {
@@ -304,7 +301,6 @@ async function loadInitialData() {
 }
 
 watch(lastMessage, (data) => {
-  console.log('🚀 ~ watch ~ data:', data);
   if (data?.type === 'draftUpdate') {
     draftState.value = data.payload;
     loadInitialData(); // or use patching for better perf
@@ -324,7 +320,6 @@ watch(
     // If draft just started, play success sound and show notification
     if (newVal && !oldVal && audioReady.value) {
       successSound.play();
-      console.log('🎉 Draft has started!');
     }
   }
 );

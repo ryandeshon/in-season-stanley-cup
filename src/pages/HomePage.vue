@@ -199,7 +199,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
-import { getAllPlayers } from '../services/dynamodbService';
+import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -208,6 +208,7 @@ import { useTheme } from '@/composables/useTheme';
 
 import quotes from '@/utilities/quotes.json';
 
+const { players: allPlayersData } = useCurrentSeasonData();
 const loading = ref(true);
 const potentialLoading = ref(true);
 const currentChampion = ref(null);
@@ -215,7 +216,6 @@ const localStartTime = ref(null);
 const todaysGame = ref({});
 const todaysWinner = ref({});
 const todaysLoser = ref({});
-const allPlayersData = ref({});
 const playerChampion = ref({});
 const playerChallenger = ref({});
 const possibleMatchUps = ref([]);
@@ -345,7 +345,6 @@ watch(
 watch(lastMessage, (data) => {
   console.log('🚀 ~ watch ~ data:', data);
   if (data?.type === 'liveGameUpdate') {
-    console.log('🔥 Received live update:', data);
     // Update whatever fields are affected by the change
     const updatedGame = data.payload;
 
@@ -389,7 +388,7 @@ onMounted(async () => {
   try {
     currentChampion.value = await getCurrentChampion();
     gameID.value = await getGameId();
-    allPlayersData.value = await getAllPlayers();
+    // Players data is now handled by useCurrentSeasonData composable (always current season)
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
