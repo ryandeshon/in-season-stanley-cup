@@ -345,7 +345,6 @@ watch(
 watch(lastMessage, (data) => {
   console.log('🚀 ~ watch ~ data:', data);
   if (data?.type === 'liveGameUpdate') {
-    console.log('🔥 Received live update:', data);
     // Update whatever fields are affected by the change
     const updatedGame = data.payload;
 

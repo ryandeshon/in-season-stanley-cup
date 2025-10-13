@@ -206,19 +206,13 @@ onMounted(() => {
 
 // Function to update player games when game records change
 const updatePlayerGames = () => {
-  console.log('updatePlayerGames called');
-  console.log('gameRecords length:', gameRecords.value?.length);
-  console.log('player exists:', !!player.value);
-
   if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
-    console.log('Filtering games for player:', player.value.name);
     const filteredGames = gameRecords.value.filter(
       (game) =>
         player.value.teams.includes(game.lTeam) ||
         player.value.teams.includes(game.wTeam)
     );
 
-    console.log('Filtered games count:', filteredGames.length);
     playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
     allGamesPlayed.value = gameRecords.value;
 
