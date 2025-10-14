@@ -13,10 +13,6 @@ export function useCurrentSeasonData() {
     error.value = null;
 
     try {
-      console.log('Fetching current season data (Season 2)...');
-      console.log('Players table: Players');
-      console.log('Game records table: GameRecords');
-
       const [playersData, gameRecordsData] = await Promise.all([
         fetchFromTable('Players'),
         fetchFromTable('GameRecords'),
@@ -24,12 +20,7 @@ export function useCurrentSeasonData() {
 
       players.value = playersData;
       gameRecords.value = gameRecordsData;
-
-      console.log(
-        `Loaded ${playersData.length} players and ${gameRecordsData.length} game records from current season`
-      );
     } catch (err) {
-      console.error('Error fetching current season data:', err);
       error.value = err;
     } finally {
       loading.value = false;
