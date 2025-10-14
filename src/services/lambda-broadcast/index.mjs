@@ -19,7 +19,7 @@ const socketClient = new ApiGatewayManagementApiClient({
   endpoint: `https://${SOCKET_DOMAIN}/${SOCKET_STAGE}`,
 });
 
-export const handler = async () => {
+export const handler = async (event) => {
   try {
     // 1. Get the current gameId
     const gameId = await getCurrentGameId();
@@ -34,12 +34,32 @@ export const handler = async () => {
     );
     const gameData = response.data;
 
-    // 3. Get all connections
+    // 3. Check if game is live - only proceed if game is live
+    const gameState = gameData.gameState;
+    const isGameLive = ['LIVE', 'CRIT'].includes(gameState);
+
+    console.log(`Game ${gameId} state: ${gameState}, isLive: ${isGameLive}`);
+
+    // If this is a scheduled event (from EventBridge) and game is not live, skip
+    if (event.source === 'aws.events' && !isGameLive) {
+      console.log('Scheduled event but game is not live, skipping broadcast');
+      return { statusCode: 200, body: 'Game not live, skipping' };
+    }
+
+    // 4. Get all connections
     const connections = await getAllConnections();
+
+    // Skip if no connections
+    if (connections.length === 0) {
+      console.log('No active WebSocket connections, skipping broadcast');
+      return { statusCode: 200, body: 'No connections to broadcast to' };
+    }
 
     const message = {
       type: 'liveGameUpdate',
       payload: gameData,
+      timestamp: new Date().toISOString(),
+      gameState: gameState,
     };
 
     // 4. Broadcast to each client
