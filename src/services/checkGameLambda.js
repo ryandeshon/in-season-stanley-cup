@@ -98,13 +98,14 @@ async function findPlayerWithTeam(team) {
   }
 }
 
-// Function to increment the titleDefenses field for the winning player
+// Function to increment the titleDefenses and totalDefenses fields for the winning player
 async function incrementTitleDefense(playerId) {
   const params = {
     TableName: PLAYERS_TABLE,
     Key: { id: playerId },
-    UpdateExpression: 'SET titleDefenses = titleDefenses + :inc',
-    ExpressionAttributeValues: { ':inc': 1 },
+    UpdateExpression:
+      'SET titleDefenses = titleDefenses + :inc, totalDefenses = if_not_exists(totalDefenses, :zero) + :inc',
+    ExpressionAttributeValues: { ':inc': 1, ':zero': 0 },
   };
 
   await dynamoDB.update(params).promise();
