@@ -8,7 +8,13 @@ let reconnectTimeout = null;
 let reconnectAttempts = 0; // Track the number of reconnection attempts
 const maxReconnectAttempts = 10; // Set the maximum number of attempts
 
-export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
+export function initSocket({
+  onMessage,
+  onOpen,
+  onClose,
+  onError,
+  devMode = false,
+} = {}) {
   if (socket.value && socket.value.readyState === WebSocket.OPEN)
     return socket.value;
 
@@ -16,9 +22,20 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
 
   socket.value.onopen = () => {
     isConnected.value = true;
-    reconnectAttempts = 0; // Reset attempts on successful connection
+    reconnectAttempts = 0;
+
+    // ✅ Send subscribe message when connection opens
+    socket.value.send(
+      JSON.stringify({
+        action: 'subscribeGame',
+        dev: devMode, // Send dev flag
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+      })
+    );
+
     onOpen?.();
-    console.log('✅ WebSocket connected');
+    console.log('✅ WebSocket connected for live game updates');
   };
   socket.value.onmessage = (event) => {
     try {
@@ -26,6 +43,7 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
       lastMessage.value = data;
       onMessage?.(data);
       messageHandlers.forEach((fn) => fn(data));
+      console.log('📡 WebSocket message received:', data);
     } catch (err) {
       console.error('💥 Failed to parse message:', event.data);
     }

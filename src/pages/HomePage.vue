@@ -1,4 +1,12 @@
 <template>
+  <template v-if="isDevMode && isConnected">
+    <div
+      class="bg-yellow-500 text-black py-2 px-4 text-center font-bold uppercase tracking-wide shadow-md"
+    >
+      🧪 DEV MODE ACTIVE – Simulated game data
+    </div>
+  </template>
+
   <v-container class="max-w-[570px] min-h-32">
     <h1
       class="text-4xl font-bold mb-4"
@@ -197,6 +205,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
@@ -205,6 +214,9 @@ import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
 import { useTheme } from '@/composables/useTheme';
+
+const route = useRoute();
+const isDevMode = computed(() => route.query.dev === 'true');
 
 import quotes from '@/utilities/quotes.json';
 
