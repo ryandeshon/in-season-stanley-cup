@@ -108,7 +108,6 @@ const updateFontForSeason = (season) => {
       "'Homer Simpson Revised', sans-serif"
     );
   }
-  console.log(`Updated font for ${season}`);
 };
 
 // Watch for changes in the store and update local state
