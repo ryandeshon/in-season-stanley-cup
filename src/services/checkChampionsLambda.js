@@ -4,115 +4,176 @@ import AWS from 'aws-sdk';
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const TABLE_NAME = 'GameOptions';
 const PARTITION_KEY = 'currentChampion';
-const API_URL = process.env.API_URL; // Your API Gateway URL that proxies to the NHL API
+const API_URL = process.env.API_URL; // proxy base
 
-// Helper function to get today's date in yyyy-mm-dd format
-function getTodayDate() {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+// ---- tiny structured logger (single-line JSON for CloudWatch) ----
+function log(level, msg, meta = {}) {
+  console.log(
+    JSON.stringify({ level, msg, ts: new Date().toISOString(), ...meta })
+  );
 }
 
-// Get the current champion from DynamoDB
-async function getCurrentChampion() {
-  const params = {
-    TableName: TABLE_NAME,
-    Key: { id: PARTITION_KEY },
-  };
+// ---- New: get New York–local YYYY-MM-DD regardless of Lambda's UTC clock ----
+function getLocalDateYYYYMMDD(tz = 'America/New_York', d = new Date()) {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  // en-CA gives YYYY-MM-DD directly
+  return fmt.format(d);
+}
 
+// ---- DynamoDB reads/writes ----
+async function getCurrentChampion() {
+  const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
   try {
-    const result = await dynamoDB.get(params).promise();
-    return result.Item ? result.Item.champion : null;
-  } catch (error) {
-    console.error('Error retrieving current champion:', error);
-    throw new Error('Failed to retrieve current champion');
+    const res = await dynamoDB.get(params).promise();
+    return res.Item?.champion ?? null;
+  } catch (err) {
+    log('error', 'DDB get GameOptions failed', { error: String(err) });
+    throw err;
   }
 }
 
-// Query the NHL API to see if the champion is playing today
-async function checkGameForChampion(champion) {
-  const todayDate = getTodayDate();
-  const apiUrl = `${API_URL}/schedule/${todayDate}`; // Replace with the correct endpoint for schedule
+async function setGameID(gameID) {
+  if (gameID) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: { id: PARTITION_KEY },
+      UpdateExpression: 'SET gameID = :g',
+      ExpressionAttributeValues: { ':g': gameID },
+      ReturnValues: 'UPDATED_NEW',
+    };
+    const out = await dynamoDB.update(params).promise();
+    log('info', 'Saved gameID', { gameID, updated: out?.Attributes });
+  } else {
+    // Remove attribute instead of writing null
+    const params = {
+      TableName: TABLE_NAME,
+      Key: { id: PARTITION_KEY },
+      UpdateExpression: 'REMOVE gameID',
+      ReturnValues: 'UPDATED_NEW',
+    };
+    const out = await dynamoDB.update(params).promise();
+    log('info', 'Removed gameID (no game today)', { updated: out?.Attributes });
+  }
+}
+
+// ---- NHL schedule fetch ----
+async function fetchSchedule(dateYYYYMMDD) {
+  const url = `${API_URL}/schedule/${dateYYYYMMDD}`;
+  log('info', 'Fetching schedule', { url });
 
   return new Promise((resolve, reject) => {
-    https
-      .get(apiUrl, (response) => {
-        let data = '';
-        response.on('data', (chunk) => {
-          data += chunk;
-        });
-        response.on('end', () => {
-          const jsonData = JSON.parse(data);
-          const gameWeek = jsonData.gameWeek;
-          const todayGames = gameWeek.find(
-            (day) => day.date === todayDate
-          )?.games;
-          if (!todayGames) {
-            return resolve(null);
-          }
-          const game = todayGames.find(
-            (game) =>
-              game.homeTeam.abbrev === champion ||
-              game.awayTeam.abbrev === champion
-          );
-          if (game) {
-            resolve(game.id); // Return the game ID
-          } else {
-            resolve(null);
-          }
-        });
-      })
-      .on('error', (e) => {
-        console.error('API Request Error:', e);
-        reject(e);
+    const req = https.get(url, (res) => {
+      let data = '';
+      res.on('data', (c) => (data += c));
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(json);
+        } catch (e) {
+          log('error', 'Schedule JSON parse error', {
+            error: String(e),
+            snippet: data.slice?.(0, 240),
+          });
+          reject(e);
+        }
       });
+    });
+    req.on('error', (e) => {
+      log('error', 'Schedule request error', { error: String(e), url });
+      reject(e);
+    });
+    req.setTimeout(8000, () => {
+      log('error', 'Schedule request timeout', { url });
+      req.destroy(new Error('timeout'));
+    });
   });
 }
 
-// Save the game ID to DynamoDB
-async function saveGameIDToDatabase(gameID) {
-  const params = {
-    TableName: TABLE_NAME,
-    Key: { id: PARTITION_KEY },
-    UpdateExpression: 'set gameID = :gameID',
-    ExpressionAttributeValues: { ':gameID': gameID },
-  };
-  await dynamoDB.update(params).promise();
+// ---- Find today’s game for champion ----
+function findChampionsGameForDate(scheduleJson, champion, dateYYYYMMDD) {
+  const gameWeek = scheduleJson?.gameWeek;
+  if (!Array.isArray(gameWeek)) {
+    log('warn', 'schedule.gameWeek missing/invalid', {
+      keys: Object.keys(scheduleJson || {}),
+    });
+    return null;
+  }
+
+  const today = gameWeek.find((d) => d?.date === dateYYYYMMDD);
+  const games = today?.games || [];
+  log('info', 'Schedule day loaded', {
+    date: dateYYYYMMDD,
+    totalGames: games.length,
+  });
+
+  for (const g of games) {
+    const home = g?.homeTeam?.abbrev;
+    const away = g?.awayTeam?.abbrev;
+    if (!home || !away) continue;
+    if (home === champion || away === champion) {
+      log('info', 'Champion game found', {
+        gameID: g.id,
+        home,
+        away,
+        champion,
+      });
+      return g.id;
+    }
+  }
+  return null;
 }
 
-// Main handler
-export const handler = async () => {
+// ---- Handler ----
+export const handler = async (event, context) => {
+  log('info', 'CheckNHLChampion start', {
+    requestId: context?.awsRequestId,
+    trigger: event?.source || 'manual/test',
+    detailType: event?.detailType,
+  });
+
   try {
     const champion = await getCurrentChampion();
     if (!champion) {
-      throw new Error('No current champion found in the database');
+      log('info', 'No current champion in DB; exiting');
+      await setGameID(null);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'No current champion' }),
+      };
     }
 
-    // Check if there's a game for the champion today
-    const gameID = await checkGameForChampion(champion);
+    const dateNY = getLocalDateYYYYMMDD('America/New_York');
+    log('info', 'Using local date for schedule', { dateNY, champion });
+
+    const schedule = await fetchSchedule(dateNY);
+    const gameID = findChampionsGameForDate(schedule, champion, dateNY);
 
     if (gameID) {
-      // Save the game ID to DynamoDB
-      await saveGameIDToDatabase(gameID);
-      console.log(`Game ID ${gameID} saved for champion ${champion}`);
+      await setGameID(gameID);
+      log('info', 'Game ID saved for champion', { gameID, champion, dateNY });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: `Game ID ${gameID} saved for ${champion}`,
+        }),
+      };
     } else {
-      // Set todays gameID to null
-      await saveGameIDToDatabase(null);
-      console.log(`No game scheduled for champion ${champion} today`);
+      await setGameID(null);
+      log('info', 'No game scheduled for champion today', { champion, dateNY });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: `No game scheduled for ${champion} on ${dateNY}`,
+        }),
+      };
     }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        message: gameID
-          ? `Game ID ${gameID} saved for champion ${champion}`
-          : `No game scheduled for champion ${champion} today`,
-      }),
-    };
   } catch (error) {
-    console.error('Error:', error);
+    log('error', 'CheckNHLChampion error', { error: String(error) });
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Failed to process request' }),

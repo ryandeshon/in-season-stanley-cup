@@ -6,212 +6,243 @@ const TABLE_NAME = 'GameOptions';
 const PLAYERS_TABLE = 'Players';
 const GAME_RECORDS = 'GameRecords';
 const PARTITION_KEY = 'currentChampion';
-const API_URL = process.env.API_URL; // Your API Gateway URL that proxies to the NHL API
+const API_URL = process.env.API_URL;
 
-// Retrieve the stored gameID from DynamoDB
+// Simple structured logger
+function log(level, msg, extra = {}) {
+  const base = { level, ts: new Date().toISOString(), ...extra };
+  // Keep it single-line JSON for easy CloudWatch filtering
+  console.log(JSON.stringify({ msg, ...base }));
+}
+
 async function getGameID() {
-  const params = {
-    TableName: TABLE_NAME,
-    Key: { id: PARTITION_KEY },
-  };
-
+  const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
   try {
     const result = await dynamoDB.get(params).promise();
     return result.Item ? result.Item.gameID : null;
   } catch (error) {
-    console.error('Error retrieving game ID:', error);
+    log('error', 'DynamoDB get (GameOptions) failed', { error: String(error) });
     throw new Error('Failed to retrieve game ID');
   }
 }
 
-// Query the NHL API to check the game status and get the result
-async function checkGameResult(gameID) {
-  const apiUrl = `${API_URL}/gamecenter/${gameID}/boxscore`; // Adjust to match the endpoint for game details
+// Fetch game data; return a normalized object with everything you need
+async function fetchGameData(gameID) {
+  const apiUrl = `${API_URL}/gamecenter/${gameID}/boxscore`;
 
   return new Promise((resolve, reject) => {
-    https
-      .get(apiUrl, (response) => {
-        let data = '';
-        response.on('data', (chunk) => {
-          data += chunk;
-        });
-        response.on('end', () => {
+    const req = https.get(apiUrl, (res) => {
+      let data = '';
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => {
+        try {
           const gameData = JSON.parse(data);
+
           const homeTeam = gameData.homeTeam;
           const awayTeam = gameData.awayTeam;
+          const gameState = gameData.gameState; // e.g., OFF, LIVE, FUT, FINAL (api dependent)
+          const gameType = gameData.gameType; // include if the API provides it (2 = regular season on NHL stats)
 
-          // Check if the game is completed
-          if (gameData.gameState === 'OFF') {
-            // Determine the winner and loser
-            const wTeam =
-              homeTeam.score > awayTeam.score
-                ? homeTeam.abbrev
-                : awayTeam.abbrev;
-            const lTeam =
-              homeTeam.score > awayTeam.score
-                ? awayTeam.abbrev
-                : homeTeam.abbrev;
-            const wScore =
-              homeTeam.score > awayTeam.score ? homeTeam.score : awayTeam.score;
-            const lScore =
-              homeTeam.score > awayTeam.score ? awayTeam.score : homeTeam.score;
-            resolve({ wTeam, wScore, lTeam, lScore });
-          } else {
-            console.log(
-              `Game ${gameID}: ${homeTeam.abbrev} vs. ${awayTeam.abbrev} has not finished yet. (Status: ${gameData.gameState})`
-            );
-            resolve(null); // Game hasn't finished
-          }
-        });
-      })
-      .on('error', (e) => {
-        console.error('API Request Error:', e);
-        reject(e);
+          resolve({
+            gameState,
+            gameType,
+            homeAbbrev: homeTeam?.abbrev,
+            awayAbbrev: awayTeam?.abbrev,
+            homeScore: homeTeam?.score,
+            awayScore: awayTeam?.score,
+          });
+        } catch (e) {
+          log('error', 'JSON parse error from NHL API', {
+            error: String(e),
+            snippet: data?.slice?.(0, 240),
+          });
+          reject(e);
+        }
       });
+    });
+
+    req.on('error', (e) => {
+      log('error', 'API request error', { error: String(e), url: apiUrl });
+      reject(e);
+    });
+
+    // Optional: safety timeout
+    req.setTimeout(8000, () => {
+      log('error', 'API request timed out', { url: apiUrl });
+      req.destroy(new Error('Request timeout'));
+    });
   });
 }
 
-// Save the winner to the DynamoDB table
 async function saveWinnerToDatabase(winner) {
   const params = {
     TableName: TABLE_NAME,
     Key: { id: PARTITION_KEY },
-    UpdateExpression: 'set champion = :winner',
+    UpdateExpression: 'SET champion = :winner',
     ExpressionAttributeValues: { ':winner': winner },
+    ReturnValues: 'UPDATED_NEW',
   };
-  await dynamoDB.update(params).promise();
+  const out = await dynamoDB.update(params).promise();
+  log('info', 'Champion updated', { winner, updated: out?.Attributes });
 }
 
-// Function to find which player has the winning team
 async function findPlayerWithTeam(team) {
-  const params = {
-    TableName: PLAYERS_TABLE,
-  };
-
+  const params = { TableName: PLAYERS_TABLE };
   try {
     const result = await dynamoDB.scan(params).promise();
-    const player = result.Items.find((player) => player.teams.includes(team));
+    const player = result.Items?.find(
+      (p) => Array.isArray(p.teams) && p.teams.includes(team)
+    );
     return player ? player.id : null;
   } catch (error) {
-    console.error('Error scanning Players table:', error);
+    log('error', 'Players scan failed', { error: String(error) });
     throw new Error('Failed to find player with winning team');
   }
 }
 
-// Function to increment the titleDefenses and totalDefenses fields for the winning player
-async function incrementTitleDefense(playerId) {
+async function incrementTitleDefense(playerId, team) {
   const params = {
     TableName: PLAYERS_TABLE,
     Key: { id: playerId },
     UpdateExpression:
-      'SET titleDefenses = titleDefenses + :inc, totalDefenses = if_not_exists(totalDefenses, :zero) + :inc',
+      'SET titleDefenses = if_not_exists(titleDefenses, :zero) + :inc, totalDefenses = if_not_exists(totalDefenses, :zero) + :inc',
     ExpressionAttributeValues: { ':inc': 1, ':zero': 0 },
+    ReturnValues: 'UPDATED_NEW',
   };
-
-  await dynamoDB.update(params).promise();
+  const out = await dynamoDB.update(params).promise();
+  log('info', 'Player defenses incremented', {
+    playerId,
+    team,
+    updated: out?.Attributes,
+  });
 }
 
-// Function to save the game stats into GameRecords table
 async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
-  console.log(
-    '🚀 ~ saveGameStats ~ gameID, wTeam, wScore, lTeam, lScore:',
-    gameID,
-    wTeam,
-    wScore,
-    lTeam,
-    lScore
-  );
   const params = {
     TableName: GAME_RECORDS,
     Item: {
       id: gameID,
-      wTeam: wTeam,
-      wScore: wScore,
-      lTeam: lTeam,
-      lScore: lScore,
+      wTeam,
+      wScore,
+      lTeam,
+      lScore,
+      savedAt: new Date().toISOString(),
     },
+    ConditionExpression: 'attribute_not_exists(id)', // prevent accidental overwrite
   };
 
-  await dynamoDB.put(params).promise();
+  try {
+    await dynamoDB.put(params).promise();
+    log('info', 'Game record saved', { gameID, wTeam, wScore, lTeam, lScore });
+  } catch (e) {
+    // If already exists, log and proceed (idempotent behavior)
+    if (e.code === 'ConditionalCheckFailedException') {
+      log('info', 'Game record already exists, skipping save', { gameID });
+      return;
+    }
+    throw e;
+  }
 }
 
-// function to check if game results are already in the database
-async function checkGameResults(gameID) {
-  const params = {
-    TableName: GAME_RECORDS,
-    Key: { id: gameID },
-  };
-
+async function getSavedGame(gameID) {
+  const params = { TableName: GAME_RECORDS, Key: { id: gameID } };
   try {
     const result = await dynamoDB.get(params).promise();
     return result.Item;
   } catch (error) {
-    console.error('Error retrieving game record:', error);
+    log('error', 'GameRecords get failed', { error: String(error) });
     throw new Error('Failed to retrieve game record');
   }
 }
 
-// Main handler
-export const handler = async (event) => {
+export const handler = async (event, context) => {
+  log('info', 'Invocation start', {
+    requestId: context?.awsRequestId,
+    trigger: event?.source || 'manual/test',
+    detailType: event?.detailType,
+  });
+
   try {
     const gameID = await getGameID();
-    // If there is no game stop checking
     if (!gameID) {
+      log('info', 'No gameID in GameOptions; exiting early');
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'No game to check' }),
       };
     }
+    log('info', 'GameID loaded', { gameID });
 
-    // Check the game result
-    const result = await checkGameResult(gameID);
+    const game = await fetchGameData(gameID);
+    log('info', 'Game state fetched', {
+      gameID,
+      gameState: game.gameState,
+      gameType: game.gameType,
+      matchup: `${game.homeAbbrev} vs ${game.awayAbbrev}`,
+      score: `${game.homeScore}-${game.awayScore}`,
+    });
 
-    if (result.gameType !== 2) {
+    // If you truly need to filter by regular season only, keep this (assuming NHL: 2 = regular season)
+    if (typeof game.gameType !== 'undefined' && game.gameType !== 2) {
+      log('info', 'Non-regular-season game; skipping', {
+        gameType: game.gameType,
+        gameID,
+      });
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'Not a regular season game' }),
       };
     }
 
-    if (result) {
-      // Save the winner to DynamoDB
-      const { wTeam, wScore, lTeam, lScore } = result;
-      console.log('🚀 ~ handler ~ result:', result);
-      // Save the game stats
-      const gameAlreadySaved = await checkGameResults(gameID);
-      if (gameAlreadySaved) {
-        console.log('Game is already saved');
-        return;
-      }
-      await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
-      await saveWinnerToDatabase(wTeam);
-      console.log(`Winner ${wTeam} saved to the database. Game ID: ${gameID}`);
-      // Find the player who has the winning team
-      const playerId = await findPlayerWithTeam(wTeam);
-      if (playerId) {
-        // Increment the titleDefenses for the player
-        await incrementTitleDefense(playerId);
-        console.log(
-          `Incremented titleDefenses for player ${playerId} with team ${wTeam}`
-        );
-      } else {
-        console.log(`No player found with the team ${wTeam}`);
-      }
-    } else {
-      console.log(`Game ${gameID} has not finished yet, no winner saved`);
-      return;
+    if (game.gameState !== 'OFF') {
+      log('info', 'Game not finished yet', {
+        gameID,
+        gameState: game.gameState,
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: `Game ${gameID} not finished (${game.gameState})`,
+        }),
+      };
     }
 
+    // Determine winner/loser
+    const wTeam =
+      game.homeScore > game.awayScore ? game.homeAbbrev : game.awayAbbrev;
+    const lTeam =
+      game.homeScore > game.awayScore ? game.awayAbbrev : game.homeAbbrev;
+    const wScore = Math.max(game.homeScore, game.awayScore);
+    const lScore = Math.min(game.homeScore, game.awayScore);
+    log('info', 'Winner determined', { gameID, wTeam, wScore, lTeam, lScore });
+
+    // Idempotency check
+    const existing = await getSavedGame(gameID);
+    if (existing) {
+      log('info', 'Game already saved; skipping writes', { gameID });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Game already saved' }),
+      };
+    }
+
+    await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
+    await saveWinnerToDatabase(wTeam);
+
+    const playerId = await findPlayerWithTeam(wTeam);
+    if (playerId) {
+      await incrementTitleDefense(playerId, wTeam);
+    } else {
+      log('info', 'No player found for winning team', { wTeam });
+    }
+
+    log('info', 'Invocation complete', { gameID, champion: wTeam });
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        message: result.wTeam
-          ? `Winner ${result.wTeam} saved`
-          : `Game ${gameID} saved`,
-      }),
+      body: JSON.stringify({ message: `Winner ${wTeam} saved` }),
     };
   } catch (error) {
-    console.error('Error:', error);
+    log('error', 'Handler error', { error: String(error) });
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Failed to process request' }),
