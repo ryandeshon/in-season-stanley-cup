@@ -163,10 +163,10 @@
                       :to="`/player/${getTeamOwner(game.homeTeam.abbrev).name}`"
                       >{{ getTeamOwner(game.homeTeam.abbrev).name }}
                     </router-link>
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_${isDarkOrLight}.svg`"
-                      :alt="game.homeTeam.abbrev"
-                      class="w-10 h-10"
+                    <TeamLogo
+                      :team="game.homeTeam.abbrev"
+                      width="50"
+                      height="50"
                     />
                   </div>
                 </td>
@@ -175,10 +175,10 @@
                   <div
                     class="flex flex-col sm:flex-row sm:gap-2 justify-center items-center"
                   >
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_${isDarkOrLight}.svg`"
-                      :alt="game.awayTeam.abbrev"
-                      class="w-10 h-10"
+                    <TeamLogo
+                      :team="game.awayTeam.abbrev"
+                      width="50"
+                      height="50"
                     />
                     <router-link
                       :to="`/player/${getTeamOwner(game.awayTeam.abbrev).name}`"
@@ -203,8 +203,8 @@ import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
+import TeamLogo from '@/components/TeamLogo.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
-import { useTheme } from '@/composables/useTheme';
 
 import quotes from '@/utilities/quotes.json';
 
@@ -238,8 +238,6 @@ const isDisconnected = ref(false);
 watch(isConnected, (newVal) => {
   isDisconnected.value = !newVal;
 });
-
-const { isDarkOrLight } = useTheme();
 
 const clockTime = computed(() => {
   return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');

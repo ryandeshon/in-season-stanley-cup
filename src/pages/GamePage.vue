@@ -9,14 +9,11 @@
       <h1 class="text-4xl font-bold mb-4">Game Details</h1>
       <v-row>
         <v-col cols="6" class="text-center">
-          <v-img
-            :src="
-              isDarkOrLight === 'dark'
-                ? gameDetails.awayTeam.darkLogo
-                : gameDetails.awayTeam.logo
-            "
+          <TeamLogo
+            :team="gameDetails.awayTeam.abbrev"
             class="mx-auto mb-2"
-            max-width="100"
+            width="100"
+            height="100"
           />
           <h2 class="text-2xl font-bold">
             {{ gameDetails.awayTeam.placeName.default }}
@@ -28,14 +25,11 @@
           </template>
         </v-col>
         <v-col cols="6" class="text-center">
-          <v-img
-            :src="
-              isDarkOrLight === 'dark'
-                ? gameDetails.homeTeam.darkLogo
-                : gameDetails.homeTeam.logo
-            "
+          <TeamLogo
+            :team="gameDetails.homeTeam.abbrev"
             class="mx-auto mb-2"
-            max-width="100"
+            width="100"
+            height="100"
           />
           <h2 class="text-2xl font-bold">
             {{ gameDetails.homeTeam.placeName.default }}
@@ -177,22 +171,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import nhlApi from '@/services/nhlApi';
 import { DateTime } from 'luxon';
-import { useTheme } from 'vuetify';
-
-const theme = useTheme();
-const isDarkOrLight = ref(theme.global.name.value);
-
-watch(
-  () => theme.global.name.value,
-  (newVal) => {
-    isDarkOrLight.value = newVal;
-  },
-  { immediate: true }
-);
+import TeamLogo from '@/components/TeamLogo.vue';
 
 const loading = ref(true);
 const gameDetails = ref(null);
