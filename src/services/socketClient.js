@@ -127,24 +127,6 @@ export function closeSocket() {
   }
 }
 
-export function onSocketMessage(handler) {
-  if (typeof handler === 'function') {
-    messageHandlers.push(handler);
-  }
-}
-
-export function clearSocketHandlers() {
-  messageHandlers = [];
-}
-
-export function resetReconnectAttempts() {
-  reconnectAttempts = 0; // Reset the counter when needed
-}
-
 export function useSocket() {
-  return {
-    socket,
-    isConnected,
-    lastMessage,
-  };
+  return { socket, isConnected, lastMessage };
 }
