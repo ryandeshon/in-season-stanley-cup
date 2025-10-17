@@ -41,7 +41,6 @@ const currentThemeName = computed(() => {
   const mode = isDarkTheme.value ? 'dark' : 'light';
   const themeName = `${season}-${mode}`;
 
-  console.log('Computing theme name:', themeName);
   return themeName;
 });
 
@@ -49,7 +48,6 @@ const currentThemeName = computed(() => {
 watch(
   currentThemeName,
   (newThemeName) => {
-    console.log('Setting theme to:', newThemeName);
     if (newThemeName && theme.global?.name) {
       theme.global.name.value = newThemeName;
     }

@@ -1,4 +1,12 @@
 <template>
+  <template v-if="isDevMode && isConnected">
+    <div
+      class="bg-yellow-500 text-black py-2 px-4 text-center font-bold uppercase tracking-wide shadow-md"
+    >
+      🧪 DEV MODE ACTIVE – Simulated game data
+    </div>
+  </template>
+
   <v-container class="max-w-[570px] min-h-32">
     <h1
       class="text-4xl font-bold mb-4"
@@ -197,6 +205,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
@@ -205,6 +214,9 @@ import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
 import { useTheme } from '@/composables/useTheme';
+
+const route = useRoute();
+const isDevMode = computed(() => route.query.dev === 'true');
 
 import quotes from '@/utilities/quotes.json';
 
@@ -348,10 +360,20 @@ watch(lastMessage, (data) => {
     // Update whatever fields are affected by the change
     const updatedGame = data.payload;
 
-    todaysGame.value = updatedGame;
-    secondsRemaining.value = updatedGame.clock?.secondsRemaining || 0;
-    isGameOver.value = ['FINAL', 'OFF'].includes(updatedGame.gameState);
-    isGameLive.value = ['LIVE', 'CRIT'].includes(updatedGame.gameState);
+    // Only update if this is for the current game
+    if (updatedGame.id === gameID.value) {
+      todaysGame.value = updatedGame;
+      secondsRemaining.value = updatedGame.clock?.secondsRemaining || 0;
+      isGameOver.value = ['FINAL', 'OFF'].includes(updatedGame.gameState);
+      isGameLive.value = ['LIVE', 'CRIT'].includes(updatedGame.gameState);
+
+      // Update teams info when we get live updates
+      getTeamsInfo();
+
+      console.log(
+        `Game ${updatedGame.id} updated via WebSocket - State: ${updatedGame.gameState}`
+      );
+    }
   }
 });
 
@@ -395,7 +417,7 @@ onMounted(async () => {
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
     getGameInfo();
-    initSocket();
+    initSocket({ devMode: isDevMode.value }); // ✅ pass dev flag to socketClient
   } else {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
@@ -404,11 +426,14 @@ onMounted(async () => {
     loading.value = false;
   }
 
+  // Reduced frequency fallback polling since we have WebSocket updates
+  // This serves as a backup in case WebSocket connection fails
   setInterval(() => {
-    if (!isGameOver.value && !isDisconnected.value) {
+    if (!isGameOver.value && isDisconnected.value) {
+      console.log('WebSocket disconnected, falling back to manual polling');
       getGameInfo();
     }
-  }, 60000);
+  }, 120000); // 2 minutes fallback polling only when disconnected
 });
 
 function getGameInfo() {

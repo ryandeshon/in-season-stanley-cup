@@ -15,10 +15,6 @@ export function useSeasonData() {
     error.value = null;
 
     try {
-      console.log(`Fetching data for ${seasonStore.seasonDisplayName}...`);
-      console.log(`Players table: ${seasonStore.playersTableName}`);
-      console.log(`Game records table: ${seasonStore.gameRecordsTableName}`);
-
       const [playersData, gameRecordsData] = await Promise.all([
         getAllPlayers(),
         getGameRecords(),
@@ -26,10 +22,6 @@ export function useSeasonData() {
 
       players.value = playersData;
       gameRecords.value = gameRecordsData;
-
-      console.log(
-        `Loaded ${playersData.length} players and ${gameRecordsData.length} game records`
-      );
     } catch (err) {
       console.error('Error fetching season data:', err);
       error.value = err;
@@ -44,10 +36,8 @@ export function useSeasonData() {
     error.value = null;
 
     try {
-      console.log(`Fetching players from ${seasonStore.playersTableName}...`);
       const playersData = await getAllPlayers();
       players.value = playersData;
-      console.log(`Loaded ${playersData.length} players`);
     } catch (err) {
       console.error('Error fetching players:', err);
       error.value = err;
@@ -62,12 +52,8 @@ export function useSeasonData() {
     error.value = null;
 
     try {
-      console.log(
-        `Fetching game records from ${seasonStore.gameRecordsTableName}...`
-      );
       const gameRecordsData = await getGameRecords();
       gameRecords.value = gameRecordsData;
-      console.log(`Loaded ${gameRecordsData.length} game records`);
     } catch (err) {
       console.error('Error fetching game records:', err);
       error.value = err;
@@ -80,7 +66,6 @@ export function useSeasonData() {
   watch(
     () => seasonStore.currentSeason,
     () => {
-      console.log(`Season changed to: ${seasonStore.currentSeason}`);
       fetchSeasonData();
     }
   );
