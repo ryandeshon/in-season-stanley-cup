@@ -421,35 +421,49 @@ function getGameInfo() {
       localStartTime.value = DateTime.fromISO(
         result.data.startTimeUTC
       ).toLocaleString(DateTime.DATETIME_FULL);
+
+      // Check if current champion is actually playing in this game
+      const homeTeam = todaysGame.value.homeTeam;
+      const awayTeam = todaysGame.value.awayTeam;
+      const championIsPlaying =
+        currentChampion.value === homeTeam?.abbrev ||
+        currentChampion.value === awayTeam?.abbrev;
+
+      if (championIsPlaying) {
+        getTeamsInfo();
+
+        if (isGameOver.value) {
+          if (homeTeam.score > awayTeam.score) {
+            todaysWinner.value = homeTeam;
+            todaysLoser.value = awayTeam;
+          } else {
+            todaysWinner.value = awayTeam;
+            todaysLoser.value = homeTeam;
+          }
+
+          const getWinningPlayer = allPlayersData.value.find((player) =>
+            player.teams.includes(todaysWinner.value.abbrev)
+          );
+          const getLosingPlayer = allPlayersData.value.find((player) =>
+            player.teams.includes(todaysLoser.value.abbrev)
+          );
+          todaysWinner.value.player = getWinningPlayer;
+          todaysLoser.value.player = getLosingPlayer;
+          getPossibleMatchUps(todaysWinner.value.abbrev);
+        }
+      } else {
+        // Champion is not playing today, treat as no game
+        isGameToday.value = false;
+        playerChampion.value = allPlayersData.value.find((player) =>
+          player.teams.includes(currentChampion.value)
+        );
+        getPossibleMatchUps(currentChampion.value);
+      }
     })
     .catch((error) => {
       console.error('Error fetching game result:', error);
     })
     .finally(() => {
-      getTeamsInfo();
-
-      if (isGameOver.value) {
-        const homeTeam = todaysGame.value.homeTeam;
-        const awayTeam = todaysGame.value.awayTeam;
-
-        if (homeTeam.score > awayTeam.score) {
-          todaysWinner.value = homeTeam;
-          todaysLoser.value = awayTeam;
-        } else {
-          todaysWinner.value = awayTeam;
-          todaysLoser.value = homeTeam;
-        }
-
-        const getWinningPlayer = allPlayersData.value.find((player) =>
-          player.teams.includes(todaysWinner.value.abbrev)
-        );
-        const getLosingPlayer = allPlayersData.value.find((player) =>
-          player.teams.includes(todaysLoser.value.abbrev)
-        );
-        todaysWinner.value.player = getWinningPlayer;
-        todaysLoser.value.player = getLosingPlayer;
-        getPossibleMatchUps(todaysWinner.value.abbrev);
-      }
       loading.value = false;
     });
 }
