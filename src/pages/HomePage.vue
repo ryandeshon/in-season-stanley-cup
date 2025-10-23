@@ -171,10 +171,10 @@
                       :to="`/player/${getTeamOwner(game.homeTeam.abbrev).name}`"
                       >{{ getTeamOwner(game.homeTeam.abbrev).name }}
                     </router-link>
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.homeTeam.abbrev}_${isDarkOrLight}.svg`"
-                      :alt="game.homeTeam.abbrev"
-                      class="w-10 h-10"
+                    <TeamLogo
+                      :team="game.homeTeam.abbrev"
+                      width="50"
+                      height="50"
                     />
                   </div>
                 </td>
@@ -183,10 +183,10 @@
                   <div
                     class="flex flex-col sm:flex-row sm:gap-2 justify-center items-center"
                   >
-                    <img
-                      :src="`https://assets.nhle.com/logos/nhl/svg/${game.awayTeam.abbrev}_${isDarkOrLight}.svg`"
-                      :alt="game.awayTeam.abbrev"
-                      class="w-10 h-10"
+                    <TeamLogo
+                      :team="game.awayTeam.abbrev"
+                      width="50"
+                      height="50"
                     />
                     <router-link
                       :to="`/player/${getTeamOwner(game.awayTeam.abbrev).name}`"
@@ -212,8 +212,8 @@ import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
+import TeamLogo from '@/components/TeamLogo.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
-import { useTheme } from '@/composables/useTheme';
 
 const route = useRoute();
 const isDevMode = computed(() => route.query.dev === 'true');
@@ -250,8 +250,6 @@ const isDisconnected = ref(false);
 watch(isConnected, (newVal) => {
   isDisconnected.value = !newVal;
 });
-
-const { isDarkOrLight } = useTheme();
 
 const clockTime = computed(() => {
   return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');
@@ -446,35 +444,49 @@ function getGameInfo() {
       localStartTime.value = DateTime.fromISO(
         result.data.startTimeUTC
       ).toLocaleString(DateTime.DATETIME_FULL);
+
+      // Check if current champion is actually playing in this game
+      const homeTeam = todaysGame.value.homeTeam;
+      const awayTeam = todaysGame.value.awayTeam;
+      const championIsPlaying =
+        currentChampion.value === homeTeam?.abbrev ||
+        currentChampion.value === awayTeam?.abbrev;
+
+      if (championIsPlaying) {
+        getTeamsInfo();
+
+        if (isGameOver.value) {
+          if (homeTeam.score > awayTeam.score) {
+            todaysWinner.value = homeTeam;
+            todaysLoser.value = awayTeam;
+          } else {
+            todaysWinner.value = awayTeam;
+            todaysLoser.value = homeTeam;
+          }
+
+          const getWinningPlayer = allPlayersData.value.find((player) =>
+            player.teams.includes(todaysWinner.value.abbrev)
+          );
+          const getLosingPlayer = allPlayersData.value.find((player) =>
+            player.teams.includes(todaysLoser.value.abbrev)
+          );
+          todaysWinner.value.player = getWinningPlayer;
+          todaysLoser.value.player = getLosingPlayer;
+          getPossibleMatchUps(todaysWinner.value.abbrev);
+        }
+      } else {
+        // Champion is not playing today, treat as no game
+        isGameToday.value = false;
+        playerChampion.value = allPlayersData.value.find((player) =>
+          player.teams.includes(currentChampion.value)
+        );
+        getPossibleMatchUps(currentChampion.value);
+      }
     })
     .catch((error) => {
       console.error('Error fetching game result:', error);
     })
     .finally(() => {
-      getTeamsInfo();
-
-      if (isGameOver.value) {
-        const homeTeam = todaysGame.value.homeTeam;
-        const awayTeam = todaysGame.value.awayTeam;
-
-        if (homeTeam.score > awayTeam.score) {
-          todaysWinner.value = homeTeam;
-          todaysLoser.value = awayTeam;
-        } else {
-          todaysWinner.value = awayTeam;
-          todaysLoser.value = homeTeam;
-        }
-
-        const getWinningPlayer = allPlayersData.value.find((player) =>
-          player.teams.includes(todaysWinner.value.abbrev)
-        );
-        const getLosingPlayer = allPlayersData.value.find((player) =>
-          player.teams.includes(todaysLoser.value.abbrev)
-        );
-        todaysWinner.value.player = getWinningPlayer;
-        todaysLoser.value.player = getLosingPlayer;
-        getPossibleMatchUps(todaysWinner.value.abbrev);
-      }
       loading.value = false;
     });
 }
