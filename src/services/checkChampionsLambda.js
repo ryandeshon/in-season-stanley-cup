@@ -138,42 +138,70 @@ function findChampionsGameForDate(scheduleJson, champion, dateYYYYMMDD) {
 export const handler = async (event, context) => {
   log('info', 'CheckNHLChampion start', {
     requestId: context?.awsRequestId,
+    path: event?.path,
     trigger: event?.source || 'manual/test',
-    detailType: event?.detailType,
   });
 
+  // New: handle /gameid route
+  if (event?.path?.endsWith('/gameid')) {
+    try {
+      const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
+      const res = await dynamoDB.get(params).promise();
+      const gameID = res.Item?.gameID ?? null;
+
+      return {
+        statusCode: 200,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ gameID }),
+      };
+    } catch (error) {
+      log('error', 'Error retrieving gameID', { error: String(error) });
+      return {
+        statusCode: 500,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Failed to retrieve gameID' }),
+      };
+    }
+  }
+
   try {
-    const champion = await getCurrentChampion();
+    const champion = await getCurrentChampion(); // e.g. "PHI" from DynamoDB
     if (!champion) {
-      log('info', 'No current champion in DB; exiting');
       await setGameID(null);
       return {
         statusCode: 200,
-        body: JSON.stringify({ message: 'No current champion' }),
+        headers: CORS_HEADERS,
+        body: JSON.stringify({
+          champion: null,
+          gameID: null,
+          message: 'No current champion',
+        }),
       };
     }
 
     const dateNY = getLocalDateYYYYMMDD('America/New_York');
-    log('info', 'Using local date for schedule', { dateNY, champion });
-
     const schedule = await fetchSchedule(dateNY);
     const gameID = findChampionsGameForDate(schedule, champion, dateNY);
 
     if (gameID) {
       await setGameID(gameID);
-      log('info', 'Game ID saved for champion', { gameID, champion, dateNY });
       return {
         statusCode: 200,
+        headers: CORS_HEADERS,
         body: JSON.stringify({
+          champion,
+          gameID,
           message: `Game ID ${gameID} saved for ${champion}`,
         }),
       };
     } else {
       await setGameID(null);
-      log('info', 'No game scheduled for champion today', { champion, dateNY });
       return {
         statusCode: 200,
+        headers: CORS_HEADERS,
         body: JSON.stringify({
+          champion,
+          gameID: null,
           message: `No game scheduled for ${champion} on ${dateNY}`,
         }),
       };
@@ -182,6 +210,7 @@ export const handler = async (event, context) => {
     log('error', 'CheckNHLChampion error', { error: String(error) });
     return {
       statusCode: 500,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Failed to process request' }),
     };
   }
