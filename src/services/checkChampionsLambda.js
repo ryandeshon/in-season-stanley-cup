@@ -6,6 +6,12 @@ const TABLE_NAME = 'GameOptions';
 const PARTITION_KEY = 'currentChampion';
 const API_URL = process.env.API_URL; // proxy base
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': 'http://localhost:8080', // or "*" while developing
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET,OPTIONS',
+};
+
 // ---- tiny structured logger (single-line JSON for CloudWatch) ----
 function log(level, msg, meta = {}) {
   console.log(
