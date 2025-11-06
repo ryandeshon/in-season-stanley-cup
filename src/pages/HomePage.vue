@@ -385,7 +385,9 @@ onMounted(async () => {
 
   try {
     currentChampion.value = await getCurrentChampion();
+    console.log('🚀 ~ currentChampion.value:', currentChampion.value);
     gameID.value = await getGameId();
+    console.log('🚀 ~ gameID.value:', gameID.value);
     // Players data is now handled by useCurrentSeasonData composable (always current season)
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
