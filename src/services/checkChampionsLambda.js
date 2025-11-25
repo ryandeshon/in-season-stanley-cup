@@ -2,12 +2,14 @@ import https from 'https';
 import AWS from 'aws-sdk';
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = 'GameOptions';
+const GAME_OPTIONS_TABLE = 'GameOptions';
 const PARTITION_KEY = 'currentChampion';
+const GAME_RECORDS_TABLE = 'GameRecords';
+const PLAYERS_TABLE = 'Players';
 const API_URL = process.env.API_URL; // proxy base
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': 'http://localhost:8080', // or "*" while developing
+  'Access-Control-Allow-Origin': 'http://localhost:8080', // or "*"
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET,OPTIONS',
 };
@@ -33,7 +35,7 @@ function getLocalDateYYYYMMDD(tz = 'America/New_York', d = new Date()) {
 
 // ---- DynamoDB reads/writes ----
 async function getCurrentChampion() {
-  const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
+  const params = { TableName: GAME_OPTIONS_TABLE, Key: { id: PARTITION_KEY } };
   try {
     const res = await dynamoDB.get(params).promise();
     return res.Item?.champion ?? null;
@@ -46,7 +48,7 @@ async function getCurrentChampion() {
 async function setGameID(gameID) {
   if (gameID) {
     const params = {
-      TableName: TABLE_NAME,
+      TableName: GAME_OPTIONS_TABLE,
       Key: { id: PARTITION_KEY },
       UpdateExpression: 'SET gameID = :g',
       ExpressionAttributeValues: { ':g': gameID },
@@ -57,7 +59,7 @@ async function setGameID(gameID) {
   } else {
     // Remove attribute instead of writing null
     const params = {
-      TableName: TABLE_NAME,
+      TableName: GAME_OPTIONS_TABLE,
       Key: { id: PARTITION_KEY },
       UpdateExpression: 'REMOVE gameID',
       ReturnValues: 'UPDATED_NEW',
@@ -136,26 +138,93 @@ function findChampionsGameForDate(scheduleJson, champion, dateYYYYMMDD) {
 
 // ---- Handler ----
 export const handler = async (event, context) => {
-  log('info', 'CheckNHLChampion start', {
-    requestId: context?.awsRequestId,
-    path: event?.path,
-    trigger: event?.source || 'manual/test',
-  });
+  const path = event?.path || '';
+  const method = event?.httpMethod || 'GET';
 
-  // New: handle /gameid route
-  if (event?.path?.endsWith('/gameid')) {
+  console.log('incoming', { path, method });
+
+  // 1) GET /game-records
+  if (path === '/game-records' && method === 'GET') {
     try {
-      const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
-      const res = await dynamoDB.get(params).promise();
-      const gameID = res.Item?.gameID ?? null;
+      const res = await dynamoDB
+        .scan({ TableName: GAME_RECORDS_TABLE })
+        .promise();
+      return {
+        statusCode: 200,
+        headers: CORS_HEADERS,
+        body: JSON.stringify(res.Items || []),
+      };
+    } catch (err) {
+      console.error('scan GameRecords failed', err);
+      return {
+        statusCode: 500,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Failed to fetch game records' }),
+      };
+    }
+  }
 
+  // 2) GET /players
+  if (path === '/players' && method === 'GET') {
+    try {
+      const res = await dynamoDB.scan({ TableName: PLAYERS_TABLE }).promise();
+      return {
+        statusCode: 200,
+        headers: CORS_HEADERS,
+        body: JSON.stringify(res.Items || []),
+      };
+    } catch (err) {
+      console.error('scan Players failed', err);
+      return {
+        statusCode: 500,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Failed to fetch players' }),
+      };
+    }
+  }
+
+  // 3) GET /players/{name}
+  if (path.startsWith('/players/') && method === 'GET') {
+    const name = decodeURIComponent(path.split('/').pop());
+    try {
+      const res = await dynamoDB
+        .query({
+          TableName: PLAYERS_TABLE,
+          IndexName: 'NameIndex',
+          KeyConditionExpression: '#n = :name',
+          ExpressionAttributeNames: { '#n': 'name' },
+          ExpressionAttributeValues: { ':name': name },
+        })
+        .promise();
+      return {
+        statusCode: 200,
+        headers: CORS_HEADERS,
+        body: JSON.stringify(res.Items?.[0] || null),
+      };
+    } catch (err) {
+      console.error('query player by name failed', err);
+      return {
+        statusCode: 500,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Failed to fetch player' }),
+      };
+    }
+  }
+
+  // 4) existing /gameid route (the one we added earlier)
+  if (path.endsWith('/gameid') && method === 'GET') {
+    try {
+      const res = await dynamoDB
+        .get({ TableName: 'GameOptions', Key: { id: 'currentChampion' } })
+        .promise();
+      const gameID = res.Item?.gameID ?? null;
       return {
         statusCode: 200,
         headers: CORS_HEADERS,
         body: JSON.stringify({ gameID }),
       };
-    } catch (error) {
-      log('error', 'Error retrieving gameID', { error: String(error) });
+    } catch (err) {
+      console.error('get gameID failed', err);
       return {
         statusCode: 500,
         headers: CORS_HEADERS,
@@ -164,54 +233,17 @@ export const handler = async (event, context) => {
     }
   }
 
-  try {
-    const champion = await getCurrentChampion(); // e.g. "PHI" from DynamoDB
-    if (!champion) {
-      await setGameID(null);
-      return {
-        statusCode: 200,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({
-          champion: null,
-          gameID: null,
-          message: 'No current champion',
-        }),
-      };
-    }
-
-    const dateNY = getLocalDateYYYYMMDD('America/New_York');
-    const schedule = await fetchSchedule(dateNY);
-    const gameID = findChampionsGameForDate(schedule, champion, dateNY);
-
-    if (gameID) {
-      await setGameID(gameID);
-      return {
-        statusCode: 200,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({
-          champion,
-          gameID,
-          message: `Game ID ${gameID} saved for ${champion}`,
-        }),
-      };
-    } else {
-      await setGameID(null);
-      return {
-        statusCode: 200,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({
-          champion,
-          gameID: null,
-          message: `No game scheduled for ${champion} on ${dateNY}`,
-        }),
-      };
-    }
-  } catch (error) {
-    log('error', 'CheckNHLChampion error', { error: String(error) });
-    return {
-      statusCode: 500,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Failed to process request' }),
-    };
+  // 5) existing /champion route (the one that checks today’s game)
+  if (path.endsWith('/champion') && method === 'GET') {
+    // keep your existing champion logic here
+    // make sure every return has:
+    // statusCode, headers: CORS_HEADERS, body: JSON.stringify(...)
   }
+
+  // fallback
+  return {
+    statusCode: 404,
+    headers: CORS_HEADERS,
+    body: JSON.stringify({ error: 'Not found', path }),
+  };
 };

@@ -7,6 +7,7 @@ const PLAYERS_TABLE = 'Players';
 const GAME_RECORDS = 'GameRecords';
 const PARTITION_KEY = 'currentChampion';
 const API_URL = process.env.API_URL;
+const GAME_ID_FIELD = 'gameID';
 
 // Simple structured logger
 function log(level, msg, extra = {}) {
@@ -19,7 +20,7 @@ async function getGameID() {
   const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
   try {
     const result = await dynamoDB.get(params).promise();
-    return result.Item ? result.Item.gameID : null;
+    return result.Item ? result.Item[GAME_ID_FIELD] : null;
   } catch (error) {
     log('error', 'DynamoDB get (GameOptions) failed', { error: String(error) });
     throw new Error('Failed to retrieve game ID');
@@ -115,6 +116,25 @@ async function incrementTitleDefense(playerId, team) {
     team,
     updated: out?.Attributes,
   });
+}
+
+async function clearGameID() {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression: `REMOVE ${GAME_ID_FIELD}`,
+    ReturnValues: 'UPDATED_NEW',
+  };
+
+  try {
+    const out = await dynamoDB.update(params).promise();
+    log('info', 'Cleared gameID from GameOptions', {
+      updated: out?.Attributes,
+    });
+  } catch (error) {
+    // Let processing continue; log for visibility so we can diagnose stuck IDs later
+    log('error', 'Failed to clear gameID', { error: String(error) });
+  }
 }
 
 async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
@@ -216,18 +236,9 @@ export const handler = async (event, context) => {
     const lScore = Math.min(game.homeScore, game.awayScore);
     log('info', 'Winner determined', { gameID, wTeam, wScore, lTeam, lScore });
 
-    // Idempotency check
-    const existing = await getSavedGame(gameID);
-    if (existing) {
-      log('info', 'Game already saved; skipping writes', { gameID });
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Game already saved' }),
-      };
-    }
-
     await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
     await saveWinnerToDatabase(wTeam);
+    await clearGameID();
 
     const playerId = await findPlayerWithTeam(wTeam);
     if (playerId) {
