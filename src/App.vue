@@ -40,7 +40,6 @@ const currentThemeName = computed(() => {
   const season = seasonValue === 'season1' ? 'season1' : 'season2';
   const mode = isDarkTheme.value ? 'dark' : 'light';
   const themeName = `${season}-${mode}`;
-
   return themeName;
 });
 

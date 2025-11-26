@@ -1,5 +1,8 @@
+// src/composables/useCurrentSeasonData.js
 import { ref, onMounted } from 'vue';
-import dynamodb from '@/dynamodb-client';
+
+// using the same env var you used elsewhere
+const API_BASE = process.env.VUE_APP_API_BASE;
 
 export function useCurrentSeasonData() {
   const players = ref([]);
@@ -7,19 +10,24 @@ export function useCurrentSeasonData() {
   const loading = ref(false);
   const error = ref(null);
 
-  // Function to fetch current season data (always Season 2 tables)
   const fetchCurrentSeasonData = async () => {
     loading.value = true;
     error.value = null;
 
     try {
       const [playersData, gameRecordsData] = await Promise.all([
-        fetchFromTable('Players'),
-        fetchFromTable('GameRecords'),
+        fetch(`${API_BASE}/players`).then((r) => {
+          if (!r.ok) throw new Error('Failed to fetch players');
+          return r.json();
+        }),
+        fetch(`${API_BASE}/game-records`).then((r) => {
+          if (!r.ok) throw new Error('Failed to fetch game records');
+          return r.json();
+        }),
       ]);
 
-      players.value = playersData;
-      gameRecords.value = gameRecordsData;
+      players.value = playersData || [];
+      gameRecords.value = gameRecordsData || [];
     } catch (err) {
       error.value = err;
     } finally {
@@ -27,18 +35,13 @@ export function useCurrentSeasonData() {
     }
   };
 
-  // Helper function to fetch directly from specified table
-  const fetchFromTable = async (tableName) => {
-    const params = {
-      TableName: tableName,
-    };
-
-    const data = await dynamodb.scan(params).promise();
-    return data.Items;
-  };
-
-  // Initial data fetch on mount
   onMounted(() => {
+    if (!API_BASE) {
+      console.warn(
+        '[useCurrentSeasonData] VUE_APP_API_BASE is not set. Set it in .env.local.'
+      );
+      return;
+    }
     fetchCurrentSeasonData();
   });
 
