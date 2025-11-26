@@ -1,11 +1,5 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import { Amplify } from 'aws-amplify';
-import awsconfig from './aws-exports';
-
-// Initialize Amplify first, before any other imports
-Amplify.configure(awsconfig);
-
 import App from './App.vue';
 import router from './router';
 import vuetify from './plugins/vuetify';

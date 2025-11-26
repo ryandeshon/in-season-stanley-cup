@@ -96,9 +96,10 @@ initSocket({
 ### Environment Setup
 
 1. Copy `.env.example` to `.env` and configure:
-   - `VUE_APP_AWS_ACCESS_KEY_ID`, `VUE_APP_AWS_SECRET_ACCESS_KEY`, `VUE_APP_AWS_REGION`
+   - `VUE_APP_API_BASE` (prod HTTP API base URL from API Gateway)
    - `VUE_APP_NHL_API_URL` (NHL API proxy endpoint)
    - `VUE_APP_WEB_SOCKET_URL` (WebSocket endpoint)
+   - No AWS access keys are required in the client; Lambdas run with IAM roles.
 
 ### Commands
 

@@ -1,17 +1,20 @@
 import https from 'https';
 import AWS from 'aws-sdk';
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = 'GameOptions';
-const PLAYERS_TABLE = 'Players';
-const GAME_RECORDS = 'GameRecords';
-const PARTITION_KEY = 'currentChampion';
-const API_URL = process.env.API_URL;
+const dynamoDB = new AWS.DynamoDB.DocumentClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+});
 
-// Simple structured logger
+const TABLE_NAME = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
+const PLAYERS_TABLE = process.env.PLAYERS_TABLE || 'Players';
+const GAME_RECORDS = process.env.GAME_RECORDS_TABLE || 'GameRecords';
+const PARTITION_KEY = process.env.GAME_OPTIONS_KEY || 'currentChampion';
+const GAME_ID_FIELD = process.env.GAME_ID_FIELD || 'gameID';
+const NHL_API_BASE =
+  process.env.NHL_API_BASE || process.env.API_URL || 'https://api-web.nhle.com/v1';
+
 function log(level, msg, extra = {}) {
   const base = { level, ts: new Date().toISOString(), ...extra };
-  // Keep it single-line JSON for easy CloudWatch filtering
   console.log(JSON.stringify({ msg, ...base }));
 }
 
@@ -19,16 +22,15 @@ async function getGameID() {
   const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
   try {
     const result = await dynamoDB.get(params).promise();
-    return result.Item ? result.Item.gameID : null;
+    return result.Item ? result.Item[GAME_ID_FIELD] : null;
   } catch (error) {
     log('error', 'DynamoDB get (GameOptions) failed', { error: String(error) });
     throw new Error('Failed to retrieve game ID');
   }
 }
 
-// Fetch game data; return a normalized object with everything you need
 async function fetchGameData(gameID) {
-  const apiUrl = `${API_URL}/gamecenter/${gameID}/boxscore`;
+  const apiUrl = `${NHL_API_BASE}/gamecenter/${gameID}/boxscore`;
 
   return new Promise((resolve, reject) => {
     const req = https.get(apiUrl, (res) => {
@@ -40,8 +42,8 @@ async function fetchGameData(gameID) {
 
           const homeTeam = gameData.homeTeam;
           const awayTeam = gameData.awayTeam;
-          const gameState = gameData.gameState; // e.g., OFF, LIVE, FUT, FINAL (api dependent)
-          const gameType = gameData.gameType; // include if the API provides it (2 = regular season on NHL stats)
+          const gameState = gameData.gameState;
+          const gameType = gameData.gameType;
 
           resolve({
             gameState,
@@ -66,7 +68,6 @@ async function fetchGameData(gameID) {
       reject(e);
     });
 
-    // Optional: safety timeout
     req.setTimeout(8000, () => {
       log('error', 'API request timed out', { url: apiUrl });
       req.destroy(new Error('Request timeout'));
@@ -117,6 +118,24 @@ async function incrementTitleDefense(playerId, team) {
   });
 }
 
+async function clearGameID() {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression: `REMOVE ${GAME_ID_FIELD}`,
+    ReturnValues: 'UPDATED_NEW',
+  };
+
+  try {
+    const out = await dynamoDB.update(params).promise();
+    log('info', 'Cleared gameID from GameOptions', {
+      updated: out?.Attributes,
+    });
+  } catch (error) {
+    log('error', 'Failed to clear gameID', { error: String(error) });
+  }
+}
+
 async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
   const params = {
     TableName: GAME_RECORDS,
@@ -128,14 +147,13 @@ async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
       lScore,
       savedAt: new Date().toISOString(),
     },
-    ConditionExpression: 'attribute_not_exists(id)', // prevent accidental overwrite
+    ConditionExpression: 'attribute_not_exists(id)',
   };
 
   try {
     await dynamoDB.put(params).promise();
     log('info', 'Game record saved', { gameID, wTeam, wScore, lTeam, lScore });
   } catch (e) {
-    // If already exists, log and proceed (idempotent behavior)
     if (e.code === 'ConditionalCheckFailedException') {
       log('info', 'Game record already exists, skipping save', { gameID });
       return;
@@ -182,7 +200,6 @@ export const handler = async (event, context) => {
       score: `${game.homeScore}-${game.awayScore}`,
     });
 
-    // If you truly need to filter by regular season only, keep this (assuming NHL: 2 = regular season)
     if (typeof game.gameType !== 'undefined' && game.gameType !== 2) {
       log('info', 'Non-regular-season game; skipping', {
         gameType: game.gameType,
@@ -207,7 +224,6 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Determine winner/loser
     const wTeam =
       game.homeScore > game.awayScore ? game.homeAbbrev : game.awayAbbrev;
     const lTeam =
@@ -216,18 +232,9 @@ export const handler = async (event, context) => {
     const lScore = Math.min(game.homeScore, game.awayScore);
     log('info', 'Winner determined', { gameID, wTeam, wScore, lTeam, lScore });
 
-    // Idempotency check
-    const existing = await getSavedGame(gameID);
-    if (existing) {
-      log('info', 'Game already saved; skipping writes', { gameID });
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Game already saved' }),
-      };
-    }
-
     await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
     await saveWinnerToDatabase(wTeam);
+    await clearGameID();
 
     const playerId = await findPlayerWithTeam(wTeam);
     if (playerId) {
