@@ -501,27 +501,40 @@ function getQuote() {
 async function getPossibleMatchUps(championTeam) {
   const upcomingGames = [];
   const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
-  const scheduleData = await nhlApi.getSchedule(tomorrow);
 
-  scheduleData.data.gameWeek.forEach((date) => {
-    date.games.forEach((game) => {
-      const { id, homeTeam, awayTeam, startTimeUTC } = game;
-      if (
-        homeTeam.abbrev === championTeam ||
-        awayTeam.abbrev === championTeam
-      ) {
-        upcomingGames.push({
-          id: id,
-          homeTeam: homeTeam,
-          awayTeam: awayTeam,
-          dateTime:
-            DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
-        });
-      }
+  try {
+    const scheduleData = await nhlApi.getSchedule(tomorrow);
+    const gameWeek = scheduleData?.data?.gameWeek;
+    if (!Array.isArray(gameWeek)) {
+      possibleMatchUps.value = [];
+      potentialLoading.value = false;
+      return;
+    }
+
+    gameWeek.forEach((date) => {
+      (date?.games || []).forEach((game) => {
+        const { id, homeTeam, awayTeam, startTimeUTC } = game;
+        if (
+          homeTeam?.abbrev === championTeam ||
+          awayTeam?.abbrev === championTeam
+        ) {
+          upcomingGames.push({
+            id,
+            homeTeam,
+            awayTeam,
+            dateTime:
+              DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
+          });
+        }
+      });
     });
-  });
-  possibleMatchUps.value = upcomingGames;
-  potentialLoading.value = false;
+    possibleMatchUps.value = upcomingGames;
+  } catch (err) {
+    console.error('Failed to load possible matchups', err);
+    possibleMatchUps.value = [];
+  } finally {
+    potentialLoading.value = false;
+  }
 }
 
 function getTeamOwner(teamAbbrev) {

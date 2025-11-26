@@ -9,6 +9,11 @@ let reconnectAttempts = 0; // Track the number of reconnection attempts
 const maxReconnectAttempts = 10; // Set the maximum number of attempts
 
 export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
+  if (!process.env.VUE_APP_WEB_SOCKET_URL) {
+    console.warn('WebSocket URL not configured; skipping socket init');
+    return null;
+  }
+
   if (socket.value && socket.value.readyState === WebSocket.OPEN)
     return socket.value;
 
