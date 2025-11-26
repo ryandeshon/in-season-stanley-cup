@@ -34,3 +34,25 @@ export async function updateDraftState(patch) {
   if (!res.ok) throw new Error('Failed to update draft state');
   return res.json();
 }
+
+export async function getDraftPlayers() {
+  return getAllPlayers();
+}
+
+export async function selectTeamForPlayer(playerId, team) {
+  const res = await fetch(`${API_BASE}/draft/select-team`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerId, team }),
+  });
+  if (!res.ok) throw new Error('Failed to select team for player');
+  return res.json();
+}
+
+export async function resetAllPlayerTeams() {
+  const res = await fetch(`${API_BASE}/players/reset-teams`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to reset teams');
+  return res.json();
+}
