@@ -196,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '../services/nhlApi';
 import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
@@ -226,6 +226,9 @@ const isGameLive = ref(false);
 const isSeasonOver = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+const lastLiveUpdateAt = ref(0);
+let pollIntervalId = null;
+const POLL_INTERVAL_MS = 30000;
 // Add new reactive state for avatar management
 const previousHomeScore = ref(0);
 const previousAwayScore = ref(0);
@@ -235,11 +238,18 @@ const goalTimers = ref({ home: null, away: null });
 // WebSocket
 const { lastMessage, isConnected } = useSocket();
 const isDisconnected = ref(false);
-watch(isConnected, (newVal) => {
-  isDisconnected.value = !newVal;
-});
+watch(
+  isConnected,
+  (newVal) => {
+    isDisconnected.value = !newVal;
+  },
+  { immediate: true }
+);
 
 const clockTime = computed(() => {
+  if (secondsRemaining.value === null || secondsRemaining.value === undefined) {
+    return '--:--';
+  }
   return DateTime.fromSeconds(secondsRemaining.value).toFormat('mm:ss');
 });
 
@@ -341,15 +351,8 @@ watch(
 
 // Watch for WebSocket game updates
 watch(lastMessage, (data) => {
-  console.log('🚀 ~ watch ~ data:', data);
   if (data?.type === 'liveGameUpdate') {
-    // Update whatever fields are affected by the change
-    const updatedGame = data.payload;
-
-    todaysGame.value = updatedGame;
-    secondsRemaining.value = updatedGame.clock?.secondsRemaining || 0;
-    isGameOver.value = ['FINAL', 'OFF'].includes(updatedGame.gameState);
-    isGameLive.value = ['LIVE', 'CRIT'].includes(updatedGame.gameState);
+    applyGameUpdate(data.payload);
   }
 });
 
@@ -394,8 +397,9 @@ onMounted(async () => {
   }
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
-    getGameInfo();
+    await getGameInfo();
     initSocket();
+    startPolling();
   } else {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
@@ -403,90 +407,55 @@ onMounted(async () => {
     getPossibleMatchUps(currentChampion.value);
     loading.value = false;
   }
-
-  setInterval(() => {
-    if (!isGameOver.value && !isDisconnected.value) {
-      getGameInfo();
-    }
-  }, 60000);
 });
 
-function getGameInfo() {
-  nhlApi
-    .getGameInfo(gameID.value)
-    .then((result) => {
-      todaysGame.value = result.data;
-      isGameOver.value = ['FINAL', 'OFF'].includes(result.data.gameState);
-      isGameLive.value = ['LIVE', 'CRIT'].includes(result.data.gameState);
-      localStartTime.value = DateTime.fromISO(
-        result.data.startTimeUTC
-      ).toLocaleString(DateTime.DATETIME_FULL);
+async function getGameInfo() {
+  if (!gameID.value) return;
 
-      // Check if current champion is actually playing in this game
-      const homeTeam = todaysGame.value.homeTeam;
-      const awayTeam = todaysGame.value.awayTeam;
-      const championIsPlaying =
-        currentChampion.value === homeTeam?.abbrev ||
-        currentChampion.value === awayTeam?.abbrev;
-
-      if (championIsPlaying) {
-        getTeamsInfo();
-
-        if (isGameOver.value) {
-          if (homeTeam.score > awayTeam.score) {
-            todaysWinner.value = homeTeam;
-            todaysLoser.value = awayTeam;
-          } else {
-            todaysWinner.value = awayTeam;
-            todaysLoser.value = homeTeam;
-          }
-
-          const getWinningPlayer = allPlayersData.value.find((player) =>
-            player.teams.includes(todaysWinner.value.abbrev)
-          );
-          const getLosingPlayer = allPlayersData.value.find((player) =>
-            player.teams.includes(todaysLoser.value.abbrev)
-          );
-          todaysWinner.value.player = getWinningPlayer;
-          todaysLoser.value.player = getLosingPlayer;
-          getPossibleMatchUps(todaysWinner.value.abbrev);
-        }
-      } else {
-        // Champion is not playing today, treat as no game
-        isGameToday.value = false;
-        playerChampion.value = allPlayersData.value.find((player) =>
-          player.teams.includes(currentChampion.value)
-        );
-        getPossibleMatchUps(currentChampion.value);
-      }
-    })
-    .catch((error) => {
-      console.error('Error fetching game result:', error);
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  try {
+    const result = await nhlApi.getGameInfo(gameID.value);
+    applyGameUpdate(result.data);
+  } catch (error) {
+    console.error('Error fetching game result:', error);
+  } finally {
+    loading.value = false;
+  }
 }
 
-function getTeamsInfo() {
-  const homeTeam = todaysGame.value.homeTeam;
-  const awayTeam = todaysGame.value.awayTeam;
-  const getChampionTeam =
-    currentChampion.value === homeTeam?.abbrev ? homeTeam : awayTeam;
-  const getChallengerTeam =
-    currentChampion.value === homeTeam?.abbrev ? awayTeam : homeTeam;
+function getTeamsInfo(gameData = todaysGame.value) {
+  const homeTeam = gameData.homeTeam;
+  const awayTeam = gameData.awayTeam;
+  const championIsHome = currentChampion.value === homeTeam?.abbrev;
+  const championIsAway = currentChampion.value === awayTeam?.abbrev;
 
-  playerChampion.value = allPlayersData.value.find((player) =>
-    player.teams.includes(getChampionTeam?.abbrev)
-  );
-  playerChampion.value.championTeam = getChampionTeam;
-  playerChallenger.value = allPlayersData.value.find((player) =>
-    player.teams.includes(getChallengerTeam?.abbrev)
-  );
-  playerChallenger.value.challengerTeam = getChallengerTeam;
+  if (!championIsHome && !championIsAway) {
+    return false;
+  }
+
+  const championTeam = championIsHome ? homeTeam : awayTeam;
+  const challengerTeam = championIsHome ? awayTeam : homeTeam;
+
+  const championPlayer =
+    allPlayersData.value.find((player) =>
+      player.teams.includes(championTeam?.abbrev)
+    ) ||
+    playerChampion.value ||
+    {};
+
+  const challengerPlayer =
+    allPlayersData.value.find((player) =>
+      player.teams.includes(challengerTeam?.abbrev)
+    ) ||
+    playerChallenger.value ||
+    {};
+
+  playerChampion.value = { ...championPlayer, championTeam };
+  playerChallenger.value = { ...challengerPlayer, challengerTeam };
 
   isMirrorMatch.value =
-    playerChampion.value.name === playerChallenger.value.name;
+    playerChampion.value?.name === playerChallenger.value?.name;
+
+  return true;
 }
 
 function getQuote() {
@@ -559,6 +528,105 @@ function triggerAnguishAvatar(team) {
     goalTimers.value[team] = null;
   }, 60000);
 }
+
+function applyGameUpdate(gameData) {
+  if (!gameData) return;
+
+  todaysGame.value = gameData;
+  secondsRemaining.value = gameData.clock?.secondsRemaining ?? 0;
+  isGameOver.value = ['FINAL', 'OFF'].includes(gameData.gameState);
+  isGameLive.value = ['LIVE', 'CRIT'].includes(gameData.gameState);
+  lastLiveUpdateAt.value = Date.now();
+
+  if (gameData.startTimeUTC && !localStartTime.value) {
+    localStartTime.value = DateTime.fromISO(
+      gameData.startTimeUTC
+    ).toLocaleString(DateTime.DATETIME_FULL);
+  }
+
+  const championPlaying = getTeamsInfo(gameData);
+
+  if (!championPlaying) {
+    // Champion is not playing today, treat as no game
+    isGameToday.value = false;
+    playerChampion.value = allPlayersData.value.find((player) =>
+      player.teams.includes(currentChampion.value)
+    );
+    getPossibleMatchUps(currentChampion.value);
+    stopPolling();
+    return;
+  }
+
+  isGameToday.value = true;
+
+  if (isGameOver.value) {
+    setGameOutcome(gameData);
+    getPossibleMatchUps(todaysWinner.value.abbrev);
+    stopPolling();
+  } else {
+    startPolling();
+  }
+}
+
+function setGameOutcome(gameData) {
+  const homeTeam = gameData.homeTeam;
+  const awayTeam = gameData.awayTeam;
+  if (!homeTeam || !awayTeam) return;
+
+  const winnerTeam = homeTeam.score > awayTeam.score ? homeTeam : awayTeam;
+  const loserTeam = winnerTeam === homeTeam ? awayTeam : homeTeam;
+
+  todaysWinner.value = {
+    ...winnerTeam,
+    player: allPlayersData.value.find((player) =>
+      player.teams.includes(winnerTeam.abbrev)
+    ),
+  };
+  todaysLoser.value = {
+    ...loserTeam,
+    player: allPlayersData.value.find((player) =>
+      player.teams.includes(loserTeam.abbrev)
+    ),
+  };
+}
+
+function shouldPollGame() {
+  return Boolean(gameID.value) && isGameToday.value && !isGameOver.value;
+}
+
+function startPolling() {
+  if (pollIntervalId || !shouldPollGame()) return;
+
+  pollIntervalId = setInterval(() => {
+    if (!shouldPollGame()) {
+      stopPolling();
+      return;
+    }
+
+    const now = Date.now();
+    const isStale = now - lastLiveUpdateAt.value > POLL_INTERVAL_MS;
+
+    if (isDisconnected.value || isStale) {
+      getGameInfo();
+    }
+  }, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId);
+    pollIntervalId = null;
+  }
+}
+
+onBeforeUnmount(() => {
+  stopPolling();
+  Object.values(goalTimers.value).forEach((timer) => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  });
+});
 </script>
 
 <style></style>
