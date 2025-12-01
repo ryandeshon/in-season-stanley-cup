@@ -20,5 +20,9 @@ yarn build
 yarn lint
 ```
 
+### Caching and deployment
+- Asset and API caching guidance (CloudFront + S3 + Lambda headers) lives in `docs/caching.md`.
+- Vue build output already emits hashed filenames; serve built assets from an edge cache (e.g., CloudFront) with long-lived `Cache-Control` headers and short TTLs for HTML.
+
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
