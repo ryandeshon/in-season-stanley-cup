@@ -203,6 +203,7 @@ import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { getCurrentChampion, getGameId } from '../services/championServices';
 import { initSocket, useSocket } from '@/services/socketClient';
 import PlayerCard from '@/components/PlayerCard.vue';
+import MatchupSelector from '@/components/MatchupSelector.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
 
@@ -219,6 +220,11 @@ const todaysLoser = ref({});
 const playerChampion = ref({});
 const playerChallenger = ref({});
 const possibleMatchUps = ref([]);
+const matchupOptions = ref([]);
+const matchupsLoading = ref(false);
+const selectedGameId = ref(null);
+const selectedHomePlayer = ref({});
+const selectedAwayPlayer = ref({});
 const secondsRemaining = ref(null);
 const isGameToday = ref(false);
 const isGameOver = ref(false);
@@ -379,6 +385,13 @@ watch(
   }
 );
 
+watch(selectedGameId, async (newGameId, oldGameId) => {
+  if (!newGameId || newGameId === oldGameId) return;
+  loading.value = true;
+  resetLiveState();
+  await getGameInfo(newGameId);
+});
+
 onMounted(async () => {
   // If season is over, skip all game and team data fetching
   if (isSeasonOver.value) {
@@ -395,12 +408,15 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
-  isGameToday.value = gameID.value !== null;
-  if (isGameToday.value) {
-    await getGameInfo();
+
+  if (gameID.value) {
+    selectedGameId.value = gameID.value;
     initSocket();
-    startPolling();
-  } else {
+  }
+
+  await loadMatchupsForToday();
+
+  if (!selectedGameId.value) {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
     );
@@ -409,11 +425,14 @@ onMounted(async () => {
   }
 });
 
-async function getGameInfo() {
-  if (!gameID.value) return;
+async function getGameInfo(targetGameId = selectedGameId.value) {
+  if (!targetGameId) {
+    loading.value = false;
+    return;
+  }
 
   try {
-    const result = await nhlApi.getGameInfo(gameID.value);
+    const result = await nhlApi.getGameInfo(targetGameId);
     applyGameUpdate(result.data);
   } catch (error) {
     console.error('Error fetching game result:', error);
@@ -465,6 +484,79 @@ function getQuote() {
   // Replace {name} placeholder with the losing player's name
   const playerName = todaysLoser.value.player?.name || 'opponent';
   return selectedQuote.replace(/{name}/g, playerName);
+}
+
+async function loadMatchupsForToday() {
+  matchupsLoading.value = true;
+  const today = DateTime.now().toFormat('yyyy-MM-dd');
+
+  try {
+    const scheduleData = await nhlApi.getSchedule(today);
+    const gameWeek = scheduleData?.data?.gameWeek;
+    if (!Array.isArray(gameWeek)) {
+      matchupOptions.value = [];
+      return;
+    }
+
+    const todaysGames = [];
+    gameWeek.forEach((dateEntry) => {
+      (dateEntry?.games || []).forEach((game) => {
+        const startDate =
+          game?.startTimeUTC &&
+          DateTime.fromISO(game.startTimeUTC).toFormat('yyyy-MM-dd');
+        const scheduledDate =
+          dateEntry?.date ||
+          (dateEntry?.dateUTC &&
+            DateTime.fromISO(dateEntry.dateUTC).toFormat('yyyy-MM-dd'));
+        const isToday =
+          startDate === today ||
+          scheduledDate === today ||
+          game?.gameDate === today;
+        if (isToday) {
+          todaysGames.push(game);
+        }
+      });
+    });
+
+    matchupOptions.value = todaysGames.map((game) => ({
+      id: game.id,
+      homeTeam: game.homeTeam,
+      awayTeam: game.awayTeam,
+      startTimeUTC: game.startTimeUTC,
+      isCupGame: String(game.id) === String(gameID.value),
+    }));
+
+    if (!matchupOptions.value.length && gameID.value) {
+      matchupOptions.value = [
+        {
+          id: gameID.value,
+          homeTeam: todaysGame.value.homeTeam,
+          awayTeam: todaysGame.value.awayTeam,
+          startTimeUTC: todaysGame.value.startTimeUTC,
+          isCupGame: true,
+        },
+      ];
+    }
+
+    if (!selectedGameId.value && gameID.value) {
+      selectedGameId.value = gameID.value;
+    }
+  } catch (err) {
+    console.error('Failed to load today matchups', err);
+    matchupOptions.value = gameID.value
+      ? [
+          {
+            id: gameID.value,
+            homeTeam: todaysGame.value.homeTeam,
+            awayTeam: todaysGame.value.awayTeam,
+            startTimeUTC: todaysGame.value.startTimeUTC,
+            isCupGame: true,
+          },
+        ]
+      : [];
+  } finally {
+    matchupsLoading.value = false;
+  }
 }
 
 async function getPossibleMatchUps(championTeam) {
