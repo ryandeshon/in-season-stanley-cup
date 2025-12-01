@@ -363,7 +363,7 @@ export const handler = async (event) => {
       const body = parseBody(event.body);
       const team = body?.team;
       const action = body?.action || 'add';
-      if (!team) return response(400, { error: 'team is required' });
+      if (!team) return response(event, 400, { error: 'team is required' });
       const playerId = coerceId(teamPatchMatch[1]);
       const updated = await updatePlayerTeams(playerId, team, action);
       return response(event, 200, updated);
@@ -371,7 +371,11 @@ export const handler = async (event) => {
 
     // ---- Game records ----
     if (path === '/game-records' && method === 'GET') {
-      return response(event, 200, await listGameRecords());
+      return response(event, 200, await listGameRecords(), {
+        ttlSeconds: CACHE_TTLS.gameRecords,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+        staleIfError: CACHE_TTLS.staleIfError,
+      });
     }
 
     // ---- Champion + game id ----
@@ -383,6 +387,11 @@ export const handler = async (event) => {
       }
 
       let gameID = opts.gameID ?? null;
+      let cacheOptions = {
+        ttlSeconds: CACHE_TTLS.playingDay,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+        staleIfError: CACHE_TTLS.staleIfError,
+      };
       if (NHL_API_BASE) {
         try {
           const today = getToday();
@@ -390,17 +399,45 @@ export const handler = async (event) => {
           const found = findChampionGame(schedule, champion, today);
           gameID = found || null;
           await setGameId(gameID);
+          cacheOptions =
+            found === null
+              ? {
+                  ttlSeconds: CACHE_TTLS.nonPlayingDay,
+                  staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+                  staleIfError: CACHE_TTLS.staleIfError,
+                }
+              : {
+                  ttlSeconds: CACHE_TTLS.playingDay,
+                  staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+                  staleIfError: CACHE_TTLS.staleIfError,
+                };
         } catch (err) {
           console.error('schedule lookup failed', err);
         }
       }
 
-      return response(event, 200, { champion, gameID });
+      return response(event, 200, { champion, gameID }, cacheOptions);
     }
 
     if (path === '/gameid' && method === 'GET') {
       const opts = await getGameOptions();
-      return response(event, 200, { gameID: opts.gameID ?? null });
+      const hasActiveGame = Boolean(opts.gameID);
+      return response(
+        event,
+        200,
+        { gameID: opts.gameID ?? null },
+        hasActiveGame
+          ? {
+              ttlSeconds: CACHE_TTLS.playingDay,
+              staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+              staleIfError: CACHE_TTLS.staleIfError,
+            }
+          : {
+              ttlSeconds: CACHE_TTLS.nonPlayingDay,
+              staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+              staleIfError: CACHE_TTLS.staleIfError,
+            }
+      );
     }
 
     // ---- Draft ----
