@@ -173,6 +173,12 @@ async function getSavedGame(gameID) {
   }
 }
 
+function isFinished(gameState) {
+  if (!gameState) return false;
+  const normalized = String(gameState).toUpperCase();
+  return ['OFF', 'FINAL', 'COMPLETED', 'OVER'].includes(normalized);
+}
+
 export const handler = async (event, context) => {
   log('info', 'Invocation start', {
     requestId: context?.awsRequestId,
@@ -211,7 +217,7 @@ export const handler = async (event, context) => {
       };
     }
 
-    if (game.gameState !== 'OFF') {
+    if (!isFinished(game.gameState)) {
       log('info', 'Game not finished yet', {
         gameID,
         gameState: game.gameState,
@@ -231,6 +237,16 @@ export const handler = async (event, context) => {
     const wScore = Math.max(game.homeScore, game.awayScore);
     const lScore = Math.min(game.homeScore, game.awayScore);
     log('info', 'Winner determined', { gameID, wTeam, wScore, lTeam, lScore });
+
+    const alreadySaved = await getSavedGame(gameID);
+    if (alreadySaved) {
+      log('info', 'Game already saved; skipping winner writes', { gameID });
+      await clearGameID();
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Game already processed' }),
+      };
+    }
 
     await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
     await saveWinnerToDatabase(wTeam);
