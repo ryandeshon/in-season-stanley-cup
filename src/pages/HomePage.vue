@@ -18,107 +18,203 @@
     <SeasonChampion v-else-if="isSeasonOver" />
 
     <template v-else>
+      <MatchupSelector
+        v-if="matchupOptions.length || matchupsLoading"
+        v-model="selectedGameId"
+        :matchups="matchupOptions"
+        :loading="matchupsLoading"
+      />
+
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
-        <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
-          <div class="text-center">
-            <h2 class="text-xl font-bold mb-2">Champion</h2>
-            <p class="text-sm self-start">
-              <em>"{{ getQuote() }}"</em>
+        <template v-if="showCupFlow">
+          <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
+            <div class="text-center">
+              <h2 class="text-xl font-bold mb-2">Champion</h2>
+              <p class="text-sm self-start">
+                <em>"{{ getQuote() }}"</em>
+              </p>
+            </div>
+            <div class="text-center">
+              <h2 class="text-xl font-bold mb-2">Game Over</h2>
+              <div>
+                Final Score: {{ todaysWinner.score }} - {{ todaysLoser.score }}
+              </div>
+              <div>
+                Winner: <strong>{{ todaysWinner.player.name }}</strong> -
+                {{ todaysWinner.commonName.default }}
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="grid gap-4 grid-cols-2 justify-start items-start w-full my-4"
+          >
+            <PlayerCard
+              :player="todaysWinner.player"
+              :team="todaysWinner"
+              :image-type="gameOverWinnerAvatarType"
+              :is-game-live="isGameLive"
+            />
+            <div>
+              <PlayerCard
+                :player="todaysLoser.player"
+                :team="todaysLoser"
+                :image-type="gameOverLoserAvatarType"
+                :is-game-live="isGameLive"
+              />
+              <div v-if="firstGameNonChampionTeam" class="next-game-info mt-2">
+                <p class="text-lg font-bold mb-1">Next Game:</p>
+                <p class="">
+                  {{ firstGameNonChampionTeam.date }}
+                </p>
+                <PlayerCard
+                  :player="firstGameNonChampionTeam.player"
+                  :team="firstGameNonChampionTeam.team"
+                  image-type="Angry"
+                />
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="text-center mb-4">
+            <h2 class="text-xl font-bold">Spectator Game Final</h2>
+            <p class="text-lg font-semibold">
+              {{ todaysWinner.commonName.default }} {{ todaysWinner.score }} -
+              {{ todaysLoser.score }} {{ todaysLoser.commonName.default }}
+            </p>
+            <p class="text-sm text-gray-700 dark:text-gray-200">
+              Final whistle - this game does not affect the Cup.
             </p>
           </div>
-          <div class="text-center">
-            <h2 class="text-xl font-bold mb-2">Game Over</h2>
-            <div>
-              Final Score: {{ todaysWinner.score }} - {{ todaysLoser.score }}
-            </div>
-            <div>
-              Winner: <strong>{{ todaysWinner.player.name }}</strong> -
-              {{ todaysWinner.commonName.default }}
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="grid gap-4 grid-cols-2 justify-start items-start w-full my-4"
-        >
-          <PlayerCard
-            :player="todaysWinner.player"
-            :team="todaysWinner"
-            :image-type="gameOverWinnerAvatarType"
-            :is-game-live="isGameLive"
-          />
-          <div>
+          <div
+            class="grid gap-4 grid-cols-2 justify-start items-start w-full my-4"
+          >
+            <PlayerCard
+              :player="todaysWinner.player"
+              :team="todaysWinner"
+              :image-type="gameOverWinnerAvatarType"
+              :is-game-live="isGameLive"
+            />
             <PlayerCard
               :player="todaysLoser.player"
               :team="todaysLoser"
               :image-type="gameOverLoserAvatarType"
               :is-game-live="isGameLive"
             />
-            <div v-if="firstGameNonChampionTeam" class="next-game-info mt-2">
-              <p class="text-lg font-bold mb-1">Next Game:</p>
-              <p class="">
-                {{ firstGameNonChampionTeam.date }}
-              </p>
-              <PlayerCard
-                :player="firstGameNonChampionTeam.player"
-                :team="firstGameNonChampionTeam.team"
-                image-type="Angry"
-              />
-            </div>
           </div>
-        </div>
+        </template>
+
+        <v-alert
+          v-if="isSpectatorMode && isGameToday"
+          type="warning"
+          variant="tonal"
+          border="start"
+          class="mb-4 font-semibold"
+        >
+          Spectator Game Only - This matchup does not affect the In Season Cup.
+        </v-alert>
       </template>
 
       <!-- Game day -->
       <template v-else-if="isGameToday">
-        <div v-if="isGameLive" class="text-center">
-          <div>
-            Period: {{ todaysGame.clock.inIntermission ? 'INT' : period }}
+        <template v-if="showCupFlow">
+          <div v-if="isGameLive" class="text-center">
+            <div>
+              Period: {{ todaysGame.clock.inIntermission ? 'INT' : period }}
+            </div>
+            <div>Time Remaining: {{ clockTime }}</div>
           </div>
-          <div>Time Remaining: {{ clockTime }}</div>
-        </div>
-        <div v-else class="text-center">
-          <h3 class="text-xl font-bold">Game Information</h3>
-          <p>{{ localStartTime }}</p>
-        </div>
-        <div v-if="isMirrorMatch" class="text-center">
-          <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
-        </div>
-        <div
-          class="flex flex-row gap-4 justify-center items-center w-full my-4"
-        >
-          <div>
-            <div class="text-center font-bold text-xl mb-2">Champion</div>
-            <PlayerCard
-              :player="playerChampion"
-              :team="playerChampion.championTeam"
-              :image-type="championAvatarType"
-              :is-game-live="isGameLive"
-              :is-champion="true"
-            />
+          <div v-else class="text-center">
+            <h3 class="text-xl font-bold">Game Information</h3>
+            <p>{{ localStartTime }}</p>
           </div>
-          <div class="flex justify-center items-center">
-            <strong>VS</strong>
+          <div v-if="isMirrorMatch" class="text-center">
+            <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
           </div>
-          <div>
-            <div class="text-center font-bold text-xl mb-2">Challenger</div>
-            <PlayerCard
-              :player="playerChallenger"
-              :team="playerChallenger.challengerTeam"
-              :image-type="challengerAvatarType"
-              :is-game-live="isGameLive"
-              :is-mirror-match="isMirrorMatch"
-            />
-          </div>
-        </div>
-        <div class="text-center mb-4">
-          <router-link
-            :to="`/game/${todaysGame.id}`"
-            class="text-blue-500 underline"
-            >View Game Details</router-link
+          <div
+            class="flex flex-row gap-4 justify-center items-center w-full my-4"
           >
-        </div>
+            <div>
+              <div class="text-center font-bold text-xl mb-2">Champion</div>
+              <PlayerCard
+                :player="playerChampion"
+                :team="playerChampion.championTeam"
+                :image-type="championAvatarType"
+                :is-game-live="isGameLive"
+                :is-champion="true"
+              />
+            </div>
+            <div class="flex justify-center items-center">
+              <strong>VS</strong>
+            </div>
+            <div>
+              <div class="text-center font-bold text-xl mb-2">Challenger</div>
+              <PlayerCard
+                :player="playerChallenger"
+                :team="playerChallenger.challengerTeam"
+                :image-type="challengerAvatarType"
+                :is-game-live="isGameLive"
+                :is-mirror-match="isMirrorMatch"
+              />
+            </div>
+          </div>
+          <div class="text-center mb-4">
+            <router-link
+              :to="`/game/${todaysGame.id}`"
+              class="text-blue-500 underline"
+              >View Game Details</router-link
+            >
+          </div>
+        </template>
+        <template v-else>
+          <div v-if="isGameLive" class="text-center">
+            <div>
+              Period: {{ todaysGame.clock.inIntermission ? 'INT' : period }}
+            </div>
+            <div>Time Remaining: {{ clockTime }}</div>
+          </div>
+          <div v-else class="text-center">
+            <h3 class="text-xl font-bold">Game Information</h3>
+            <p>{{ localStartTime }}</p>
+          </div>
+          <div v-if="isMirrorMatch" class="text-center">
+            <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
+          </div>
+          <div
+            class="flex flex-row gap-4 justify-center items-center w-full my-4"
+          >
+            <div>
+              <div class="text-center font-bold text-xl mb-2">Away Team</div>
+              <PlayerCard
+                :player="selectedAwayPlayer"
+                :team="todaysGame.awayTeam"
+                :image-type="awayAvatarType"
+                :is-game-live="isGameLive"
+              />
+            </div>
+            <div class="flex justify-center items-center">
+              <strong>VS</strong>
+            </div>
+            <div>
+              <div class="text-center font-bold text-xl mb-2">Home Team</div>
+              <PlayerCard
+                :player="selectedHomePlayer"
+                :team="todaysGame.homeTeam"
+                :image-type="homeAvatarType"
+                :is-game-live="isGameLive"
+              />
+            </div>
+          </div>
+          <div class="text-center mb-4">
+            <router-link
+              :to="`/game/${todaysGame.id}`"
+              class="text-blue-500 underline"
+              >View Game Details</router-link
+            >
+          </div>
+        </template>
       </template>
 
       <!-- Champion is not defending -->
@@ -266,6 +362,23 @@ const period = computed(() => {
   return todaysGame.value.periodDescriptor?.number;
 });
 
+const isSpectatorMode = computed(() => {
+  if (!selectedGameId.value) return false;
+  return String(selectedGameId.value) !== String(gameID.value);
+});
+
+const selectedGameIncludesChampion = computed(() => {
+  const homeTeam = todaysGame.value.homeTeam?.abbrev;
+  const awayTeam = todaysGame.value.awayTeam?.abbrev;
+  return (
+    homeTeam === currentChampion.value || awayTeam === currentChampion.value
+  );
+});
+
+const showCupFlow = computed(
+  () => !isSpectatorMode.value && selectedGameIncludesChampion.value
+);
+
 const firstGameNonChampionTeam = computed(() => {
   if (possibleMatchUps.value.length === 0) {
     return null;
@@ -338,6 +451,32 @@ const challengerAvatarType = computed(() => {
   return challengerScore > championScore ? 'Happy' : 'Angry';
 });
 
+const homeAvatarType = computed(() => {
+  if (!isGameLive.value) {
+    return 'Happy';
+  }
+  if (recentGoalAgainst.value.home) {
+    return 'Anguish';
+  }
+
+  const homeScore = todaysGame.value.homeTeam?.score ?? 0;
+  const awayScore = todaysGame.value.awayTeam?.score ?? 0;
+  return homeScore >= awayScore ? 'Happy' : 'Angry';
+});
+
+const awayAvatarType = computed(() => {
+  if (!isGameLive.value) {
+    return 'Happy';
+  }
+  if (recentGoalAgainst.value.away) {
+    return 'Anguish';
+  }
+
+  const homeScore = todaysGame.value.homeTeam?.score ?? 0;
+  const awayScore = todaysGame.value.awayTeam?.score ?? 0;
+  return awayScore >= homeScore ? 'Happy' : 'Angry';
+});
+
 const gameOverWinnerAvatarType = computed(() => {
   return 'Happy';
 });
@@ -357,7 +496,10 @@ watch(
 
 // Watch for WebSocket game updates
 watch(lastMessage, (data) => {
-  if (data?.type === 'liveGameUpdate') {
+  if (
+    data?.type === 'liveGameUpdate' &&
+    String(data.payload?.id) === String(selectedGameId.value)
+  ) {
     applyGameUpdate(data.payload);
   }
 });
@@ -444,35 +586,42 @@ async function getGameInfo(targetGameId = selectedGameId.value) {
 function getTeamsInfo(gameData = todaysGame.value) {
   const homeTeam = gameData.homeTeam;
   const awayTeam = gameData.awayTeam;
+
+  selectedHomePlayer.value =
+    allPlayersData.value.find((player) =>
+      player.teams.includes(homeTeam?.abbrev)
+    ) || {};
+
+  selectedAwayPlayer.value =
+    allPlayersData.value.find((player) =>
+      player.teams.includes(awayTeam?.abbrev)
+    ) || {};
+
+  isMirrorMatch.value =
+    selectedHomePlayer.value?.name === selectedAwayPlayer.value?.name;
+
   const championIsHome = currentChampion.value === homeTeam?.abbrev;
   const championIsAway = currentChampion.value === awayTeam?.abbrev;
 
   if (!championIsHome && !championIsAway) {
+    playerChampion.value = {};
+    playerChallenger.value = {};
     return false;
   }
 
   const championTeam = championIsHome ? homeTeam : awayTeam;
   const challengerTeam = championIsHome ? awayTeam : homeTeam;
 
-  const championPlayer =
-    allPlayersData.value.find((player) =>
-      player.teams.includes(championTeam?.abbrev)
-    ) ||
-    playerChampion.value ||
-    {};
+  const championPlayer = championIsHome
+    ? selectedHomePlayer.value
+    : selectedAwayPlayer.value || {};
 
-  const challengerPlayer =
-    allPlayersData.value.find((player) =>
-      player.teams.includes(challengerTeam?.abbrev)
-    ) ||
-    playerChallenger.value ||
-    {};
+  const challengerPlayer = championIsHome
+    ? selectedAwayPlayer.value
+    : selectedHomePlayer.value || {};
 
   playerChampion.value = { ...championPlayer, championTeam };
   playerChallenger.value = { ...challengerPlayer, challengerTeam };
-
-  isMirrorMatch.value =
-    playerChampion.value?.name === playerChallenger.value?.name;
 
   return true;
 }
@@ -630,13 +779,24 @@ function applyGameUpdate(gameData) {
   isGameLive.value = ['LIVE', 'CRIT'].includes(gameData.gameState);
   lastLiveUpdateAt.value = Date.now();
 
-  if (gameData.startTimeUTC && !localStartTime.value) {
+  if (gameData.startTimeUTC) {
     localStartTime.value = DateTime.fromISO(
       gameData.startTimeUTC
     ).toLocaleString(DateTime.DATETIME_FULL);
   }
 
   const championPlaying = getTeamsInfo(gameData);
+  isGameToday.value = Boolean(gameData);
+
+  if (isSpectatorMode.value) {
+    if (isGameOver.value) {
+      setGameOutcome(gameData);
+      stopPolling();
+    } else {
+      startPolling();
+    }
+    return;
+  }
 
   if (!championPlaying) {
     // Champion is not playing today, treat as no game
@@ -683,7 +843,9 @@ function setGameOutcome(gameData) {
 }
 
 function shouldPollGame() {
-  return Boolean(gameID.value) && isGameToday.value && !isGameOver.value;
+  return (
+    Boolean(selectedGameId.value) && isGameToday.value && !isGameOver.value
+  );
 }
 
 function startPolling() {
@@ -699,7 +861,7 @@ function startPolling() {
     const isStale = now - lastLiveUpdateAt.value > POLL_INTERVAL_MS;
 
     if (isDisconnected.value || isStale) {
-      getGameInfo();
+      getGameInfo(selectedGameId.value);
     }
   }, POLL_INTERVAL_MS);
 }
@@ -711,13 +873,36 @@ function stopPolling() {
   }
 }
 
-onBeforeUnmount(() => {
-  stopPolling();
-  Object.values(goalTimers.value).forEach((timer) => {
-    if (timer) {
-      clearTimeout(timer);
+function clearGoalTimers() {
+  Object.keys(goalTimers.value).forEach((key) => {
+    if (goalTimers.value[key]) {
+      clearTimeout(goalTimers.value[key]);
+      goalTimers.value[key] = null;
     }
   });
+}
+
+function resetLiveState() {
+  stopPolling();
+  todaysGame.value = {};
+  todaysWinner.value = {};
+  todaysLoser.value = {};
+  selectedHomePlayer.value = {};
+  selectedAwayPlayer.value = {};
+  isGameToday.value = false;
+  isGameLive.value = false;
+  isGameOver.value = false;
+  localStartTime.value = null;
+  secondsRemaining.value = null;
+  previousHomeScore.value = 0;
+  previousAwayScore.value = 0;
+  recentGoalAgainst.value = { home: false, away: false };
+  clearGoalTimers();
+}
+
+onBeforeUnmount(() => {
+  stopPolling();
+  clearGoalTimers();
 });
 </script>
 
