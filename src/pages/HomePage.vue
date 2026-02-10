@@ -129,7 +129,8 @@
             :player="playerChampion"
             :current-champion="currentChampion"
             subtitle="is not Defending the Championship Today"
-            image-type="Happy"
+            :image-type="nonDefendingChampionAvatarType"
+            :show-team-logo="!isOlympicBreak"
           />
         </div>
 
@@ -141,7 +142,7 @@
             ></v-progress-circular>
           </div>
         </template>
-        <div v-else class="text-center mb-4">
+        <div v-else-if="possibleMatchUps.length > 0" class="text-center mb-4">
           <h2 class="text-xl font-bold">Possible Upcoming Match-ups</h2>
           <v-table class="mt-4">
             <thead>
@@ -279,6 +280,10 @@ const firstGameNonChampionTeam = computed(() => {
   };
 });
 
+const isOlympicBreak = computed(() => {
+  return DateTime.now() <= DateTime.local(2026, 2, 25).endOf('day');
+});
+
 // Add computed properties for dynamic avatars
 const championAvatarType = computed(() => {
   if (!isGameLive.value) {
@@ -330,6 +335,16 @@ const challengerAvatarType = computed(() => {
 
   // Challenger winning = Happy, losing = Angry
   return challengerScore > championScore ? 'Happy' : 'Angry';
+});
+
+const nonDefendingChampionAvatarType = computed(() => {
+  const isBozChampion = playerChampion.value?.name === 'Boz';
+
+  if (isOlympicBreak.value && isBozChampion) {
+    return 'Olympic';
+  }
+
+  return 'Happy';
 });
 
 const gameOverWinnerAvatarType = computed(() => {
