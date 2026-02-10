@@ -1,5 +1,5 @@
-import https from 'https';
-import AWS from 'aws-sdk';
+const https = require('https');
+const AWS = require('aws-sdk');
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -263,7 +263,7 @@ function isFinished(gameState) {
   return ['OFF', 'FINAL', 'COMPLETED', 'OVER'].includes(normalized);
 }
 
-export const handler = async (event, context) => {
+const handler = async (event, context) => {
   log('info', 'Invocation start', {
     requestId: context?.awsRequestId,
     trigger: event?.source || 'manual/test',
@@ -380,3 +380,5 @@ export const handler = async (event, context) => {
     };
   }
 };
+
+module.exports = { handler };
