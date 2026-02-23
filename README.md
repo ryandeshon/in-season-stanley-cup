@@ -62,6 +62,13 @@ VUE_APP_NHL_API_URL=<nhl-api-base-or-proxy>
 VUE_APP_WEB_SOCKET_URL=<websocket-url>
 ```
 
+### Caching and deployment
+- Asset and API caching guidance (CloudFront + S3 + Lambda headers) lives in `docs/caching.md`.
+- Vue build output already emits hashed filenames; serve built assets from an edge cache (e.g., CloudFront) with long-lived `Cache-Control` headers and short TTLs for HTML.
+
+### Customize configuration
+See [Configuration Reference](https://cli.vuejs.org/config/).
+
 Notes:
 - `VUE_APP_API_BASE` is required for players, game records, champion info, and
   draft state. Without it, most pages will show loading errors.
