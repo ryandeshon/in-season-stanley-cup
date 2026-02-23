@@ -1,5 +1,5 @@
-import https from 'https';
-import AWS from 'aws-sdk';
+const https = require('https');
+const AWS = require('aws-sdk');
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -10,6 +10,7 @@ const PLAYERS_TABLE = process.env.PLAYERS_TABLE || 'Players';
 const GAME_RECORDS = process.env.GAME_RECORDS_TABLE || 'GameRecords';
 const PARTITION_KEY = process.env.GAME_OPTIONS_KEY || 'currentChampion';
 const GAME_ID_FIELD = process.env.GAME_ID_FIELD || 'gameID';
+const CHAMPION_FIELD = process.env.CHAMPION_FIELD || 'champion';
 const NHL_API_BASE =
   process.env.NHL_API_BASE || process.env.API_URL || 'https://api-web.nhle.com/v1';
 
@@ -18,15 +19,98 @@ function log(level, msg, extra = {}) {
   console.log(JSON.stringify({ msg, ...base }));
 }
 
-async function getGameID() {
+async function getGameOptions() {
   const params = { TableName: TABLE_NAME, Key: { id: PARTITION_KEY } };
   try {
     const result = await dynamoDB.get(params).promise();
-    return result.Item ? result.Item[GAME_ID_FIELD] : null;
+    return result.Item || {};
   } catch (error) {
     log('error', 'DynamoDB get (GameOptions) failed', { error: String(error) });
-    throw new Error('Failed to retrieve game ID');
+    throw new Error('Failed to retrieve game options');
   }
+}
+
+async function setGameId(gameID) {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression: 'SET #gid = :g, updatedAt = :ts',
+    ExpressionAttributeNames: { '#gid': GAME_ID_FIELD },
+    ExpressionAttributeValues: {
+      ':g': gameID,
+      ':ts': new Date().toISOString(),
+    },
+    ReturnValues: 'UPDATED_NEW',
+  };
+  const out = await dynamoDB.update(params).promise();
+  return out?.Attributes?.[GAME_ID_FIELD] ?? gameID;
+}
+
+function getDateInTimeZone(offsetDays = 0, tz = 'America/New_York') {
+  const date = new Date();
+  if (offsetDays) {
+    date.setUTCDate(date.getUTCDate() + offsetDays);
+  }
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+async function fetchSchedule(date) {
+  const apiUrl = `${NHL_API_BASE}/schedule/${date}`;
+  return new Promise((resolve, reject) => {
+    const req = https.get(apiUrl, (res) => {
+      let data = '';
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          log('error', 'JSON parse error from NHL schedule API', {
+            error: String(e),
+            snippet: data?.slice?.(0, 240),
+          });
+          reject(e);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      log('error', 'API request error', { error: String(e), url: apiUrl });
+      reject(e);
+    });
+
+    req.setTimeout(8000, () => {
+      log('error', 'API request timed out', { url: apiUrl });
+      req.destroy(new Error('Request timeout'));
+    });
+  });
+}
+
+function findChampionGame(schedule, champion, date) {
+  const gameWeek = schedule?.gameWeek;
+  if (!Array.isArray(gameWeek)) return null;
+  const today = gameWeek.find((d) => d?.date === date);
+  const games = today?.games || [];
+  for (const g of games) {
+    const home = g?.homeTeam?.abbrev;
+    const away = g?.awayTeam?.abbrev;
+    if (home === champion || away === champion) return g.id;
+  }
+  return null;
+}
+
+async function resolveGameIdFromSchedule(champion) {
+  const datesToTry = [getDateInTimeZone(0), getDateInTimeZone(-1)];
+  for (const date of datesToTry) {
+    const schedule = await fetchSchedule(date);
+    const found = findChampionGame(schedule, champion, date);
+    if (found) return { gameID: found, date };
+  }
+  return null;
 }
 
 async function fetchGameData(gameID) {
@@ -179,7 +263,7 @@ function isFinished(gameState) {
   return ['OFF', 'FINAL', 'COMPLETED', 'OVER'].includes(normalized);
 }
 
-export const handler = async (event, context) => {
+const handler = async (event, context) => {
   log('info', 'Invocation start', {
     requestId: context?.awsRequestId,
     trigger: event?.source || 'manual/test',
@@ -187,13 +271,37 @@ export const handler = async (event, context) => {
   });
 
   try {
-    const gameID = await getGameID();
+    const gameOptions = await getGameOptions();
+    let gameID = gameOptions?.[GAME_ID_FIELD] ?? null;
+
     if (!gameID) {
-      log('info', 'No gameID in GameOptions; exiting early');
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'No game to check' }),
-      };
+      const champion = gameOptions?.[CHAMPION_FIELD] ?? null;
+      if (!champion) {
+        log('info', 'No champion set in GameOptions; exiting early');
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'No champion to check' }),
+        };
+      }
+
+      const resolved = await resolveGameIdFromSchedule(champion);
+      if (!resolved?.gameID) {
+        log('info', 'No champion game found in schedule; exiting early', {
+          champion,
+        });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'No champion game found' }),
+        };
+      }
+
+      gameID = resolved.gameID;
+      await setGameId(gameID);
+      log('info', 'Resolved gameID from schedule', {
+        champion,
+        gameID,
+        date: resolved.date,
+      });
     }
     log('info', 'GameID loaded', { gameID });
 
@@ -272,3 +380,5 @@ export const handler = async (event, context) => {
     };
   }
 };
+
+module.exports = { handler };
