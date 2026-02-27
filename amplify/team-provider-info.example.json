@@ -1,0 +1,15 @@
+{
+  "<env-name>": {
+    "awscloudformation": {
+      "AuthRoleName": "<auth-role-name>",
+      "UnauthRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/<unauth-role-name>",
+      "AuthRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/<auth-role-name>",
+      "Region": "<AWS_REGION>",
+      "DeploymentBucketName": "<deployment-bucket-name>",
+      "UnauthRoleName": "<unauth-role-name>",
+      "StackName": "<root-stack-name>",
+      "StackId": "arn:aws:cloudformation:<AWS_REGION>:<ACCOUNT_ID>:stack/<root-stack-name>/<stack-guid>",
+      "AmplifyAppId": "<amplify-app-id>"
+    }
+  }
+}

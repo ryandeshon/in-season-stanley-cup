@@ -10,6 +10,15 @@ const GAME_RECORDS_TABLE = process.env.GAME_RECORDS_TABLE || 'GameRecords';
 const GAME_OPTIONS_TABLE = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
 const DRAFT_STATE_ID = process.env.DRAFT_STATE_ID || 'draftState';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const CACHE_TTLS = {
+  roster: Number(process.env.PLAYERS_CACHE_TTL) || 60 * 60 * 6, // 6 hours
+  gameRecords: Number(process.env.GAME_RECORDS_CACHE_TTL) || 60 * 15, // 15 minutes
+  playingDay: Number(process.env.PLAYING_DAY_CACHE_TTL) || 60 * 5, // 5 minutes
+  nonPlayingDay: Number(process.env.NON_PLAYING_DAY_CACHE_TTL) || 60 * 60 * 24, // 24 hours
+  staleWhileRevalidate: Number(process.env.STALE_WHILE_REVALIDATE) || 60 * 5,
+  staleWhileRevalidateLong: Number(process.env.STALE_WHILE_REVALIDATE_LONG) || 60 * 60, // 1 hour
+  staleIfError: Number(process.env.STALE_IF_ERROR) || 60,
+};
 const ALLOWED_HOSTS = ['inseasoncup.com'];
 const NHL_API_BASE =
   process.env.NHL_API_BASE || process.env.API_URL || 'https://api-web.nhle.com/v1';
@@ -19,6 +28,25 @@ const NHL_TEAMS = (process.env.NHL_TEAMS ||
   .split(',')
   .map((t) => t.trim())
   .filter(Boolean);
+
+function buildCacheControl(ttlSeconds, options = {}) {
+  if (!ttlSeconds) return null;
+  const scope = options.scope === 'private' ? 'private' : 'public';
+  const directives = [
+    scope,
+    `max-age=${ttlSeconds}`,
+    `s-maxage=${options.sharedMaxAge || options.sMaxAge || ttlSeconds}`,
+  ];
+
+  if (options.staleWhileRevalidate) {
+    directives.push(`stale-while-revalidate=${options.staleWhileRevalidate}`);
+  }
+  if (options.staleIfError) {
+    directives.push(`stale-if-error=${options.staleIfError}`);
+  }
+
+  return directives.join(', ');
+}
 
 function getCorsOrigin(event) {
   const origin = event?.headers?.origin || event?.headers?.Origin;
@@ -43,7 +71,7 @@ function getCorsOrigin(event) {
   return CORS_ORIGIN === '*' ? '*' : null;
 }
 
-function buildHeaders(event) {
+function buildHeaders(event, cacheOptions = null) {
   const origin = getCorsOrigin(event);
   const base = {
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -51,11 +79,22 @@ function buildHeaders(event) {
     Vary: 'Origin',
   };
   if (origin) base['Access-Control-Allow-Origin'] = origin;
+  if (cacheOptions?.ttlSeconds) {
+    const cacheControl = buildCacheControl(cacheOptions.ttlSeconds, cacheOptions);
+    if (cacheControl) {
+      base['Cache-Control'] = cacheControl;
+      base['CDN-Cache-Control'] = cacheControl; // Some CDNs (e.g., CloudFront) respect this override.
+    }
+  }
   return base;
 }
 
-function response(event, statusCode, body) {
-  return { statusCode, headers: buildHeaders(event), body: JSON.stringify(body ?? {}) };
+function response(event, statusCode, body, cacheOptions = null) {
+  return {
+    statusCode,
+    headers: buildHeaders(event, cacheOptions),
+    body: JSON.stringify(body ?? {}),
+  };
 }
 
 function normalizePath(event) {
@@ -302,7 +341,11 @@ export const handler = async (event) => {
   try {
     // ---- Players ----
     if (path === '/players' && method === 'GET') {
-      return response(event, 200, await listPlayers());
+      return response(event, 200, await listPlayers(), {
+        ttlSeconds: CACHE_TTLS.roster,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+        staleIfError: CACHE_TTLS.staleIfError,
+      });
     }
 
     if (path.startsWith('/players/') && method === 'GET') {
@@ -320,7 +363,7 @@ export const handler = async (event) => {
       const body = parseBody(event.body);
       const team = body?.team;
       const action = body?.action || 'add';
-      if (!team) return response(400, { error: 'team is required' });
+      if (!team) return response(event, 400, { error: 'team is required' });
       const playerId = coerceId(teamPatchMatch[1]);
       const updated = await updatePlayerTeams(playerId, team, action);
       return response(event, 200, updated);
@@ -328,7 +371,11 @@ export const handler = async (event) => {
 
     // ---- Game records ----
     if (path === '/game-records' && method === 'GET') {
-      return response(event, 200, await listGameRecords());
+      return response(event, 200, await listGameRecords(), {
+        ttlSeconds: CACHE_TTLS.gameRecords,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+        staleIfError: CACHE_TTLS.staleIfError,
+      });
     }
 
     // ---- Champion + game id ----
@@ -340,6 +387,11 @@ export const handler = async (event) => {
       }
 
       let gameID = opts.gameID ?? null;
+      let cacheOptions = {
+        ttlSeconds: CACHE_TTLS.playingDay,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+        staleIfError: CACHE_TTLS.staleIfError,
+      };
       if (NHL_API_BASE) {
         try {
           const today = getToday();
@@ -347,17 +399,45 @@ export const handler = async (event) => {
           const found = findChampionGame(schedule, champion, today);
           gameID = found || null;
           await setGameId(gameID);
+          cacheOptions =
+            found === null
+              ? {
+                  ttlSeconds: CACHE_TTLS.nonPlayingDay,
+                  staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+                  staleIfError: CACHE_TTLS.staleIfError,
+                }
+              : {
+                  ttlSeconds: CACHE_TTLS.playingDay,
+                  staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+                  staleIfError: CACHE_TTLS.staleIfError,
+                };
         } catch (err) {
           console.error('schedule lookup failed', err);
         }
       }
 
-      return response(event, 200, { champion, gameID });
+      return response(event, 200, { champion, gameID }, cacheOptions);
     }
 
     if (path === '/gameid' && method === 'GET') {
       const opts = await getGameOptions();
-      return response(event, 200, { gameID: opts.gameID ?? null });
+      const hasActiveGame = Boolean(opts.gameID);
+      return response(
+        event,
+        200,
+        { gameID: opts.gameID ?? null },
+        hasActiveGame
+          ? {
+              ttlSeconds: CACHE_TTLS.playingDay,
+              staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+              staleIfError: CACHE_TTLS.staleIfError,
+            }
+          : {
+              ttlSeconds: CACHE_TTLS.nonPlayingDay,
+              staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+              staleIfError: CACHE_TTLS.staleIfError,
+            }
+      );
     }
 
     // ---- Draft ----
