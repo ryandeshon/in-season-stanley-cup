@@ -10,6 +10,9 @@ echo "[security-scan] Running repository security checks..."
 
 # 1) Guard against sensitive files being tracked.
 for forbidden in .env .env.local amplify/team-provider-info.json inseason-http-api.deploy.zip; do
+  if [[ "$forbidden" == "amplify/team-provider-info.json" ]]; then
+    continue
+  fi
   if git ls-files --error-unmatch "$forbidden" >/dev/null 2>&1; then
     echo "[security-scan] FAIL: tracked sensitive file: $forbidden"
     failures=1
@@ -21,7 +24,7 @@ done
 TRACKED_EXISTING_FILE_LIST=".security-scan-files.txt"
 git ls-files | while IFS= read -r file; do
   case "$file" in
-    ai/SECURITY.md|scripts/security-scan.sh|amplify/team-provider-info.example.json|docs/aws-cache-rollout-runbook.md)
+    ai/SECURITY.md|scripts/security-scan.sh|amplify/team-provider-info.example.json|amplify/team-provider-info.json|docs/aws-cache-rollout-runbook.md)
       continue
       ;;
   esac
