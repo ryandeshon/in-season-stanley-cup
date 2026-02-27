@@ -75,7 +75,6 @@ import bozAngryImageS2 from '@/assets/players/season2/boz-angry.png';
 import bozSadImageS2 from '@/assets/players/season2/boz-sad.png';
 import bozHappyImageS2 from '@/assets/players/season2/boz-happy.png';
 import bozAnguishImageS2 from '@/assets/players/season2/boz-anguish.png';
-import bozOlympicImageS2 from '@/assets/players/season2/boz-olympic.png';
 import cooperAngryImageS2 from '@/assets/players/season2/cooper-angry.png';
 import cooperSadImageS2 from '@/assets/players/season2/cooper-sad.png';
 import cooperHappyImageS2 from '@/assets/players/season2/cooper-happy.png';
@@ -167,7 +166,6 @@ const imagesSeason2 = {
     Angry: bozAngryImageS2,
     Sad: bozSadImageS2,
     Anguish: bozAnguishImageS2,
-    Olympic: bozOlympicImageS2,
   },
   Terry: {
     Happy: terryHappyImageS2,
