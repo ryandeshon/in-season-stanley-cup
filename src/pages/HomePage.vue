@@ -656,7 +656,7 @@ function applyGameUpdate(gameData) {
   isGameLive.value = ['LIVE', 'CRIT'].includes(gameData.gameState);
   lastLiveUpdateAt.value = Date.now();
 
-  if (gameData.startTimeUTC && !localStartTime.value) {
+  if (gameData.startTimeUTC) {
     localStartTime.value = DateTime.fromISO(
       gameData.startTimeUTC
     ).toLocaleString(DateTime.DATETIME_FULL);
@@ -670,6 +670,7 @@ function applyGameUpdate(gameData) {
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
     );
+    potentialLoading.value = true;
     getPossibleMatchUps(currentChampion.value);
     stopPolling();
     return;
@@ -679,6 +680,7 @@ function applyGameUpdate(gameData) {
 
   if (isGameOver.value) {
     setGameOutcome(gameData);
+    potentialLoading.value = true;
     getPossibleMatchUps(todaysWinner.value.abbrev);
     stopPolling();
   } else {

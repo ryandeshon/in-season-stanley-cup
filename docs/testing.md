@@ -19,16 +19,19 @@
 - Tests call `cy.mockApiScenario(<fixtureName>)` (defined in `cypress/support/commands.js`) to intercept:
   - `VUE_APP_API_BASE` endpoints: `/champion`, `/gameid`, `/players`, `/game-records`
   - `VUE_APP_NHL_API_URL` endpoints: `/gamecenter/:id/boxscore`, `/schedule/:date`
-- Add new scenarios by dropping a fixture and reusing the same shape (`championResponse`, `gameIdResponse`, `playersResponse`, `gameRecordsResponse`, `gameInfoResponse`, optional `championStatus`/`gameIdStatus`/`gameInfoStatus`, `scheduleResponse`).
+- Add new scenarios by dropping a fixture and reusing the same shape (`championResponse`, `gameIdResponse`, `playersResponse`, `gameRecordsResponse`, `gameInfoResponse`, optional `championStatus`/`gameIdStatus`/`gameInfoStatus`/`scheduleStatus`, `scheduleResponse`).
+- For matchup selector cases, include `additionalGameInfoResponses` keyed by game ID to return different boxscore payloads when a non-Cup game is selected.
 
 ## What is covered
 - Homepage Cup matchup rendering (champion/challenger, live clock, View Game Details link).
+- Matchup selector behavior (Cup game selected by default, non-Cup selection switches to spectator mode).
 - Navigation into `/game/:id` and rendering of the boxscore tables.
 - Spectator/off-day state (champion not defending, upcoming matchups table).
 - Graceful handling when upstream APIs error.
 
 ## Amplify CI (test branch)
-- Build spec: `amplify.yml` runs `yarn test:e2e` only when `AWS_BRANCH=test`, then builds the app. Other branches skip Cypress but still build.
+- Build spec: `amplify.yml` runs `test:e2e` only when `AWS_BRANCH=test`, then builds the app. Other branches skip Cypress but still build.
+- The buildspec uses `yarn` when available and falls back to `npm` for install/test/build commands.
 - Node version is pinned to 20 in the build commands to satisfy Cypress/start-server-and-test engines.
 
 ### AWS CLI examples
