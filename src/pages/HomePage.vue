@@ -367,6 +367,15 @@ const gameOverLoserAvatarType = computed(() => {
   return 'Sad';
 });
 
+const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
+
+const isSpectatorMode = computed(() => {
+  if (!cupGameId.value || !selectedGameId.value) {
+    return false;
+  }
+  return String(cupGameId.value) !== String(selectedGameId.value);
+});
+
 watch(
   () => todaysGame.value.clock?.secondsRemaining,
   (newVal) => {
@@ -378,7 +387,12 @@ watch(
 
 // Watch for WebSocket game updates
 watch(lastMessage, (data) => {
-  if (data?.type === 'liveGameUpdate') {
+  const incomingGameId = data?.payload?.id;
+  if (
+    data?.type === 'liveGameUpdate' &&
+    (!incomingGameId ||
+      String(incomingGameId) === String(selectedGameId.value || cupGameId.value))
+  ) {
     applyGameUpdate(data.payload);
   }
 });
@@ -417,6 +431,8 @@ onMounted(async () => {
     currentChampion.value = await getCurrentChampion();
     console.log('🚀 ~ currentChampion.value:', currentChampion.value);
     gameID.value = await getGameId();
+    cupGameId.value = gameID.value;
+    selectedGameId.value = gameID.value;
     console.log('🚀 ~ gameID.value:', gameID.value);
     // Players data is now handled by useCurrentSeasonData composable (always current season)
   } catch (error) {
@@ -424,10 +440,12 @@ onMounted(async () => {
   }
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
-    await getGameInfo();
+    await getGameInfo(cupGameId.value);
+    await loadMatchupOptions();
     initSocket();
     startPolling();
   } else {
+    matchupOptions.value = [];
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
     );
@@ -436,17 +454,90 @@ onMounted(async () => {
   }
 });
 
-async function getGameInfo() {
-  if (!gameID.value) return;
+async function getGameInfo(targetGameId = selectedGameId.value || cupGameId.value) {
+  if (!targetGameId) return;
 
   try {
-    const result = await nhlApi.getGameInfo(gameID.value);
+    const result = await nhlApi.getGameInfo(targetGameId);
     applyGameUpdate(result.data);
   } catch (error) {
     console.error('Error fetching game result:', error);
   } finally {
     loading.value = false;
   }
+}
+
+function buildMatchupLabel(game, defaultGameId) {
+  const awayTeam = game?.awayTeam?.abbrev || 'AWAY';
+  const homeTeam = game?.homeTeam?.abbrev || 'HOME';
+  const isCupMatchup = String(game?.id) === String(defaultGameId);
+  return `${awayTeam} @ ${homeTeam}${isCupMatchup ? ' (Cup Defense)' : ''}`;
+}
+
+async function loadMatchupOptions() {
+  if (!cupGameId.value) {
+    matchupOptions.value = [];
+    return;
+  }
+
+  matchupOptionsLoading.value = true;
+  const scheduleDate = todaysGame.value.startTimeUTC
+    ? DateTime.fromISO(todaysGame.value.startTimeUTC).toFormat('yyyy-MM-dd')
+    : DateTime.now().toFormat('yyyy-MM-dd');
+
+  try {
+    const scheduleData = await nhlApi.getSchedule(scheduleDate);
+    const gameWeek = scheduleData?.data?.gameWeek || [];
+    const datedGames = gameWeek
+      .filter((entry) => entry?.date === scheduleDate)
+      .flatMap((entry) => entry?.games || []);
+    const currentDayGames = datedGames.length
+      ? datedGames
+      : gameWeek.flatMap((entry) => entry?.games || []);
+    const sortedGames = currentDayGames.sort((a, b) => {
+      if (String(a.id) === String(cupGameId.value)) return -1;
+      if (String(b.id) === String(cupGameId.value)) return 1;
+      return 0;
+    });
+
+    matchupOptions.value = sortedGames.map((game) => ({
+      id: String(game.id),
+      label: buildMatchupLabel(game, cupGameId.value),
+    }));
+
+    if (!matchupOptions.value.length) {
+      matchupOptions.value = [
+        {
+          id: String(cupGameId.value),
+          label: `Cup Matchup (${cupGameId.value})`,
+        },
+      ];
+    }
+  } catch (err) {
+    console.error('Failed to load game-day matchups', err);
+    matchupOptions.value = [
+      {
+        id: String(cupGameId.value),
+        label: `Cup Matchup (${cupGameId.value})`,
+      },
+    ];
+  } finally {
+    selectedGameId.value = String(
+      selectedGameId.value ||
+        matchupOptions.value.find(
+          (option) => String(option.id) === String(cupGameId.value)
+        )?.id ||
+        matchupOptions.value[0]?.id ||
+        cupGameId.value
+    );
+    matchupOptionsLoading.value = false;
+  }
+}
+
+async function handleMatchupSelection() {
+  if (!selectedGameId.value) return;
+  loading.value = true;
+  await getGameInfo(selectedGameId.value);
 }
 
 function getTeamsInfo(gameData = todaysGame.value) {
@@ -618,7 +709,7 @@ function setGameOutcome(gameData) {
 }
 
 function shouldPollGame() {
-  return Boolean(gameID.value) && isGameToday.value && !isGameOver.value;
+  return Boolean(selectedGameId.value) && isGameToday.value && !isGameOver.value;
 }
 
 function startPolling() {
