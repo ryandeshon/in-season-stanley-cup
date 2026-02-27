@@ -2,12 +2,12 @@
 
 ## Setup
 - Use Node 20 for Cypress (`nvm use 20` if you have nvm installed).
-- Install dependencies: `yarn install --frozen-lockfile`.
+- Install dependencies: `yarn install --frozen-lockfile` (or `npm ci`).
 - Test env vars live in `.env.cypress` and are loaded automatically by `vue-cli-service serve --mode cypress`. Values point at local mock endpoints so the app never calls real services during tests.
 
 ## Commands
-- `yarn test:e2e` — headless CI run (spins up the dev server, stubs APIs, exits non-zero on failures).
-- `yarn test:e2e:open` — interactive Cypress runner (starts the dev server first).
+- `npm run test:e2e` (or `yarn test:e2e`) — headless CI run (spins up the dev server, stubs APIs, exits non-zero on failures).
+- `npm run test:e2e:open` (or `yarn test:e2e:open`) — interactive Cypress runner (starts the dev server first).
 - `npm run cy:serve` (or `yarn cy:serve`) — run the app with the cypress env/profile if you want to point Cypress at an already running server.
 
 ## Fixtures & stubbing

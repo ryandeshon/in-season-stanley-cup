@@ -55,8 +55,8 @@ yarn lint
 ```
 
 ### End-to-end tests
-- Headless: `yarn test:e2e`
-- Interactive: `yarn test:e2e:open`
+- Headless: `npm run test:e2e` (or `yarn test:e2e`)
+- Interactive: `npm run test:e2e:open` (or `yarn test:e2e:open`)
 
 More details on fixtures, stubbing, and CI are in `docs/testing.md`.
 

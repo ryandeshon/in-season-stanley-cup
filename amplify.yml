@@ -12,17 +12,31 @@ applications:
               else
                 echo "nvm not available; using existing Node $(node -v)"
               fi
-            - yarn install --frozen-lockfile --network-timeout 600000
+            - |
+              if command -v yarn >/dev/null 2>&1; then
+                yarn install --frozen-lockfile --network-timeout 600000
+              else
+                npm ci
+              fi
         build:
           commands:
             - |
               if [ "$AWS_BRANCH" = "test" ]; then
                 echo "Running Cypress end-to-end tests for branch $AWS_BRANCH"
-                yarn test:e2e
+                if command -v yarn >/dev/null 2>&1; then
+                  yarn test:e2e
+                else
+                  npm run test:e2e
+                fi
               else
                 echo "Skipping Cypress on branch $AWS_BRANCH"
               fi
-            - yarn build
+            - |
+              if command -v yarn >/dev/null 2>&1; then
+                yarn build
+              else
+                npm run build
+              fi
       artifacts:
         baseDirectory: dist
         files:
