@@ -153,6 +153,50 @@
       }
     }
   },
+  "additionalGameInfoResponses": {
+    "2024021112": {
+      "id": 2024021112,
+      "gameState": "LIVE",
+      "startTimeUTC": "2024-11-02T00:00:00Z",
+      "clock": {
+        "inIntermission": false,
+        "timeRemaining": "11:45",
+        "secondsRemaining": 705
+      },
+      "periodDescriptor": {
+        "periodType": "REG",
+        "number": 2
+      },
+      "homeTeam": {
+        "id": 3,
+        "abbrev": "NYR",
+        "score": 1,
+        "sog": 10,
+        "placeName": { "default": "New York" },
+        "commonName": { "default": "Rangers" }
+      },
+      "awayTeam": {
+        "id": 8,
+        "abbrev": "MTL",
+        "score": 2,
+        "sog": 14,
+        "placeName": { "default": "Montreal" },
+        "commonName": { "default": "Canadiens" }
+      },
+      "playerByGameStats": {
+        "homeTeam": {
+          "forwards": [],
+          "defense": [],
+          "goalies": []
+        },
+        "awayTeam": {
+          "forwards": [],
+          "defense": [],
+          "goalies": []
+        }
+      }
+    }
+  },
   "scheduleResponse": {
     "gameWeek": [
       {

@@ -10,7 +10,9 @@ Cypress.Commands.add('mockApiScenario', (fixtureName = 'cup-day-multiple-games')
       gameRecordsResponse = [],
       gameInfoResponse = {},
       gameInfoStatus = 200,
+      additionalGameInfoResponses = {},
       scheduleResponse = { gameWeek: [] },
+      scheduleStatus = 200,
     } = data;
 
     cy.intercept('GET', '**/champion', {
@@ -33,13 +35,21 @@ Cypress.Commands.add('mockApiScenario', (fixtureName = 'cup-day-multiple-games')
       body: gameRecordsResponse,
     }).as('getGameRecords');
 
-    cy.intercept('GET', '**/gamecenter/**/boxscore', {
-      statusCode: gameInfoStatus,
-      body: gameInfoResponse,
+    cy.intercept('GET', '**/gamecenter/**/boxscore', (req) => {
+      const gameIdMatch = req.url.match(/\/gamecenter\/([^/]+)\/boxscore/);
+      const requestedGameId = gameIdMatch?.[1];
+      const alternatePayload = requestedGameId
+        ? additionalGameInfoResponses[requestedGameId]
+        : null;
+
+      req.reply({
+        statusCode: alternatePayload ? 200 : gameInfoStatus,
+        body: alternatePayload || gameInfoResponse,
+      });
     }).as('getGameInfo');
 
     cy.intercept('GET', '**/schedule/**', {
-      statusCode: 200,
+      statusCode: scheduleStatus,
       body: scheduleResponse,
     }).as('getSchedule');
   });
