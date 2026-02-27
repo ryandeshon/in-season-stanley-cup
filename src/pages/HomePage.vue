@@ -3,6 +3,7 @@
     <h1
       class="text-4xl font-bold mb-4"
       :class="{ 'text-center': isSeasonOver }"
+      data-test="home-title"
     >
       In Season Cup <span v-if="isSeasonOver">Champion</span>
     </h1>
@@ -18,6 +19,24 @@
     <SeasonChampion v-else-if="isSeasonOver" />
 
     <template v-else>
+      <div v-if="showMatchupSelector" class="mb-4" data-test="matchup-selector">
+        <label for="matchup-select" class="block text-sm font-semibold mb-1">
+          Today&apos;s Matchup
+        </label>
+        <select
+          id="matchup-select"
+          v-model="selectedGameId"
+          class="w-full border rounded px-3 py-2 bg-white"
+          :disabled="matchupOptionsLoading"
+          data-test="matchup-select"
+          @change="handleMatchupSelection"
+        >
+          <option v-for="option in matchupOptions" :key="option.id" :value="option.id">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
         <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
@@ -116,6 +135,7 @@
           <router-link
             :to="`/game/${todaysGame.id}`"
             class="text-blue-500 underline"
+            data-test="view-game-details-link"
             >View Game Details</router-link
           >
         </div>
@@ -123,6 +143,9 @@
 
       <!-- Champion is not defending -->
       <template v-else>
+        <div v-if="isSpectatorMode" class="text-center mb-2" data-test="spectator-mode-message">
+          Spectator mode: selected matchup does not include the champion.
+        </div>
         <div class="flex flex-col justify-center items-center my-4">
           <div class="text-center font-bold text-xl mb-2">Champion</div>
           <PlayerCard
@@ -226,6 +249,10 @@ const isGameLive = ref(false);
 const isSeasonOver = ref(false);
 const isMirrorMatch = ref(false);
 const gameID = ref(null);
+const cupGameId = ref(null);
+const selectedGameId = ref(null);
+const matchupOptions = ref([]);
+const matchupOptionsLoading = ref(false);
 const lastLiveUpdateAt = ref(0);
 let pollIntervalId = null;
 const POLL_INTERVAL_MS = 30000;
