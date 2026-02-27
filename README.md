@@ -64,7 +64,15 @@ VUE_APP_WEB_SOCKET_URL=<websocket-url>
 
 ### Caching and deployment
 - Asset and API caching guidance (CloudFront + S3 + Lambda headers) lives in `docs/caching.md`.
+- AWS rollout details, resource IDs, verification commands, and rollback steps live in `docs/aws-cache-rollout-runbook.md`.
 - Vue build output already emits hashed filenames; serve built assets from an edge cache (e.g., CloudFront) with long-lived `Cache-Control` headers and short TTLs for HTML.
+
+### AI workflow and security
+- AI project workflow and templates: `ai/README.md`
+- AI security guardrails (public repo safety checklist): `ai/SECURITY.md`
+- New project planning convention:
+  - `ai/project/<name-of-project>/SPEC.md`
+  - `ai/project/<name-of-project>/BACKLOG.md`
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
