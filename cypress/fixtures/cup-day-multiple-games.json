@@ -1,0 +1,227 @@
+{
+  "championResponse": {
+    "champion": "BOS"
+  },
+  "gameIdResponse": {
+    "gameID": 2024021111,
+    "message": "Cup defense vs TOR"
+  },
+  "playersResponse": [
+    {
+      "id": 1,
+      "name": "Ryan",
+      "teams": ["BOS", "NYR"],
+      "titleDefenses": 4,
+      "championships": 1
+    },
+    {
+      "id": 2,
+      "name": "Cooper",
+      "teams": ["TOR", "DAL"],
+      "titleDefenses": 1,
+      "championships": 0
+    },
+    {
+      "id": 3,
+      "name": "Boz",
+      "teams": ["CHI", "STL"],
+      "titleDefenses": 0,
+      "championships": 0
+    },
+    {
+      "id": 4,
+      "name": "Terry",
+      "teams": ["VAN", "SEA"],
+      "titleDefenses": 0,
+      "championships": 0
+    }
+  ],
+  "gameRecordsResponse": [
+    {
+      "id": 2024020001,
+      "wTeam": "BOS",
+      "wScore": 3,
+      "lTeam": "TOR",
+      "lScore": 2
+    }
+  ],
+  "gameInfoResponse": {
+    "id": 2024021111,
+    "gameState": "LIVE",
+    "startTimeUTC": "2024-11-01T23:00:00Z",
+    "clock": {
+      "inIntermission": false,
+      "timeRemaining": "08:12",
+      "secondsRemaining": 492
+    },
+    "periodDescriptor": {
+      "periodType": "REG",
+      "number": 2
+    },
+    "venue": {
+      "default": "TD Garden"
+    },
+    "venueLocation": {
+      "default": "Boston, MA"
+    },
+    "homeTeam": {
+      "id": 6,
+      "abbrev": "BOS",
+      "score": 2,
+      "sog": 15,
+      "placeName": { "default": "Boston" },
+      "commonName": { "default": "Bruins" }
+    },
+    "awayTeam": {
+      "id": 10,
+      "abbrev": "TOR",
+      "score": 1,
+      "sog": 12,
+      "placeName": { "default": "Toronto" },
+      "commonName": { "default": "Maple Leafs" }
+    },
+    "playerByGameStats": {
+      "homeTeam": {
+        "forwards": [
+          {
+            "sweaterNumber": 63,
+            "name": { "default": "Brad Marchand" },
+            "goals": 1,
+            "assists": 0,
+            "sog": 4,
+            "plusMinus": 1,
+            "hits": 2
+          }
+        ],
+        "defense": [
+          {
+            "sweaterNumber": 73,
+            "name": { "default": "Charlie McAvoy" },
+            "goals": 0,
+            "assists": 1,
+            "sog": 3,
+            "plusMinus": 1,
+            "hits": 4
+          }
+        ],
+        "goalies": [
+          {
+            "sweaterNumber": 30,
+            "name": { "default": "Jeremy Swayman" },
+            "shotsAgainst": 24,
+            "saves": 23,
+            "goalsAgainst": 1,
+            "savePctg": 0.958,
+            "toi": "45:00"
+          }
+        ]
+      },
+      "awayTeam": {
+        "forwards": [
+          {
+            "sweaterNumber": 16,
+            "name": { "default": "Mitch Marner" },
+            "goals": 1,
+            "assists": 0,
+            "sog": 5,
+            "plusMinus": -1,
+            "hits": 1
+          }
+        ],
+        "defense": [
+          {
+            "sweaterNumber": 44,
+            "name": { "default": "Morgan Rielly" },
+            "goals": 0,
+            "assists": 1,
+            "sog": 2,
+            "plusMinus": -1,
+            "hits": 3
+          }
+        ],
+        "goalies": [
+          {
+            "sweaterNumber": 36,
+            "name": { "default": "Jack Campbell" },
+            "shotsAgainst": 26,
+            "saves": 24,
+            "goalsAgainst": 2,
+            "savePctg": 0.923,
+            "toi": "45:00"
+          }
+        ]
+      }
+    }
+  },
+  "additionalGameInfoResponses": {
+    "2024021112": {
+      "id": 2024021112,
+      "gameState": "LIVE",
+      "startTimeUTC": "2024-11-02T00:00:00Z",
+      "clock": {
+        "inIntermission": false,
+        "timeRemaining": "11:45",
+        "secondsRemaining": 705
+      },
+      "periodDescriptor": {
+        "periodType": "REG",
+        "number": 2
+      },
+      "homeTeam": {
+        "id": 3,
+        "abbrev": "NYR",
+        "score": 1,
+        "sog": 10,
+        "placeName": { "default": "New York" },
+        "commonName": { "default": "Rangers" }
+      },
+      "awayTeam": {
+        "id": 8,
+        "abbrev": "MTL",
+        "score": 2,
+        "sog": 14,
+        "placeName": { "default": "Montreal" },
+        "commonName": { "default": "Canadiens" }
+      },
+      "playerByGameStats": {
+        "homeTeam": {
+          "forwards": [],
+          "defense": [],
+          "goalies": []
+        },
+        "awayTeam": {
+          "forwards": [],
+          "defense": [],
+          "goalies": []
+        }
+      }
+    }
+  },
+  "scheduleResponse": {
+    "gameWeek": [
+      {
+        "date": "2024-11-01",
+        "games": [
+          {
+            "id": 2024021111,
+            "homeTeam": { "abbrev": "BOS" },
+            "awayTeam": { "abbrev": "TOR" },
+            "startTimeUTC": "2024-11-01T23:00:00Z"
+          },
+          {
+            "id": 2024021112,
+            "homeTeam": { "abbrev": "NYR" },
+            "awayTeam": { "abbrev": "MTL" },
+            "startTimeUTC": "2024-11-02T00:00:00Z"
+          },
+          {
+            "id": 2024021113,
+            "homeTeam": { "abbrev": "VAN" },
+            "awayTeam": { "abbrev": "SEA" },
+            "startTimeUTC": "2024-11-02T02:00:00Z"
+          }
+        ]
+      }
+    ]
+  }
+}

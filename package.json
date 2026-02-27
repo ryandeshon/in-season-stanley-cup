@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
+    "cy:serve": "vue-cli-service serve --mode cypress --port 8080",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "lint:fix": "vue-cli-service lint --fix",
+    "test:e2e": "start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
+    "test:e2e:open": "start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
     "security:audit": "bash ./scripts/security-scan.sh"
   },
   "dependencies": {
@@ -28,12 +31,14 @@
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "autoprefixer": "^10.4.20",
+    "cypress": "^15.7.0",
     "eslint": "^8.50.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-vue": "^9.31.0",
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
+    "start-server-and-test": "^2.1.3",
     "tailwindcss": "^3.4.13",
     "vue-cli-plugin-vuetify": "~2.5.8"
   },
