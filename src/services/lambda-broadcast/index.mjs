@@ -7,20 +7,32 @@ import {
 } from '@aws-sdk/client-apigatewaymanagementapi';
 import axios from 'axios';
 
-const REGION = 'us-east-1';
-const SOCKET_DOMAIN = 'ul86529ski.execute-api.us-east-1.amazonaws.com'; // your domain
-const SOCKET_STAGE = 'prod';
+const REGION = process.env.AWS_REGION || 'us-east-1';
+const SOCKET_DOMAIN = process.env.SOCKET_DOMAIN;
+const SOCKET_STAGE = process.env.SOCKET_STAGE || 'prod';
+const GAME_OPTIONS_TABLE = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
+const SOCKET_CONNECTIONS_TABLE =
+  process.env.SOCKET_CONNECTIONS_TABLE || 'SocketConnections';
+const GAME_OPTIONS_KEY = process.env.GAME_OPTIONS_KEY || 'currentChampion';
 
 const dbClient = new DynamoDBClient({ region: REGION });
 const db = DynamoDBDocumentClient.from(dbClient);
 
-const socketClient = new ApiGatewayManagementApiClient({
-  region: REGION,
-  endpoint: `https://${SOCKET_DOMAIN}/${SOCKET_STAGE}`,
-});
+function getSocketClient() {
+  if (!SOCKET_DOMAIN) {
+    throw new Error('SOCKET_DOMAIN is required');
+  }
+
+  return new ApiGatewayManagementApiClient({
+    region: REGION,
+    endpoint: `https://${SOCKET_DOMAIN}/${SOCKET_STAGE}`,
+  });
+}
 
 export const handler = async () => {
   try {
+    const socketClient = getSocketClient();
+
     // 1. Get the current gameId
     const gameId = await getCurrentGameId();
     if (!gameId) {
@@ -77,8 +89,8 @@ export const handler = async () => {
 export async function getCurrentGameId() {
   const response = await db.send(
     new GetCommand({
-      TableName: 'GameOptions',
-      Key: { id: 'currentChampion' },
+      TableName: GAME_OPTIONS_TABLE,
+      Key: { id: GAME_OPTIONS_KEY },
     })
   );
 
@@ -92,7 +104,7 @@ export async function getCurrentGameId() {
 // Helper to scan all active WebSocket connections
 async function getAllConnections() {
   const result = await db.send(
-    new ScanCommand({ TableName: 'SocketConnections' })
+    new ScanCommand({ TableName: SOCKET_CONNECTIONS_TABLE })
   );
   return result.Items || [];
 }

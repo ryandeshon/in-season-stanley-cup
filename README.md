@@ -70,9 +70,16 @@ VUE_APP_WEB_SOCKET_URL=<websocket-url>
 ### AI workflow and security
 - AI project workflow and templates: `ai/README.md`
 - AI security guardrails (public repo safety checklist): `ai/SECURITY.md`
+- AI best-practice guide for this repo: `ai/BEST_PRACTICES.md`
 - New project planning convention:
   - `ai/project/<name-of-project>/SPEC.md`
   - `ai/project/<name-of-project>/BACKLOG.md`
+- Local security scan command:
+  - `yarn security:audit`
+
+### Public repo safety note
+- Do not commit `amplify/team-provider-info.json` (ignored by default).
+- Use `amplify/team-provider-info.example.json` as the public template.
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
