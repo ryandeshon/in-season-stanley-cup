@@ -4,14 +4,16 @@
     :width="width"
     :height="height"
     :alt="team"
+    @error="handleLogoError"
     v-bind="$attrs"
   />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSeasonStore } from '@/store/seasonStore';
 import { useTheme } from '@/composables/useTheme';
+import { getTeamLogoUrl } from '@/utilities/assetUrls';
 
 // Import all team logos for Season 2 (custom logos)
 import ANA from '@/assets/team-logos/season2/ANA.png';
@@ -49,6 +51,7 @@ import WPG from '@/assets/team-logos/season2/WPG.png';
 
 const seasonStore = useSeasonStore();
 const { isDarkOrLight } = useTheme();
+const useLocalLogoFallback = ref(false);
 
 const props = defineProps({
   team: {
@@ -107,7 +110,29 @@ const teamLogoSrc = computed(() => {
     return `https://assets.nhle.com/logos/nhl/svg/${props.team}_${themeMode}.svg`;
   }
 
-  // Season 2: Use custom logos
+  const remoteLogo = getTeamLogoUrl(seasonStore.currentSeason, props.team);
+  if (remoteLogo && !useLocalLogoFallback.value) {
+    return remoteLogo;
+  }
+
+  // Season 2 fallback: Use local custom logos
   return teamLogos[props.team] || '';
 });
+
+watch(
+  () => [seasonStore.currentSeason, props.team],
+  () => {
+    useLocalLogoFallback.value = false;
+  }
+);
+
+function handleLogoError() {
+  if (
+    seasonStore.currentSeason === 'season2' &&
+    getTeamLogoUrl(seasonStore.currentSeason, props.team) &&
+    !useLocalLogoFallback.value
+  ) {
+    useLocalLogoFallback.value = true;
+  }
+}
 </script>

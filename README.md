@@ -62,6 +62,14 @@ Lint:
 yarn lint
 ```
 
+Asset migration helpers:
+
+```bash
+yarn assets:bootstrap
+yarn assets:optimize
+yarn assets:upload
+```
+
 ### End-to-end tests
 
 - Headless: `yarn test:e2e`
@@ -77,12 +85,15 @@ Create a `.env.local` file at the repo root with:
 VUE_APP_API_BASE=<your-api-gateway-base-url>
 VUE_APP_NHL_API_URL=<nhl-api-base-or-proxy>
 VUE_APP_WEB_SOCKET_URL=<websocket-url>
+VUE_APP_ASSET_BASE_URL=<optional-cloudfront-asset-domain>
+VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
 ```
 
 ### Caching and deployment
 
 - Asset and API caching guidance (CloudFront + S3 + Lambda headers) lives in `docs/caching.md`.
 - AWS rollout details, resource IDs, verification commands, and rollback steps live in `docs/aws-cache-rollout-runbook.md`.
+- Image migration rollout (player/team images to S3 + CloudFront) lives in `docs/assets-image-migration-runbook.md`.
 - Vue build output already emits hashed filenames; serve built assets from an edge cache (e.g., CloudFront) with long-lived `Cache-Control` headers and short TTLs for HTML.
 
 ### AI workflow and security
@@ -113,6 +124,10 @@ Notes:
   scores, standings, and boxscores.
 - `VUE_APP_WEB_SOCKET_URL` enables real-time updates (live games + draft).
   If unset, the app will fall back to polling for game updates.
+- `VUE_APP_ASSET_BASE_URL` enables remote-first loading for player avatars and
+  Season 2 custom team logos, with local fallback if remote assets fail.
+- `VUE_APP_ASSET_VERSION` optionally prepends a path segment (e.g., `v1`) so
+  you can roll forward/backward asset versions without changing the domain.
 
 ## How the app works (data flow)
 

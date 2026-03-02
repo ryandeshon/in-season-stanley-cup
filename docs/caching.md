@@ -21,6 +21,20 @@ This project now ships a caching plan that keeps static assets cheap to serve an
 - In CloudFront, set the behavior to “Use origin cache headers” so the above metadata controls the edge/browser TTLs. No invalidations are needed when assets change because filenames are versioned.
 - For any hand-placed images (e.g., in `public/`), follow the same pattern: append a version (`logo-v2.png`) or let the build pipeline fingerprint them, then apply the long-lived cache header on upload.
 
+### Remote image offload (player avatars + team logos)
+- The app now supports remote image resolution with local fallback for:
+  - `players/season1/*.webp`
+  - `players/season2/*.webp`
+  - `team-logos/season2/*.webp`
+- Control via env vars:
+  - `VUE_APP_ASSET_BASE_URL=https://<cloudfront-domain-or-assets-domain>`
+  - `VUE_APP_ASSET_VERSION=v1` (optional path prefix)
+- During migration, the app uses remote URLs first and falls back to local bundled assets on load failure.
+- Recommended upload metadata for image objects:
+  - `Cache-Control: public,max-age=31536000,immutable`
+  - `Content-Type: image/webp`
+- End-to-end CLI steps are documented in `docs/assets-image-migration-runbook.md`.
+
 ## API/data caching
 - The HTTP API Lambda now returns `Cache-Control` and `CDN-Cache-Control` headers so CloudFront can cache responses at the edge and browsers can reuse them.
 - Default TTLs (overridable via env vars):

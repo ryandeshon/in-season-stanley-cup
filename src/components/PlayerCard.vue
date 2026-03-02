@@ -27,12 +27,13 @@
       </div>
       <div class="avatar">
         <img
-          :src="getImage(props.player?.name, props.imageType)"
+          :src="resolvedImageSrc"
           :class="{
             'saturate-50 contrast-125 brightness-75': props.isMirrorMatch,
             '-scale-x-100': props.isChampion,
           }"
           :alt="`${props.player?.name} Avatar`"
+          @error="handleImageError"
         />
         <template v-if="showTeamLogo">
           <div v-if="props.team" class="team-logo">
@@ -48,8 +49,10 @@
 </template>
 
 <script setup>
+import { computed, ref, watch } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useSeasonStore } from '@/store/seasonStore';
+import { getPlayerImageUrl } from '@/utilities/assetUrls';
 
 import TeamLogo from '@/components/TeamLogo.vue';
 
@@ -133,6 +136,8 @@ const props = defineProps({
 
 defineEmits(['card-click']);
 
+const useLocalImageFallback = ref(false);
+
 const imagesSeason1 = {
   Boz: {
     Happy: bozHappyImageS1,
@@ -187,11 +192,40 @@ const imagesSeason2 = {
   },
 };
 
-const getImage = (playerName, type) => {
+const getLocalImage = (playerName, type) => {
   const images =
     seasonStore.currentSeason === 'season1' ? imagesSeason1 : imagesSeason2;
   return images[playerName]?.[type] || null;
 };
+
+const remoteImageUrl = computed(() =>
+  getPlayerImageUrl(
+    seasonStore.currentSeason,
+    props.player?.name,
+    props.imageType
+  )
+);
+
+const resolvedImageSrc = computed(() => {
+  if (!useLocalImageFallback.value && remoteImageUrl.value) {
+    return remoteImageUrl.value;
+  }
+
+  return getLocalImage(props.player?.name, props.imageType);
+});
+
+watch(
+  () => [seasonStore.currentSeason, props.player?.name, props.imageType],
+  () => {
+    useLocalImageFallback.value = false;
+  }
+);
+
+function handleImageError() {
+  if (remoteImageUrl.value && !useLocalImageFallback.value) {
+    useLocalImageFallback.value = true;
+  }
+}
 </script>
 
 <style scoped>

@@ -8,6 +8,9 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "lint:fix": "vue-cli-service lint --fix",
+    "assets:optimize": "bash ./scripts/assets/optimize-images.sh",
+    "assets:upload": "bash ./scripts/assets/upload-assets.sh",
+    "assets:bootstrap": "bash ./scripts/assets/bootstrap-assets-infra.sh",
     "test:e2e": "start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
     "test:e2e:open": "start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
     "security:audit": "bash ./scripts/security-scan.sh"
