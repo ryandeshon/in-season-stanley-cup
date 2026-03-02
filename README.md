@@ -108,9 +108,9 @@ VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
   - `yarn security:audit`
 
 ### Public repo safety note
-
-- Do not commit `amplify/team-provider-info.json` (ignored by default).
-- Use `amplify/team-provider-info.example.json` as the public template.
+- `amplify/team-provider-info.json` is required for this Amplify Gen 1 backend build flow.
+- Keep this file limited to Amplify metadata only; never put credentials/secrets in it.
+- Use `amplify/team-provider-info.example.json` as a template reference.
 
 ### Customize configuration
 
