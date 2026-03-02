@@ -1,0 +1,84 @@
+{
+  "championResponse": {
+    "champion": "DAL"
+  },
+  "gameIdResponse": {
+    "gameID": 2024022201,
+    "message": "Solo Cup defense vs COL"
+  },
+  "playersResponse": [
+    {
+      "id": 11,
+      "name": "Cooper",
+      "teams": ["DAL", "SEA"],
+      "titleDefenses": 2,
+      "championships": 1
+    },
+    {
+      "id": 12,
+      "name": "Terry",
+      "teams": ["COL", "LAK"],
+      "titleDefenses": 0,
+      "championships": 0
+    },
+    {
+      "id": 13,
+      "name": "Boz",
+      "teams": ["CHI"],
+      "titleDefenses": 0,
+      "championships": 0
+    }
+  ],
+  "gameRecordsResponse": [],
+  "gameInfoResponse": {
+    "id": 2024022201,
+    "gameState": "FUT",
+    "startTimeUTC": "2024-12-15T01:30:00Z",
+    "clock": {
+      "inIntermission": false,
+      "timeRemaining": "20:00",
+      "secondsRemaining": 1200
+    },
+    "periodDescriptor": {
+      "periodType": "REG",
+      "number": 1
+    },
+    "venue": {
+      "default": "American Airlines Center"
+    },
+    "venueLocation": {
+      "default": "Dallas, TX"
+    },
+    "homeTeam": {
+      "id": 25,
+      "abbrev": "DAL",
+      "score": 0,
+      "sog": 0,
+      "placeName": { "default": "Dallas" },
+      "commonName": { "default": "Stars" }
+    },
+    "awayTeam": {
+      "id": 21,
+      "abbrev": "COL",
+      "score": 0,
+      "sog": 0,
+      "placeName": { "default": "Colorado" },
+      "commonName": { "default": "Avalanche" }
+    }
+  },
+  "scheduleResponse": {
+    "gameWeek": [
+      {
+        "date": "2024-12-15",
+        "games": [
+          {
+            "id": 2024022201,
+            "homeTeam": { "abbrev": "DAL" },
+            "awayTeam": { "abbrev": "COL" },
+            "startTimeUTC": "2024-12-15T01:30:00Z"
+          }
+        ]
+      }
+    ]
+  }
+}

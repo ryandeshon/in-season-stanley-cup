@@ -1,0 +1,35 @@
+{
+  "championResponse": {
+    "message": "Upstream champion service failed"
+  },
+  "championStatus": 500,
+  "gameIdResponse": {
+    "gameID": null,
+    "message": "Game ID unavailable"
+  },
+  "gameIdStatus": 503,
+  "playersResponse": [
+    {
+      "id": 31,
+      "name": "Ryan",
+      "teams": ["BOS", "NYR"],
+      "titleDefenses": 4,
+      "championships": 1
+    },
+    {
+      "id": 32,
+      "name": "Cooper",
+      "teams": ["TOR", "SEA"],
+      "titleDefenses": 1,
+      "championships": 0
+    }
+  ],
+  "gameRecordsResponse": [],
+  "gameInfoResponse": {
+    "message": "Score service unavailable"
+  },
+  "gameInfoStatus": 502,
+  "scheduleResponse": {
+    "gameWeek": []
+  }
+}

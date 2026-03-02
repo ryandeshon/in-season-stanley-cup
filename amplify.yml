@@ -1,0 +1,46 @@
+version: 1
+applications:
+  - appRoot: .
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - |
+              if command -v nvm >/dev/null 2>&1; then
+                nvm install 20
+                nvm use 20
+              else
+                echo "nvm not available; using existing Node $(node -v)"
+              fi
+            - |
+              if command -v yarn >/dev/null 2>&1; then
+                yarn install --frozen-lockfile --network-timeout 600000
+              else
+                npm ci
+              fi
+        build:
+          commands:
+            - |
+              if [ "$AWS_BRANCH" = "test" ]; then
+                echo "Running Cypress end-to-end tests for branch $AWS_BRANCH"
+                if command -v yarn >/dev/null 2>&1; then
+                  yarn test:e2e
+                else
+                  npm run test:e2e
+                fi
+              else
+                echo "Skipping Cypress on branch $AWS_BRANCH"
+              fi
+            - |
+              if command -v yarn >/dev/null 2>&1; then
+                yarn build
+              else
+                npm run build
+              fi
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*

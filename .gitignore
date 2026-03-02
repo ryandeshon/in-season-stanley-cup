@@ -25,6 +25,10 @@ pnpm-debug.log*
 *.deploy.zip
 ai/private/
 
+# Testing directories and files
+cypress/screenshots
+cypress/videos
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
