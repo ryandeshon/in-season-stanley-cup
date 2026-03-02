@@ -12,6 +12,18 @@
   "parserOptions": {
     "parser": "@babel/eslint-parser"
   },
+  "overrides": [
+    {
+      "files": ["cypress/**/*.js"],
+      "env": {
+        "mocha": true
+      },
+      "globals": {
+        "cy": "readonly",
+        "Cypress": "readonly"
+      }
+    }
+  ],
   "rules": {
     "no-console": "off",
     "no-debugger": "off",

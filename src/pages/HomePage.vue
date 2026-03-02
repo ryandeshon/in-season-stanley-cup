@@ -31,7 +31,11 @@
           data-test="matchup-select"
           @change="handleMatchupSelection"
         >
-          <option v-for="option in matchupOptions" :key="option.id" :value="option.id">
+          <option
+            v-for="option in matchupOptions"
+            :key="option.id"
+            :value="option.id"
+          >
             {{ option.label }}
           </option>
         </select>
@@ -143,7 +147,11 @@
 
       <!-- Champion is not defending -->
       <template v-else>
-        <div v-if="isSpectatorMode" class="text-center mb-2" data-test="spectator-mode-message">
+        <div
+          v-if="isSpectatorMode"
+          class="text-center mb-2"
+          data-test="spectator-mode-message"
+        >
           Spectator mode: selected matchup does not include the champion.
         </div>
         <div class="flex flex-col justify-center items-center my-4">
@@ -391,7 +399,8 @@ watch(lastMessage, (data) => {
   if (
     data?.type === 'liveGameUpdate' &&
     (!incomingGameId ||
-      String(incomingGameId) === String(selectedGameId.value || cupGameId.value))
+      String(incomingGameId) ===
+        String(selectedGameId.value || cupGameId.value))
   ) {
     applyGameUpdate(data.payload);
   }
@@ -454,7 +463,9 @@ onMounted(async () => {
   }
 });
 
-async function getGameInfo(targetGameId = selectedGameId.value || cupGameId.value) {
+async function getGameInfo(
+  targetGameId = selectedGameId.value || cupGameId.value
+) {
   if (!targetGameId) return;
 
   try {
@@ -711,7 +722,9 @@ function setGameOutcome(gameData) {
 }
 
 function shouldPollGame() {
-  return Boolean(selectedGameId.value) && isGameToday.value && !isGameOver.value;
+  return (
+    Boolean(selectedGameId.value) && isGameToday.value && !isGameOver.value
+  );
 }
 
 function startPolling() {

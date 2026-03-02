@@ -16,7 +16,9 @@ describe('In Season Cup - Homepage', () => {
 
       cy.contains('h1', 'In Season Cup');
       cy.get('[data-test="matchup-select"]').should('have.value', '2024021111');
-      cy.get('[data-test="matchup-select"] option').first().contains('Cup Defense');
+      cy.get('[data-test="matchup-select"] option')
+        .first()
+        .contains('Cup Defense');
       cy.contains('Champion');
       cy.contains('Ryan');
       cy.contains('Cooper');
@@ -51,12 +53,7 @@ describe('In Season Cup - Homepage', () => {
 
     it('navigates to game details and renders lineup data', () => {
       cy.visit('/');
-      cy.wait([
-        '@getChampion',
-        '@getGameId',
-        '@getGameInfo',
-        '@getSchedule',
-      ]);
+      cy.wait(['@getChampion', '@getGameId', '@getGameInfo', '@getSchedule']);
       cy.get('[data-test="view-game-details-link"]').click();
 
       cy.url().should('include', '/game/2024021111');
@@ -107,8 +104,8 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('is not Defending the Championship Today');
       cy.contains('Possible Upcoming Match-ups');
       cy.get('[data-test="matchup-select"]').should('not.exist');
-      cy.contains(/11\\/02/);
-      cy.contains(/11\\/03/);
+      cy.contains('11/02');
+      cy.contains('11/03');
       cy.contains('Terry');
       cy.contains('Ryan');
     });
