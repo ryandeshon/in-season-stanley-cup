@@ -147,13 +147,6 @@
 
       <!-- Champion is not defending -->
       <template v-else>
-        <div
-          v-if="isSpectatorMode"
-          class="text-center mb-2"
-          data-test="spectator-mode-message"
-        >
-          Spectator mode: selected matchup does not include the champion.
-        </div>
         <div class="flex flex-col justify-center items-center my-4">
           <div class="text-center font-bold text-xl mb-2">Champion</div>
           <PlayerCard
@@ -377,13 +370,6 @@ const gameOverLoserAvatarType = computed(() => {
 
 const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
 
-const isSpectatorMode = computed(() => {
-  if (!cupGameId.value || !selectedGameId.value) {
-    return false;
-  }
-  return String(cupGameId.value) !== String(selectedGameId.value);
-});
-
 watch(
   () => todaysGame.value.clock?.secondsRemaining,
   (newVal) => {
@@ -505,16 +491,17 @@ async function loadMatchupOptions() {
     const currentDayGames = datedGames.length
       ? datedGames
       : gameWeek.flatMap((entry) => entry?.games || []);
-    const sortedGames = currentDayGames.sort((a, b) => {
-      if (String(a.id) === String(cupGameId.value)) return -1;
-      if (String(b.id) === String(cupGameId.value)) return 1;
-      return 0;
-    });
-
-    matchupOptions.value = sortedGames.map((game) => ({
-      id: String(game.id),
-      label: buildMatchupLabel(game, cupGameId.value),
-    }));
+    const cupGame = currentDayGames.find(
+      (game) => String(game.id) === String(cupGameId.value)
+    );
+    matchupOptions.value = cupGame
+      ? [
+          {
+            id: String(cupGame.id),
+            label: buildMatchupLabel(cupGame, cupGameId.value),
+          },
+        ]
+      : [];
 
     if (!matchupOptions.value.length) {
       matchupOptions.value = [
@@ -546,9 +533,10 @@ async function loadMatchupOptions() {
 }
 
 async function handleMatchupSelection() {
-  if (!selectedGameId.value) return;
+  if (!cupGameId.value) return;
+  selectedGameId.value = String(cupGameId.value);
   loading.value = true;
-  await getGameInfo(selectedGameId.value);
+  await getGameInfo(cupGameId.value);
 }
 
 function getTeamsInfo(gameData = todaysGame.value) {

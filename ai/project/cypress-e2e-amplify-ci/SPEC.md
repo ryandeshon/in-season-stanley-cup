@@ -10,7 +10,7 @@ Establish a deterministic Cypress end-to-end test strategy for the In Season Cup
 
 ## Goals
 - Add stable Cypress fixtures/stubs for key game-day states.
-- Cover high-value homepage/game flows, including matchup selector spectator behavior.
+- Cover high-value homepage/game flows, including matchup selector default behavior.
 - Ensure Amplify test branch runs Cypress headless and blocks failed builds.
 - Document local workflow and Amplify CLI synchronization commands.
 
@@ -21,7 +21,7 @@ Establish a deterministic Cypress end-to-end test strategy for the In Season Cup
 
 ## Constraints
 - Keep tests deterministic with no live NHL/backend dependency.
-- Preserve existing user-visible behavior outside the selector/spectator enhancement.
+- Preserve existing user-visible behavior outside the selector enhancement.
 - Keep public docs scrubbed of sensitive account/resource IDs.
 
 ## Technical Design
@@ -29,10 +29,8 @@ Establish a deterministic Cypress end-to-end test strategy for the In Season Cup
 - Reusable stubbing helper: `cy.mockApiScenario()` intercepts champion/game/players/game-records/boxscore/schedule calls.
 - Fixture model includes:
   - baseline game-day response (`gameInfoResponse`)
-  - optional alternate game payloads (`additionalGameInfoResponses`) keyed by game ID for matchup switching.
 - Homepage enhancement:
   - add game-day matchup selector (default Cup game)
-  - selecting non-Cup matchup drives spectator mode messaging.
 - Amplify buildspec:
   - branch-gated `test:e2e` step for `AWS_BRANCH=test`
   - install/build command fallback for `yarn` or `npm`.
@@ -48,7 +46,7 @@ Establish a deterministic Cypress end-to-end test strategy for the In Season Cup
 ## Acceptance Criteria
 1. Given Cypress config and scripts are present.
 2. When developers run headed/headless E2E commands.
-3. Then key homepage/matchup/spectator/error flows run deterministically from fixtures.
+3. Then key homepage/matchup/off-day/error flows run deterministically from fixtures.
 4. And Amplify test branch runs E2E and fails build on failures.
 
 ## Verification Plan

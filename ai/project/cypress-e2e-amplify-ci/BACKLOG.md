@@ -11,7 +11,7 @@
 |---|---|---|---|---|
 | 1 | DONE | Define scope and acceptance criteria in project spec | AI + Human | `ai/project/cypress-e2e-amplify-ci/SPEC.md` committed |
 | 2 | DONE | Implement Cypress fixture/stub strategy for multiple game-day states | AI | `cypress/fixtures/*`, `cypress/support/commands.js` updated |
-| 3 | DONE | Add/expand E2E coverage for homepage, selector spectator mode, and game details | AI | `cypress/e2e/homepage.cy.js` updated |
+| 3 | DONE | Add/expand E2E coverage for homepage, selector defaults, and game details | AI | `cypress/e2e/homepage.cy.js` updated |
 | 4 | DONE | Add/adjust app behavior required for deterministic selector flow | AI | `src/pages/HomePage.vue` updated |
 | 5 | DONE | Ensure Amplify test-branch CI runs E2E and blocks failures | AI | `amplify.yml` branch-gated test step + npm fallback |
 | 6 | DONE | Update developer docs for local workflow, fixtures, and Amplify CI sync | AI + Human | `docs/testing.md`, `README.md` updated |

@@ -20,13 +20,13 @@
   - `VUE_APP_API_BASE` endpoints: `/champion`, `/gameid`, `/players`, `/game-records`
   - `VUE_APP_NHL_API_URL` endpoints: `/gamecenter/:id/boxscore`, `/schedule/:date`
 - Add new scenarios by dropping a fixture and reusing the same shape (`championResponse`, `gameIdResponse`, `playersResponse`, `gameRecordsResponse`, `gameInfoResponse`, optional `championStatus`/`gameIdStatus`/`gameInfoStatus`/`scheduleStatus`, `scheduleResponse`).
-- For matchup selector cases, include `additionalGameInfoResponses` keyed by game ID to return different boxscore payloads when a non-Cup game is selected.
+- Matchup selector is constrained to the Cup game on game days.
 
 ## What is covered
 - Homepage Cup matchup rendering (champion/challenger, live clock, View Game Details link).
-- Matchup selector behavior (Cup game selected by default, non-Cup selection switches to spectator mode).
+- Matchup selector behavior (Cup game selected by default).
 - Navigation into `/game/:id` and rendering of the boxscore tables.
-- Spectator/off-day state (champion not defending, upcoming matchups table).
+- Off-day state (champion not defending, upcoming matchups table).
 - Graceful handling when upstream APIs error.
 
 ## Amplify CI (test branch)

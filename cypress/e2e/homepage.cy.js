@@ -29,28 +29,6 @@ describe('In Season Cup - Homepage', () => {
         .and('include', '/game/2024021111');
     });
 
-    it('switches to spectator mode when a non-Cup matchup is selected', () => {
-      cy.visit('/');
-      cy.wait([
-        '@getChampion',
-        '@getGameId',
-        '@getGameInfo',
-        '@getPlayers',
-        '@getSchedule',
-      ]);
-
-      cy.get('[data-test="matchup-select"]').select('2024021112');
-      cy.wait('@getGameInfo');
-
-      cy.get('[data-test="spectator-mode-message"]').should(
-        'contain',
-        'Spectator mode'
-      );
-      cy.contains('is not Defending the Championship Today');
-      cy.contains('Possible Upcoming Match-ups');
-      cy.get('[data-test="view-game-details-link"]').should('not.exist');
-    });
-
     it('navigates to game details and renders lineup data', () => {
       cy.visit('/');
       cy.wait(['@getChampion', '@getGameId', '@getGameInfo', '@getSchedule']);
@@ -72,7 +50,7 @@ describe('In Season Cup - Homepage', () => {
       cy.mockApiScenario('cup-day-only');
     });
 
-    it('keeps the Cup game selected and does not enter spectator mode', () => {
+    it('keeps the Cup game selected', () => {
       cy.visit('/');
       cy.wait([
         '@getChampion',
@@ -87,16 +65,15 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('Game Information');
       cy.contains('Cooper');
       cy.contains('Terry');
-      cy.get('[data-test="spectator-mode-message"]').should('not.exist');
     });
   });
 
-  context('Spectator/off day', () => {
+  context('Off day', () => {
     beforeEach(() => {
       cy.mockApiScenario('no-games');
     });
 
-    it('shows spectator messaging and upcoming matchups when the champion is idle', () => {
+    it('shows upcoming matchups when the champion is idle', () => {
       cy.visit('/');
       cy.wait(['@getChampion', '@getGameId', '@getPlayers', '@getSchedule']);
 
