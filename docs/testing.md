@@ -29,6 +29,25 @@
 - Off-day state (champion not defending, upcoming matchups table).
 - Graceful handling when upstream APIs error.
 
+## Check-game Lambda tests
+- Unit tests for core finalization timing logic live in `lambdas/check-game/index.test.cjs`.
+- Run with Node 22+:
+  - `node --test lambdas/check-game/index.test.cjs`
+- Covered behavior:
+  - Final state detection (`FUT`/`LIVE`/`CRIT` vs `FINAL`/`OFF`).
+  - Adaptive next-check interval selection.
+  - EventBridge Scheduler `at(...)` expression formatting.
+
+## Check-game regression scenarios
+- Verify non-final games keep rechecking:
+  - Confirm CloudWatch logs contain `decision":"reschedule"` and a `nextCheckAt`.
+- Verify finalization writes exactly once:
+  - Confirm logs contain `writeOutcome":"claimed"` once for a game ID.
+  - Repeat invocation should log `writeOutcome":"duplicate"` and skip duplicate writes.
+- Verify stale UI recovery:
+  - Keep the home page open through a game final.
+  - Confirm champion refreshes after final or tab refocus without manual hard reload.
+
 ## Amplify CI (test branch)
 - Build spec: `amplify.yml` runs `test:e2e` only when `AWS_BRANCH=test`, then builds the app. Other branches skip Cypress but still build.
 - The buildspec uses `yarn` when available and falls back to `npm` for install/test/build commands.

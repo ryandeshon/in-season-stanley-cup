@@ -19,28 +19,6 @@
     <SeasonChampion v-else-if="isSeasonOver" />
 
     <template v-else>
-      <div v-if="showMatchupSelector" class="mb-4" data-test="matchup-selector">
-        <label for="matchup-select" class="block text-sm font-semibold mb-1">
-          Today&apos;s Matchup
-        </label>
-        <select
-          id="matchup-select"
-          v-model="selectedGameId"
-          class="w-full border rounded px-3 py-2 bg-white"
-          :disabled="matchupOptionsLoading"
-          data-test="matchup-select"
-          @change="handleMatchupSelection"
-        >
-          <option
-            v-for="option in matchupOptions"
-            :key="option.id"
-            :value="option.id"
-          >
-            {{ option.label }}
-          </option>
-        </select>
-      </div>
-
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
         <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
@@ -257,6 +235,9 @@ const matchupOptionsLoading = ref(false);
 const lastLiveUpdateAt = ref(0);
 let pollIntervalId = null;
 const POLL_INTERVAL_MS = 30000;
+const CHAMPION_REFRESH_MS = 5 * 60 * 1000;
+let championRefreshIntervalId = null;
+let visibilityHandlerBound = null;
 // Add new reactive state for avatar management
 const previousHomeScore = ref(0);
 const previousAwayScore = ref(0);
@@ -368,7 +349,7 @@ const gameOverLoserAvatarType = computed(() => {
   return 'Sad';
 });
 
-const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
+// const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
 
 watch(
   () => todaysGame.value.clock?.secondsRemaining,
@@ -423,16 +404,19 @@ onMounted(async () => {
   }
 
   try {
-    currentChampion.value = await getCurrentChampion();
-    console.log('🚀 ~ currentChampion.value:', currentChampion.value);
-    gameID.value = await getGameId();
-    cupGameId.value = gameID.value;
-    selectedGameId.value = gameID.value;
-    console.log('🚀 ~ gameID.value:', gameID.value);
+    await refreshChampionAndGameState();
     // Players data is now handled by useCurrentSeasonData composable (always current season)
   } catch (error) {
     console.error('Error fetching getCurrentChampion or getGameId:', error);
   }
+  startChampionRefresh();
+  visibilityHandlerBound = () => {
+    if (document.visibilityState === 'visible') {
+      refreshChampionAndGameState({ bustCache: true });
+    }
+  };
+  document.addEventListener('visibilitychange', visibilityHandlerBound);
+
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
     await getGameInfo(cupGameId.value);
@@ -448,6 +432,23 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+async function refreshChampionAndGameState(options = {}) {
+  try {
+    const [champion, activeGameId] = await Promise.all([
+      getCurrentChampion(options),
+      getGameId(options),
+    ]);
+    currentChampion.value = champion;
+    gameID.value = activeGameId;
+    cupGameId.value = activeGameId;
+    if (!selectedGameId.value || options?.forceGameSelectionReset) {
+      selectedGameId.value = activeGameId;
+    }
+  } catch (error) {
+    console.error('Error refreshing champion/game state:', error);
+  }
+}
 
 async function getGameInfo(
   targetGameId = selectedGameId.value || cupGameId.value
@@ -532,12 +533,12 @@ async function loadMatchupOptions() {
   }
 }
 
-async function handleMatchupSelection() {
-  if (!cupGameId.value) return;
-  selectedGameId.value = String(cupGameId.value);
-  loading.value = true;
-  await getGameInfo(cupGameId.value);
-}
+// async function handleMatchupSelection() {
+//   if (!cupGameId.value) return;
+//   selectedGameId.value = String(cupGameId.value);
+//   loading.value = true;
+//   await getGameInfo(cupGameId.value);
+// }
 
 function getTeamsInfo(gameData = todaysGame.value) {
   const homeTeam = gameData.homeTeam;
@@ -649,6 +650,7 @@ function triggerAnguishAvatar(team) {
 function applyGameUpdate(gameData) {
   if (!gameData) return;
 
+  const wasGameOver = isGameOver.value;
   todaysGame.value = gameData;
   secondsRemaining.value = gameData.clock?.secondsRemaining ?? 0;
   isGameOver.value = ['FINAL', 'OFF'].includes(gameData.gameState);
@@ -679,6 +681,9 @@ function applyGameUpdate(gameData) {
 
   if (isGameOver.value) {
     setGameOutcome(gameData);
+    if (!wasGameOver) {
+      refreshChampionAndGameState({ bustCache: true });
+    }
     potentialLoading.value = true;
     getPossibleMatchUps(todaysWinner.value.abbrev);
     stopPolling();
@@ -740,8 +745,27 @@ function stopPolling() {
   }
 }
 
+function startChampionRefresh() {
+  if (championRefreshIntervalId) return;
+  championRefreshIntervalId = setInterval(() => {
+    refreshChampionAndGameState({ bustCache: true });
+  }, CHAMPION_REFRESH_MS);
+}
+
+function stopChampionRefresh() {
+  if (championRefreshIntervalId) {
+    clearInterval(championRefreshIntervalId);
+    championRefreshIntervalId = null;
+  }
+}
+
 onBeforeUnmount(() => {
   stopPolling();
+  stopChampionRefresh();
+  if (visibilityHandlerBound) {
+    document.removeEventListener('visibilitychange', visibilityHandlerBound);
+    visibilityHandlerBound = null;
+  }
   Object.values(goalTimers.value).forEach((timer) => {
     if (timer) {
       clearTimeout(timer);

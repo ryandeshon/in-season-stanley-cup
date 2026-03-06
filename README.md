@@ -225,6 +225,7 @@ GET    /game-records
 
 GET    /champion
 GET    /gameid
+GET    /check-status
 
 GET    /draft/state
 PATCH  /draft/state
@@ -260,9 +261,24 @@ AWS_REGION
 GAME_OPTIONS_TABLE
 GAME_OPTIONS_KEY
 GAME_ID_FIELD
+ACTIVE_GAME_ID_FIELD
+CHAMPION_FIELD
+CHECK_STATUS_FIELD
+NEXT_CHECK_AT_FIELD
+LAST_CHECKED_AT_FIELD
+FINALIZED_AT_FIELD
+WATCH_STARTED_AT_FIELD
+PROCESSED_GAME_ID_FIELD
 PLAYERS_TABLE
 GAME_RECORDS_TABLE
 NHL_API_BASE
+SELF_SCHEDULING_ENABLED
+SCHEDULER_GROUP_NAME
+SCHEDULER_ROLE_ARN
+WATCH_SCHEDULE_NAME
+CHECK_GAME_FUNCTION_ARN
+API_CACHE_DISTRIBUTION_ID
+API_CACHE_INVALIDATION_PATHS
 ```
 
 ## Scheduled game checker
@@ -271,13 +287,19 @@ File: `lambdas/check-game/index.js`
 
 Purpose:
 
-- Reads `gameID` from `GameOptions`.
+- Reads `activeGameId`/`gameID` from `GameOptions`.
 - Fetches NHL boxscore.
+- If game is not final:
+  - Updates check watch fields in `GameOptions`.
+  - Schedules an adaptive one-off recheck (10m pregame, 2m live, 1m critical).
 - If game is final:
+  - Claims `processedGameId` to prevent duplicate write cycles.
   - Writes a game record to `GameRecords`.
   - Updates `champion` in `GameOptions`.
   - Increments `titleDefenses` and `totalDefenses` for the winning player.
-  - Clears `gameID` to avoid reprocessing.
+  - Marks finalization metadata and clears active game fields.
+  - Invalidates API cache paths (for example `/champion`, `/gameid`) in CloudFront.
+  - Stops additional self-check schedules.
 
 ## WebSocket live updates
 
@@ -298,6 +320,14 @@ Optional broadcaster:
   - Pulls the latest boxscore.
   - Pushes to every connection in `SocketConnections`.
   - It’s not part of the Vue build; deploy separately if you use it.
+
+## Checker observability helpers
+
+- Optional alarm bootstrap script: `scripts/aws/setup-check-game-alarms.sh`
+  - Creates CloudWatch log metric filters for:
+    - `Handler error`
+    - `decision":"watching_too_long"`
+  - Creates matching CloudWatch alarms in namespace `InSeason/Checker`.
 
 ## NHL API usage
 
