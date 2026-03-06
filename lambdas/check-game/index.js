@@ -1,22 +1,71 @@
 const https = require('https');
 const AWS = require('aws-sdk');
+const {
+  isFinished,
+  getNextCheckDelaySeconds,
+  schedulerAtExpression,
+} = require('./check-game-logic.cjs');
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION || 'us-east-1',
 });
+const scheduler = AWS.Scheduler
+  ? new AWS.Scheduler({
+      region: process.env.AWS_REGION || 'us-east-1',
+    })
+  : null;
 
 const TABLE_NAME = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
 const PLAYERS_TABLE = process.env.PLAYERS_TABLE || 'Players';
 const GAME_RECORDS = process.env.GAME_RECORDS_TABLE || 'GameRecords';
 const PARTITION_KEY = process.env.GAME_OPTIONS_KEY || 'currentChampion';
 const GAME_ID_FIELD = process.env.GAME_ID_FIELD || 'gameID';
+const ACTIVE_GAME_ID_FIELD = process.env.ACTIVE_GAME_ID_FIELD || 'activeGameId';
 const CHAMPION_FIELD = process.env.CHAMPION_FIELD || 'champion';
+const CHECK_STATUS_FIELD = process.env.CHECK_STATUS_FIELD || 'checkStatus';
+const NEXT_CHECK_AT_FIELD = process.env.NEXT_CHECK_AT_FIELD || 'nextCheckAt';
+const LAST_CHECKED_AT_FIELD = process.env.LAST_CHECKED_AT_FIELD || 'lastCheckedAt';
+const FINALIZED_AT_FIELD = process.env.FINALIZED_AT_FIELD || 'finalizedAt';
+const WATCH_STARTED_AT_FIELD = process.env.WATCH_STARTED_AT_FIELD || 'watchStartedAt';
+const PROCESSED_GAME_ID_FIELD =
+  process.env.PROCESSED_GAME_ID_FIELD || 'processedGameId';
 const NHL_API_BASE =
   process.env.NHL_API_BASE || process.env.API_URL || 'https://api-web.nhle.com/v1';
+const CHECK_STATUS = {
+  IDLE: 'idle',
+  WATCHING: 'watching',
+  FINALIZED: 'finalized',
+};
+const SELF_SCHEDULING_ENABLED = process.env.SELF_SCHEDULING_ENABLED !== 'false';
+const SCHEDULER_GROUP_NAME = process.env.SCHEDULER_GROUP_NAME || 'default';
+const SCHEDULER_ROLE_ARN = process.env.SCHEDULER_ROLE_ARN || null;
+const WATCH_SCHEDULE_NAME =
+  process.env.WATCH_SCHEDULE_NAME ||
+  `${(process.env.AWS_LAMBDA_FUNCTION_NAME || 'inseason-check-game').replace(/[^a-zA-Z0-9-_]/g, '-')}-watch`;
 
 function log(level, msg, extra = {}) {
   const base = { level, ts: new Date().toISOString(), ...extra };
   console.log(JSON.stringify({ msg, ...base }));
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function addSecondsToNow(seconds) {
+  return new Date(Date.now() + seconds * 1000).toISOString();
+}
+
+function getTargetArn(context) {
+  return (
+    process.env.CHECK_GAME_FUNCTION_ARN ||
+    context?.invokedFunctionArn ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME
+  );
+}
+
+function getActiveGameId(gameOptions) {
+  return gameOptions?.[ACTIVE_GAME_ID_FIELD] ?? gameOptions?.[GAME_ID_FIELD] ?? null;
 }
 
 async function getGameOptions() {
@@ -31,19 +80,187 @@ async function getGameOptions() {
 }
 
 async function setGameId(gameID) {
+  const timestamp = nowIso();
   const params = {
     TableName: TABLE_NAME,
     Key: { id: PARTITION_KEY },
-    UpdateExpression: 'SET #gid = :g, updatedAt = :ts',
-    ExpressionAttributeNames: { '#gid': GAME_ID_FIELD },
+    UpdateExpression:
+      'SET #gid = :g, #activeGame = :g, #status = :watching, #watchStartedAt = if_not_exists(#watchStartedAt, :ts), updatedAt = :ts, #lastCheckedAt = :ts',
+    ExpressionAttributeNames: {
+      '#gid': GAME_ID_FIELD,
+      '#activeGame': ACTIVE_GAME_ID_FIELD,
+      '#status': CHECK_STATUS_FIELD,
+      '#watchStartedAt': WATCH_STARTED_AT_FIELD,
+      '#lastCheckedAt': LAST_CHECKED_AT_FIELD,
+    },
     ExpressionAttributeValues: {
       ':g': gameID,
-      ':ts': new Date().toISOString(),
+      ':watching': CHECK_STATUS.WATCHING,
+      ':ts': timestamp,
     },
     ReturnValues: 'UPDATED_NEW',
   };
   const out = await dynamoDB.update(params).promise();
   return out?.Attributes?.[GAME_ID_FIELD] ?? gameID;
+}
+
+async function updateWatchState(gameID, nextCheckAt, decision) {
+  const timestamp = nowIso();
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression:
+      'SET #gid = :g, #activeGame = :g, #status = :watching, #watchStartedAt = if_not_exists(#watchStartedAt, :checked), #lastCheckedAt = :checked, #nextCheckAt = :nextCheck, updatedAt = :ts REMOVE #finalizedAt',
+    ExpressionAttributeNames: {
+      '#gid': GAME_ID_FIELD,
+      '#activeGame': ACTIVE_GAME_ID_FIELD,
+      '#status': CHECK_STATUS_FIELD,
+      '#watchStartedAt': WATCH_STARTED_AT_FIELD,
+      '#lastCheckedAt': LAST_CHECKED_AT_FIELD,
+      '#nextCheckAt': NEXT_CHECK_AT_FIELD,
+      '#finalizedAt': FINALIZED_AT_FIELD,
+    },
+    ExpressionAttributeValues: {
+      ':g': gameID,
+      ':watching': CHECK_STATUS.WATCHING,
+      ':checked': timestamp,
+      ':nextCheck': nextCheckAt,
+      ':ts': timestamp,
+    },
+    ReturnValues: 'UPDATED_NEW',
+  };
+  const out = await dynamoDB.update(params).promise();
+  log('info', 'Watch state updated', {
+    gameID,
+    decision,
+    nextCheckAt,
+    updated: out?.Attributes,
+  });
+}
+
+async function setIdleState(decision) {
+  const timestamp = nowIso();
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression:
+      'SET #status = :idle, #lastCheckedAt = :checked, updatedAt = :ts REMOVE #activeGame, #gid, #nextCheckAt, #watchStartedAt',
+    ExpressionAttributeNames: {
+      '#status': CHECK_STATUS_FIELD,
+      '#lastCheckedAt': LAST_CHECKED_AT_FIELD,
+      '#activeGame': ACTIVE_GAME_ID_FIELD,
+      '#gid': GAME_ID_FIELD,
+      '#nextCheckAt': NEXT_CHECK_AT_FIELD,
+      '#watchStartedAt': WATCH_STARTED_AT_FIELD,
+    },
+    ExpressionAttributeValues: {
+      ':idle': CHECK_STATUS.IDLE,
+      ':checked': timestamp,
+      ':ts': timestamp,
+    },
+    ReturnValues: 'UPDATED_NEW',
+  };
+
+  const out = await dynamoDB.update(params).promise();
+  log('info', 'Set checker to idle', { decision, updated: out?.Attributes });
+}
+
+async function setFinalizedState(gameID, winner) {
+  const timestamp = nowIso();
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression:
+      'SET #champion = :winner, #status = :finalized, #lastCheckedAt = :checked, #finalizedAt = :finalizedAt, updatedAt = :ts REMOVE #activeGame, #gid, #nextCheckAt, #watchStartedAt',
+    ExpressionAttributeNames: {
+      '#champion': CHAMPION_FIELD,
+      '#status': CHECK_STATUS_FIELD,
+      '#lastCheckedAt': LAST_CHECKED_AT_FIELD,
+      '#finalizedAt': FINALIZED_AT_FIELD,
+      '#activeGame': ACTIVE_GAME_ID_FIELD,
+      '#gid': GAME_ID_FIELD,
+      '#nextCheckAt': NEXT_CHECK_AT_FIELD,
+      '#watchStartedAt': WATCH_STARTED_AT_FIELD,
+    },
+    ExpressionAttributeValues: {
+      ':winner': winner,
+      ':finalized': CHECK_STATUS.FINALIZED,
+      ':checked': timestamp,
+      ':finalizedAt': timestamp,
+      ':ts': timestamp,
+    },
+    ReturnValues: 'UPDATED_NEW',
+  };
+
+  const out = await dynamoDB.update(params).promise();
+  log('info', 'Champion updated and watch finalized', {
+    gameID,
+    winner,
+    updated: out?.Attributes,
+  });
+}
+
+async function tryClaimProcessedGame(gameID) {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression: 'SET #processedGameId = :gameID, updatedAt = :ts',
+    ConditionExpression:
+      'attribute_not_exists(#processedGameId) OR #processedGameId <> :gameID',
+    ExpressionAttributeNames: {
+      '#processedGameId': PROCESSED_GAME_ID_FIELD,
+    },
+    ExpressionAttributeValues: {
+      ':gameID': gameID,
+      ':ts': nowIso(),
+    },
+    ReturnValues: 'UPDATED_NEW',
+  };
+
+  try {
+    const out = await dynamoDB.update(params).promise();
+    log('info', 'Claimed processedGameId token', {
+      gameID,
+      updated: out?.Attributes,
+      writeOutcome: 'claimed',
+    });
+    return true;
+  } catch (error) {
+    if (error?.code === 'ConditionalCheckFailedException') {
+      log('info', 'processedGameId already claimed; skipping duplicate writes', {
+        gameID,
+        writeOutcome: 'duplicate',
+      });
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function releaseProcessedGameClaim(gameID) {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { id: PARTITION_KEY },
+    UpdateExpression: 'REMOVE #processedGameId',
+    ConditionExpression: '#processedGameId = :gameID',
+    ExpressionAttributeNames: {
+      '#processedGameId': PROCESSED_GAME_ID_FIELD,
+    },
+    ExpressionAttributeValues: {
+      ':gameID': gameID,
+    },
+  };
+
+  try {
+    await dynamoDB.update(params).promise();
+    log('info', 'Released processedGameId token after error', { gameID });
+  } catch (error) {
+    if (error?.code === 'ConditionalCheckFailedException') return;
+    log('error', 'Failed to release processedGameId token', {
+      gameID,
+      error: String(error),
+    });
+  }
 }
 
 function getDateInTimeZone(offsetDays = 0, tz = 'America/New_York') {
@@ -159,18 +376,6 @@ async function fetchGameData(gameID) {
   });
 }
 
-async function saveWinnerToDatabase(winner) {
-  const params = {
-    TableName: TABLE_NAME,
-    Key: { id: PARTITION_KEY },
-    UpdateExpression: 'SET champion = :winner',
-    ExpressionAttributeValues: { ':winner': winner },
-    ReturnValues: 'UPDATED_NEW',
-  };
-  const out = await dynamoDB.update(params).promise();
-  log('info', 'Champion updated', { winner, updated: out?.Attributes });
-}
-
 async function findPlayerWithTeam(team) {
   const params = { TableName: PLAYERS_TABLE };
   try {
@@ -202,24 +407,6 @@ async function incrementTitleDefense(playerId, team) {
   });
 }
 
-async function clearGameID() {
-  const params = {
-    TableName: TABLE_NAME,
-    Key: { id: PARTITION_KEY },
-    UpdateExpression: `REMOVE ${GAME_ID_FIELD}`,
-    ReturnValues: 'UPDATED_NEW',
-  };
-
-  try {
-    const out = await dynamoDB.update(params).promise();
-    log('info', 'Cleared gameID from GameOptions', {
-      updated: out?.Attributes,
-    });
-  } catch (error) {
-    log('error', 'Failed to clear gameID', { error: String(error) });
-  }
-}
-
 async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
   const params = {
     TableName: GAME_RECORDS,
@@ -237,30 +424,122 @@ async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
   try {
     await dynamoDB.put(params).promise();
     log('info', 'Game record saved', { gameID, wTeam, wScore, lTeam, lScore });
+    return true;
   } catch (e) {
     if (e.code === 'ConditionalCheckFailedException') {
       log('info', 'Game record already exists, skipping save', { gameID });
-      return;
+      return false;
     }
     throw e;
   }
 }
 
-async function getSavedGame(gameID) {
-  const params = { TableName: GAME_RECORDS, Key: { id: gameID } };
+function isWatchTooLong(gameOptions, maxMs = 8 * 60 * 60 * 1000) {
+  const startedAt = gameOptions?.[WATCH_STARTED_AT_FIELD];
+  if (!startedAt) return false;
+  const parsed = Date.parse(startedAt);
+  if (!Number.isFinite(parsed)) return false;
+  return Date.now() - parsed > maxMs;
+}
+
+async function upsertSelfSchedule(nextCheckAt, gameID, reason, context) {
+  const targetArn = getTargetArn(context);
+  if (!SELF_SCHEDULING_ENABLED) {
+    log('info', 'Self scheduling disabled; skipping schedule update', {
+      gameID,
+      reason,
+      decision: 'schedule_skipped_disabled',
+      nextCheckAt,
+    });
+    return;
+  }
+  if (!scheduler) {
+    log('info', 'AWS Scheduler SDK unavailable; skipping schedule update', {
+      gameID,
+      reason,
+      decision: 'schedule_skipped_no_sdk',
+      nextCheckAt,
+    });
+    return;
+  }
+  if (!SCHEDULER_ROLE_ARN || !targetArn) {
+    log('info', 'Scheduler role/function ARN missing; skipping schedule update', {
+      gameID,
+      reason,
+      decision: 'schedule_skipped_missing_config',
+      nextCheckAt,
+    });
+    return;
+  }
+
+  const baseParams = {
+    Name: WATCH_SCHEDULE_NAME,
+    GroupName: SCHEDULER_GROUP_NAME,
+    ScheduleExpression: schedulerAtExpression(nextCheckAt),
+    FlexibleTimeWindow: { Mode: 'OFF' },
+    ActionAfterCompletion: 'DELETE',
+    Target: {
+      Arn: targetArn,
+      RoleArn: SCHEDULER_ROLE_ARN,
+      Input: JSON.stringify({
+        source: 'inseason.self-schedule',
+        reason,
+        gameID,
+        nextCheckAt,
+      }),
+      RetryPolicy: {
+        MaximumEventAgeInSeconds: 3600,
+        MaximumRetryAttempts: 2,
+      },
+    },
+  };
+
   try {
-    const result = await dynamoDB.get(params).promise();
-    return result.Item;
+    await scheduler.createSchedule(baseParams).promise();
+    log('info', 'Created self schedule', {
+      gameID,
+      reason,
+      nextCheckAt,
+      scheduleName: WATCH_SCHEDULE_NAME,
+      decision: 'schedule_created',
+    });
   } catch (error) {
-    log('error', 'GameRecords get failed', { error: String(error) });
-    throw new Error('Failed to retrieve game record');
+    if (error?.code !== 'ConflictException') throw error;
+    await scheduler.updateSchedule(baseParams).promise();
+    log('info', 'Updated self schedule', {
+      gameID,
+      reason,
+      nextCheckAt,
+      scheduleName: WATCH_SCHEDULE_NAME,
+      decision: 'schedule_updated',
+    });
   }
 }
 
-function isFinished(gameState) {
-  if (!gameState) return false;
-  const normalized = String(gameState).toUpperCase();
-  return ['OFF', 'FINAL', 'COMPLETED', 'OVER'].includes(normalized);
+async function clearSelfSchedule(gameID, reason) {
+  if (!SELF_SCHEDULING_ENABLED || !scheduler) return;
+
+  try {
+    await scheduler
+      .deleteSchedule({
+        Name: WATCH_SCHEDULE_NAME,
+        GroupName: SCHEDULER_GROUP_NAME,
+      })
+      .promise();
+    log('info', 'Deleted self schedule', {
+      gameID,
+      reason,
+      scheduleName: WATCH_SCHEDULE_NAME,
+      decision: 'schedule_deleted',
+    });
+  } catch (error) {
+    if (error?.code === 'ResourceNotFoundException') return;
+    log('error', 'Failed to delete self schedule', {
+      gameID,
+      reason,
+      error: String(error),
+    });
+  }
 }
 
 const handler = async (event, context) => {
