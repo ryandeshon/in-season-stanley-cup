@@ -277,6 +277,8 @@ SCHEDULER_GROUP_NAME
 SCHEDULER_ROLE_ARN
 WATCH_SCHEDULE_NAME
 CHECK_GAME_FUNCTION_ARN
+API_CACHE_DISTRIBUTION_ID
+API_CACHE_INVALIDATION_PATHS
 ```
 
 ## Scheduled game checker
@@ -296,6 +298,7 @@ Purpose:
   - Updates `champion` in `GameOptions`.
   - Increments `titleDefenses` and `totalDefenses` for the winning player.
   - Marks finalization metadata and clears active game fields.
+  - Invalidates API cache paths (for example `/champion`, `/gameid`) in CloudFront.
   - Stops additional self-check schedules.
 
 ## WebSocket live updates

@@ -9,6 +9,9 @@ const {
 const dynamoDB = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION || 'us-east-1',
 });
+const cloudFront = new AWS.CloudFront({
+  region: process.env.AWS_REGION || 'us-east-1',
+});
 const scheduler = AWS.Scheduler
   ? new AWS.Scheduler({
       region: process.env.AWS_REGION || 'us-east-1',
@@ -42,6 +45,14 @@ const SCHEDULER_ROLE_ARN = process.env.SCHEDULER_ROLE_ARN || null;
 const WATCH_SCHEDULE_NAME =
   process.env.WATCH_SCHEDULE_NAME ||
   `${(process.env.AWS_LAMBDA_FUNCTION_NAME || 'inseason-check-game').replace(/[^a-zA-Z0-9-_]/g, '-')}-watch`;
+const API_CACHE_DISTRIBUTION_ID = process.env.API_CACHE_DISTRIBUTION_ID || null;
+const API_CACHE_INVALIDATION_PATHS = (
+  process.env.API_CACHE_INVALIDATION_PATHS || '/champion,/gameid,/check-status'
+)
+  .split(',')
+  .map((path) => path.trim())
+  .filter(Boolean)
+  .map((path) => (path.startsWith('/') ? path : `/${path}`));
 
 function log(level, msg, extra = {}) {
   const base = { level, ts: new Date().toISOString(), ...extra };
@@ -542,6 +553,54 @@ async function clearSelfSchedule(gameID, reason) {
   }
 }
 
+async function invalidateApiCache(gameID, reason) {
+  if (!API_CACHE_DISTRIBUTION_ID) {
+    log('info', 'API cache distribution not configured; skipping invalidation', {
+      gameID,
+      reason,
+      decision: 'cache_invalidation_skipped_missing_distribution',
+    });
+    return;
+  }
+
+  const paths = API_CACHE_INVALIDATION_PATHS.length
+    ? API_CACHE_INVALIDATION_PATHS
+    : ['/champion', '/gameid'];
+
+  const callerReference = `check-game-${gameID}-${Date.now()}`;
+  const params = {
+    DistributionId: API_CACHE_DISTRIBUTION_ID,
+    InvalidationBatch: {
+      CallerReference: callerReference,
+      Paths: {
+        Quantity: paths.length,
+        Items: paths,
+      },
+    },
+  };
+
+  try {
+    const result = await cloudFront.createInvalidation(params).promise();
+    log('info', 'Requested API cache invalidation', {
+      gameID,
+      reason,
+      distributionId: API_CACHE_DISTRIBUTION_ID,
+      paths,
+      invalidationId: result?.Invalidation?.Id,
+      status: result?.Invalidation?.Status,
+      decision: 'cache_invalidation_requested',
+    });
+  } catch (error) {
+    log('error', 'Failed API cache invalidation request', {
+      gameID,
+      reason,
+      distributionId: API_CACHE_DISTRIBUTION_ID,
+      paths,
+      error: String(error),
+    });
+  }
+}
+
 const handler = async (event, context) => {
   log('info', 'Invocation start', {
     requestId: context?.awsRequestId,
@@ -657,6 +716,7 @@ const handler = async (event, context) => {
     if (!canWrite) {
       await setFinalizedState(gameID, wTeam);
       await clearSelfSchedule(gameID, 'duplicate_finalization');
+      await invalidateApiCache(gameID, 'duplicate_finalization');
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'Game already processed', gameID }),
@@ -673,6 +733,7 @@ const handler = async (event, context) => {
       );
       await setFinalizedState(gameID, wTeam);
       await clearSelfSchedule(gameID, 'game_finalized');
+      await invalidateApiCache(gameID, 'game_finalized');
 
       if (didSaveGameRecord) {
         const playerId = await findPlayerWithTeam(wTeam);
