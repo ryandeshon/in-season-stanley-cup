@@ -177,6 +177,35 @@
             "startTimeUTC": "2024-11-02T02:00:00Z"
           }
         ]
+      },
+      {
+        "date": "2024-11-02",
+        "games": [
+          {
+            "id": 2024022111,
+            "homeTeam": { "abbrev": "SEA" },
+            "awayTeam": { "abbrev": "BOS" },
+            "startTimeUTC": "2024-11-02T23:00:00Z"
+          },
+          {
+            "id": 2024022112,
+            "homeTeam": { "abbrev": "TOR" },
+            "awayTeam": { "abbrev": "CHI" },
+            "startTimeUTC": "2024-11-03T00:30:00Z"
+          },
+          {
+            "id": 2024022113,
+            "homeTeam": { "abbrev": "BOS" },
+            "awayTeam": { "abbrev": "STL" },
+            "startTimeUTC": "2024-11-03T02:00:00Z"
+          },
+          {
+            "id": 2024022114,
+            "homeTeam": { "abbrev": "TOR" },
+            "awayTeam": { "abbrev": "SEA" },
+            "startTimeUTC": "2024-11-03T03:00:00Z"
+          }
+        ]
       }
     ]
   }

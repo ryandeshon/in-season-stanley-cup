@@ -4,7 +4,7 @@ describe('In Season Cup - Homepage', () => {
       cy.mockApiScenario('cup-day-multiple-games');
     });
 
-    it('defaults the matchup selector to the Cup game and renders champion vs challenger', () => {
+    it('renders champion vs challenger with no conditional matchup list selected by default', () => {
       cy.visit('/');
       cy.wait([
         '@getChampion',
@@ -15,18 +15,43 @@ describe('In Season Cup - Homepage', () => {
       ]);
 
       cy.contains('h1', 'In Season Cup');
-      cy.get('[data-test="matchup-select"]').should('have.value', '2024021111');
-      cy.get('[data-test="matchup-select"] option')
-        .first()
-        .contains('Cup Defense');
       cy.contains('Champion');
       cy.contains('Ryan');
       cy.contains('Cooper');
       cy.contains('Period').should('contain', '2');
       cy.contains('Time Remaining').should('contain', '08:12');
+      cy.get('[data-test="conditional-matchups-section"]').should('not.exist');
       cy.get('[data-test="view-game-details-link"]')
         .should('have.attr', 'href')
         .and('include', '/game/2024021111');
+    });
+
+    it('shows conditional rest-of-week matchups when champion or challenger is selected', () => {
+      cy.visit('/');
+      cy.wait([
+        '@getChampion',
+        '@getGameId',
+        '@getGameInfo',
+        '@getPlayers',
+        '@getSchedule',
+      ]);
+
+      cy.get('[data-test="champion-select-card"] .v-card').click();
+      cy.contains('Possible Upcoming Match-ups If Ryan Wins Tonight');
+      cy.get('[data-test="conditional-matchup-row"]').should('have.length', 2);
+      cy.contains('Terry');
+      cy.contains('Boz');
+
+      cy.get('[data-test="challenger-select-card"] .v-card').click();
+      cy.contains('Possible Upcoming Match-ups If Cooper Wins Tonight');
+      cy.get('[data-test="conditional-matchup-row"]').should('have.length', 2);
+      cy.contains('Boz');
+      cy.contains('Terry');
+
+      cy.get('[data-test="view-game-details-link"]')
+        .parent()
+        .next('[data-test="conditional-matchups-section"]')
+        .should('exist');
     });
 
     it('navigates to game details and renders lineup data', () => {
@@ -45,12 +70,12 @@ describe('In Season Cup - Homepage', () => {
     });
   });
 
-  context('Cup day with only one game', () => {
+  context('Cup day with no next-day defense options', () => {
     beforeEach(() => {
       cy.mockApiScenario('cup-day-only');
     });
 
-    it('keeps the Cup game selected', () => {
+    it('shows an empty-state message for selected winner outcomes', () => {
       cy.visit('/');
       cy.wait([
         '@getChampion',
@@ -60,11 +85,11 @@ describe('In Season Cup - Homepage', () => {
         '@getSchedule',
       ]);
 
-      cy.get('[data-test="matchup-select"]').should('have.value', '2024022201');
-      cy.get('[data-test="matchup-select"] option').should('have.length', 1);
-      cy.contains('Game Information');
-      cy.contains('Cooper');
-      cy.contains('Terry');
+      cy.get('[data-test="champion-select-card"] .v-card').click();
+      cy.get('[data-test="conditional-matchups-empty"]').should(
+        'contain',
+        'No possible matchups for this winner this week.'
+      );
     });
   });
 
@@ -80,7 +105,7 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('Champion');
       cy.contains('is not Defending the Championship Today');
       cy.contains('Possible Upcoming Match-ups');
-      cy.get('[data-test="matchup-select"]').should('not.exist');
+      cy.get('[data-test="conditional-matchups-section"]').should('not.exist');
       cy.contains('11/02');
       cy.contains('11/03');
       cy.contains('Terry');

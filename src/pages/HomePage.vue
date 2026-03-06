@@ -89,7 +89,14 @@
         <div
           class="flex flex-row gap-4 justify-center items-center w-full my-4"
         >
-          <div>
+          <div
+            class="rounded-lg p-1 transition-colors"
+            :class="{
+              'cursor-pointer hover:bg-black/5': true,
+              'bg-black/10': selectedWinnerRole === 'champion',
+            }"
+            data-test="champion-select-card"
+          >
             <div class="text-center font-bold text-xl mb-2">Champion</div>
             <PlayerCard
               :player="playerChampion"
@@ -97,12 +104,21 @@
               :image-type="championAvatarType"
               :is-game-live="isGameLive"
               :is-champion="true"
+              :clickable="true"
+              @card-click="handleWinnerSelection('champion')"
             />
           </div>
           <div class="flex justify-center items-center">
             <strong>VS</strong>
           </div>
-          <div>
+          <div
+            class="rounded-lg p-1 transition-colors"
+            :class="{
+              'cursor-pointer hover:bg-black/5': true,
+              'bg-black/10': selectedWinnerRole === 'challenger',
+            }"
+            data-test="challenger-select-card"
+          >
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
             <PlayerCard
               :player="playerChallenger"
@@ -110,6 +126,8 @@
               :image-type="challengerAvatarType"
               :is-game-live="isGameLive"
               :is-mirror-match="isMirrorMatch"
+              :clickable="true"
+              @card-click="handleWinnerSelection('challenger')"
             />
           </div>
         </div>
@@ -120,6 +138,77 @@
             data-test="view-game-details-link"
             >View Game Details</router-link
           >
+        </div>
+        <div
+          v-if="selectedWinnerRole"
+          class="text-center mb-4"
+          data-test="conditional-matchups-section"
+        >
+          <h2 class="text-xl font-bold">{{ conditionalMatchupsHeading }}</h2>
+          <template v-if="conditionalMatchupsLoading">
+            <div class="flex justify-center items-center mt-4 h-20">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+              ></v-progress-circular>
+            </div>
+          </template>
+          <template v-else-if="conditionalMatchups.length">
+            <v-table class="mt-4">
+              <thead>
+                <tr>
+                  <th class="text-center"><strong>Date</strong></th>
+                  <th class="text-center"><strong>Home Team</strong></th>
+                  <th class="text-center"></th>
+                  <th class="text-center"><strong>Away Team</strong></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="game in conditionalMatchups"
+                  :key="game.id"
+                  class="py-2"
+                  data-test="conditional-matchup-row"
+                >
+                  <td class="text-center">{{ game.dateTime }}</td>
+                  <td>
+                    <div
+                      class="flex flex-col-reverse sm:flex-row sm:gap-2 justify-center items-center"
+                    >
+                      <router-link
+                        :to="`/player/${getTeamOwnerName(game.homeTeam.abbrev)}`"
+                        >{{ getTeamOwnerName(game.homeTeam.abbrev) }}
+                      </router-link>
+                      <TeamLogo
+                        :team="game.homeTeam.abbrev"
+                        width="50"
+                        height="50"
+                      />
+                    </div>
+                  </td>
+                  <td class="">vs</td>
+                  <td>
+                    <div
+                      class="flex flex-col sm:flex-row sm:gap-2 justify-center items-center"
+                    >
+                      <TeamLogo
+                        :team="game.awayTeam.abbrev"
+                        width="50"
+                        height="50"
+                      />
+                      <router-link
+                        :to="`/player/${getTeamOwnerName(game.awayTeam.abbrev)}`"
+                        >{{ getTeamOwnerName(game.awayTeam.abbrev) }}
+                      </router-link>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <p v-else class="mt-2" data-test="conditional-matchups-empty">
+            No possible matchups for this winner this week.
+          </p>
         </div>
       </template>
 
@@ -232,6 +321,10 @@ const cupGameId = ref(null);
 const selectedGameId = ref(null);
 const matchupOptions = ref([]);
 const matchupOptionsLoading = ref(false);
+const selectedWinnerRole = ref('');
+const conditionalMatchups = ref([]);
+const conditionalMatchupsLoading = ref(false);
+let conditionalMatchupsRequestId = 0;
 const lastLiveUpdateAt = ref(0);
 let pollIntervalId = null;
 const POLL_INTERVAL_MS = 30000;
@@ -347,6 +440,16 @@ const gameOverWinnerAvatarType = computed(() => {
 
 const gameOverLoserAvatarType = computed(() => {
   return 'Sad';
+});
+
+const conditionalMatchupsHeading = computed(() => {
+  if (selectedWinnerRole.value === 'champion') {
+    return `Possible Upcoming Match-ups If ${playerChampion.value?.name || 'Champion'} Wins Tonight`;
+  }
+  if (selectedWinnerRole.value === 'challenger') {
+    return `Possible Upcoming Match-ups If ${playerChallenger.value?.name || 'Challenger'} Wins Tonight`;
+  }
+  return 'Possible Upcoming Match-ups';
 });
 
 // const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
@@ -585,6 +688,84 @@ function getQuote() {
   return selectedQuote.replace(/{name}/g, playerName);
 }
 
+function resetConditionalMatchups() {
+  conditionalMatchupsRequestId += 1;
+  selectedWinnerRole.value = '';
+  conditionalMatchups.value = [];
+  conditionalMatchupsLoading.value = false;
+}
+
+async function handleWinnerSelection(role) {
+  selectedWinnerRole.value = role;
+  const winnerTeamAbbrev =
+    role === 'champion'
+      ? playerChampion.value?.championTeam?.abbrev
+      : playerChallenger.value?.challengerTeam?.abbrev;
+
+  if (!winnerTeamAbbrev) {
+    conditionalMatchups.value = [];
+    return;
+  }
+
+  await getConditionalMatchUps(winnerTeamAbbrev);
+}
+
+async function getConditionalMatchUps(winnerTeamAbbrev) {
+  const requestId = ++conditionalMatchupsRequestId;
+  conditionalMatchupsLoading.value = true;
+  const gameDate = todaysGame.value?.startTimeUTC
+    ? DateTime.fromISO(todaysGame.value.startTimeUTC)
+    : DateTime.now();
+  const targetDate = gameDate.plus({ days: 1 }).toFormat('yyyy-MM-dd');
+  try {
+    const scheduleData = await nhlApi.getSchedule(targetDate);
+    const gameWeek = Array.isArray(scheduleData?.data?.gameWeek)
+      ? scheduleData.data.gameWeek
+      : [];
+    const remainingWeekGames = gameWeek
+      .filter((entry) => entry?.date && entry.date >= targetDate)
+      .flatMap((entry) => entry?.games || []);
+
+    const resolvedMatchups = remainingWeekGames
+      .filter(
+        (game) =>
+          game?.homeTeam?.abbrev === winnerTeamAbbrev ||
+          game?.awayTeam?.abbrev === winnerTeamAbbrev
+      )
+      .map((game) => {
+        const opponentTeam =
+          game.homeTeam.abbrev === winnerTeamAbbrev
+            ? game.awayTeam
+            : game.homeTeam;
+
+        return {
+          ...game,
+          dateTime: DateTime.fromISO(game.startTimeUTC).toFormat(
+            'MM/dd h:mm a ZZZZ'
+          ),
+          opponentTeam,
+        };
+      })
+      .sort(
+        (a, b) =>
+          DateTime.fromISO(a.startTimeUTC).toMillis() -
+          DateTime.fromISO(b.startTimeUTC).toMillis()
+      );
+    if (requestId === conditionalMatchupsRequestId) {
+      conditionalMatchups.value = resolvedMatchups;
+    }
+  } catch (err) {
+    console.error('Failed to load conditional matchups', err);
+    if (requestId === conditionalMatchupsRequestId) {
+      conditionalMatchups.value = [];
+    }
+  } finally {
+    if (requestId === conditionalMatchupsRequestId) {
+      conditionalMatchupsLoading.value = false;
+    }
+  }
+}
+
 async function getPossibleMatchUps(championTeam) {
   const upcomingGames = [];
   const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
@@ -631,6 +812,10 @@ function getTeamOwner(teamAbbrev) {
   return teamOwner;
 }
 
+function getTeamOwnerName(teamAbbrev) {
+  return getTeamOwner(teamAbbrev)?.name || 'Unknown';
+}
+
 function triggerAnguishAvatar(team) {
   // Clear existing timer if any
   if (goalTimers.value[team]) {
@@ -667,6 +852,7 @@ function applyGameUpdate(gameData) {
 
   if (!championPlaying) {
     // Champion is not playing today, treat as no game
+    resetConditionalMatchups();
     isGameToday.value = false;
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
@@ -680,6 +866,7 @@ function applyGameUpdate(gameData) {
   isGameToday.value = true;
 
   if (isGameOver.value) {
+    resetConditionalMatchups();
     setGameOutcome(gameData);
     if (!wasGameOver) {
       refreshChampionAndGameState({ bustCache: true });
