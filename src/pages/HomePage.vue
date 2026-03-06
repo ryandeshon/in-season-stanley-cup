@@ -139,6 +139,77 @@
             >View Game Details</router-link
           >
         </div>
+        <div
+          v-if="selectedWinnerRole"
+          class="text-center mb-4"
+          data-test="conditional-matchups-section"
+        >
+          <h2 class="text-xl font-bold">{{ conditionalMatchupsHeading }}</h2>
+          <template v-if="conditionalMatchupsLoading">
+            <div class="flex justify-center items-center mt-4 h-20">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+              ></v-progress-circular>
+            </div>
+          </template>
+          <template v-else-if="conditionalMatchups.length">
+            <v-table class="mt-4">
+              <thead>
+                <tr>
+                  <th class="text-center"><strong>Date</strong></th>
+                  <th class="text-center"><strong>Home Team</strong></th>
+                  <th class="text-center"></th>
+                  <th class="text-center"><strong>Away Team</strong></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="game in conditionalMatchups"
+                  :key="game.id"
+                  class="py-2"
+                  data-test="conditional-matchup-row"
+                >
+                  <td class="text-center">{{ game.dateTime }}</td>
+                  <td>
+                    <div
+                      class="flex flex-col-reverse sm:flex-row sm:gap-2 justify-center items-center"
+                    >
+                      <router-link
+                        :to="`/player/${getTeamOwnerName(game.homeTeam.abbrev)}`"
+                        >{{ getTeamOwnerName(game.homeTeam.abbrev) }}
+                      </router-link>
+                      <TeamLogo
+                        :team="game.homeTeam.abbrev"
+                        width="50"
+                        height="50"
+                      />
+                    </div>
+                  </td>
+                  <td class="">vs</td>
+                  <td>
+                    <div
+                      class="flex flex-col sm:flex-row sm:gap-2 justify-center items-center"
+                    >
+                      <TeamLogo
+                        :team="game.awayTeam.abbrev"
+                        width="50"
+                        height="50"
+                      />
+                      <router-link
+                        :to="`/player/${getTeamOwnerName(game.awayTeam.abbrev)}`"
+                        >{{ getTeamOwnerName(game.awayTeam.abbrev) }}
+                      </router-link>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <p v-else class="mt-2" data-test="conditional-matchups-empty">
+            No possible matchups for this winner this week.
+          </p>
+        </div>
       </template>
 
       <!-- Champion is not defending -->
@@ -615,6 +686,84 @@ function getQuote() {
   // Replace {name} placeholder with the losing player's name
   const playerName = todaysLoser.value.player?.name || 'opponent';
   return selectedQuote.replace(/{name}/g, playerName);
+}
+
+function resetConditionalMatchups() {
+  conditionalMatchupsRequestId += 1;
+  selectedWinnerRole.value = '';
+  conditionalMatchups.value = [];
+  conditionalMatchupsLoading.value = false;
+}
+
+async function handleWinnerSelection(role) {
+  selectedWinnerRole.value = role;
+  const winnerTeamAbbrev =
+    role === 'champion'
+      ? playerChampion.value?.championTeam?.abbrev
+      : playerChallenger.value?.challengerTeam?.abbrev;
+
+  if (!winnerTeamAbbrev) {
+    conditionalMatchups.value = [];
+    return;
+  }
+
+  await getConditionalMatchUps(winnerTeamAbbrev);
+}
+
+async function getConditionalMatchUps(winnerTeamAbbrev) {
+  const requestId = ++conditionalMatchupsRequestId;
+  conditionalMatchupsLoading.value = true;
+  const gameDate = todaysGame.value?.startTimeUTC
+    ? DateTime.fromISO(todaysGame.value.startTimeUTC)
+    : DateTime.now();
+  const targetDate = gameDate.plus({ days: 1 }).toFormat('yyyy-MM-dd');
+  try {
+    const scheduleData = await nhlApi.getSchedule(targetDate);
+    const gameWeek = Array.isArray(scheduleData?.data?.gameWeek)
+      ? scheduleData.data.gameWeek
+      : [];
+    const remainingWeekGames = gameWeek
+      .filter((entry) => entry?.date && entry.date >= targetDate)
+      .flatMap((entry) => entry?.games || []);
+
+    const resolvedMatchups = remainingWeekGames
+      .filter(
+        (game) =>
+          game?.homeTeam?.abbrev === winnerTeamAbbrev ||
+          game?.awayTeam?.abbrev === winnerTeamAbbrev
+      )
+      .map((game) => {
+        const opponentTeam =
+          game.homeTeam.abbrev === winnerTeamAbbrev
+            ? game.awayTeam
+            : game.homeTeam;
+
+        return {
+          ...game,
+          dateTime: DateTime.fromISO(game.startTimeUTC).toFormat(
+            'MM/dd h:mm a ZZZZ'
+          ),
+          opponentTeam,
+        };
+      })
+      .sort(
+        (a, b) =>
+          DateTime.fromISO(a.startTimeUTC).toMillis() -
+          DateTime.fromISO(b.startTimeUTC).toMillis()
+      );
+    if (requestId === conditionalMatchupsRequestId) {
+      conditionalMatchups.value = resolvedMatchups;
+    }
+  } catch (err) {
+    console.error('Failed to load conditional matchups', err);
+    if (requestId === conditionalMatchupsRequestId) {
+      conditionalMatchups.value = [];
+    }
+  } finally {
+    if (requestId === conditionalMatchupsRequestId) {
+      conditionalMatchupsLoading.value = false;
+    }
+  }
 }
 
 async function getPossibleMatchUps(championTeam) {
