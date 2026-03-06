@@ -386,7 +386,7 @@ export const handler = async (event) => {
         return response(event, 404, { error: 'Champion not set in GameOptions' });
       }
 
-      let gameID = opts.gameID ?? null;
+      let gameID = opts.activeGameId ?? opts.gameID ?? null;
       let cacheOptions = {
         ttlSeconds: CACHE_TTLS.playingDay,
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
@@ -416,16 +416,22 @@ export const handler = async (event) => {
         }
       }
 
-      return response(event, 200, { champion, gameID }, cacheOptions);
+      return response(
+        event,
+        200,
+        { champion, gameID, activeGameId: gameID },
+        cacheOptions
+      );
     }
 
     if (path === '/gameid' && method === 'GET') {
       const opts = await getGameOptions();
-      const hasActiveGame = Boolean(opts.gameID);
+      const activeGameId = opts.activeGameId ?? opts.gameID ?? null;
+      const hasActiveGame = Boolean(activeGameId);
       return response(
         event,
         200,
-        { gameID: opts.gameID ?? null },
+        { gameID: activeGameId, activeGameId },
         hasActiveGame
           ? {
               ttlSeconds: CACHE_TTLS.playingDay,
@@ -438,6 +444,20 @@ export const handler = async (event) => {
               staleIfError: CACHE_TTLS.staleIfError,
             }
       );
+    }
+
+    if (path === '/check-status' && method === 'GET') {
+      const opts = await getGameOptions();
+      return response(event, 200, {
+        champion: opts.champion ?? null,
+        gameID: opts.activeGameId ?? opts.gameID ?? null,
+        activeGameId: opts.activeGameId ?? null,
+        checkStatus: opts.checkStatus ?? null,
+        nextCheckAt: opts.nextCheckAt ?? null,
+        lastCheckedAt: opts.lastCheckedAt ?? null,
+        finalizedAt: opts.finalizedAt ?? null,
+        processedGameId: opts.processedGameId ?? null,
+      });
     }
 
     // ---- Draft ----
