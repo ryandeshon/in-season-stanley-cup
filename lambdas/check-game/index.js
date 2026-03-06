@@ -551,23 +551,26 @@ const handler = async (event, context) => {
 
   try {
     const gameOptions = await getGameOptions();
-    let gameID = gameOptions?.[GAME_ID_FIELD] ?? null;
+    const champion = gameOptions?.[CHAMPION_FIELD] ?? null;
+    if (!champion) {
+      log('info', 'No champion set in GameOptions; exiting early');
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'No champion to check' }),
+      };
+    }
+
+    let gameID = getActiveGameId(gameOptions);
 
     if (!gameID) {
-      const champion = gameOptions?.[CHAMPION_FIELD] ?? null;
-      if (!champion) {
-        log('info', 'No champion set in GameOptions; exiting early');
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ message: 'No champion to check' }),
-        };
-      }
-
       const resolved = await resolveGameIdFromSchedule(champion);
       if (!resolved?.gameID) {
         log('info', 'No champion game found in schedule; exiting early', {
           champion,
+          decision: 'no_game_found',
         });
+        await setIdleState('no_champion_game');
+        await clearSelfSchedule(null, 'no_champion_game');
         return {
           statusCode: 200,
           body: JSON.stringify({ message: 'No champion game found' }),
@@ -580,6 +583,7 @@ const handler = async (event, context) => {
         champion,
         gameID,
         date: resolved.date,
+        decision: 'discovery_set_watch',
       });
     }
     log('info', 'GameID loaded', { gameID });
@@ -591,13 +595,25 @@ const handler = async (event, context) => {
       gameType: game.gameType,
       matchup: `${game.homeAbbrev} vs ${game.awayAbbrev}`,
       score: `${game.homeScore}-${game.awayScore}`,
+      state: game.gameState,
     });
+
+    if (isWatchTooLong(gameOptions)) {
+      log('info', 'Watch loop exceeded expected duration', {
+        gameID,
+        watchStartedAt: gameOptions?.[WATCH_STARTED_AT_FIELD],
+        decision: 'watching_too_long',
+      });
+    }
 
     if (typeof game.gameType !== 'undefined' && game.gameType !== 2) {
       log('info', 'Non-regular-season game; skipping', {
         gameType: game.gameType,
         gameID,
+        decision: 'non_regular_season',
       });
+      await setIdleState('non_regular_season');
+      await clearSelfSchedule(gameID, 'non_regular_season');
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'Not a regular season game' }),
@@ -605,14 +621,26 @@ const handler = async (event, context) => {
     }
 
     if (!isFinished(game.gameState)) {
+      const delaySeconds = getNextCheckDelaySeconds(game.gameState);
+      const nextCheckAt = addSecondsToNow(delaySeconds);
+      await updateWatchState(gameID, nextCheckAt, 'game_not_finished');
+      await upsertSelfSchedule(
+        nextCheckAt,
+        gameID,
+        `state_${String(game.gameState).toLowerCase()}`,
+        context
+      );
       log('info', 'Game not finished yet', {
         gameID,
         gameState: game.gameState,
+        nextCheckAt,
+        decision: 'reschedule',
       });
       return {
         statusCode: 200,
         body: JSON.stringify({
           message: `Game ${gameID} not finished (${game.gameState})`,
+          nextCheckAt,
         }),
       };
     }
@@ -625,25 +653,43 @@ const handler = async (event, context) => {
     const lScore = Math.min(game.homeScore, game.awayScore);
     log('info', 'Winner determined', { gameID, wTeam, wScore, lTeam, lScore });
 
-    const alreadySaved = await getSavedGame(gameID);
-    if (alreadySaved) {
-      log('info', 'Game already saved; skipping winner writes', { gameID });
-      await clearGameID();
+    const canWrite = await tryClaimProcessedGame(gameID);
+    if (!canWrite) {
+      await setFinalizedState(gameID, wTeam);
+      await clearSelfSchedule(gameID, 'duplicate_finalization');
       return {
         statusCode: 200,
-        body: JSON.stringify({ message: 'Game already processed' }),
+        body: JSON.stringify({ message: 'Game already processed', gameID }),
       };
     }
 
-    await saveGameStats(gameID, wTeam, wScore, lTeam, lScore);
-    await saveWinnerToDatabase(wTeam);
-    await clearGameID();
+    try {
+      const didSaveGameRecord = await saveGameStats(
+        gameID,
+        wTeam,
+        wScore,
+        lTeam,
+        lScore
+      );
+      await setFinalizedState(gameID, wTeam);
+      await clearSelfSchedule(gameID, 'game_finalized');
 
-    const playerId = await findPlayerWithTeam(wTeam);
-    if (playerId) {
-      await incrementTitleDefense(playerId, wTeam);
-    } else {
-      log('info', 'No player found for winning team', { wTeam });
+      if (didSaveGameRecord) {
+        const playerId = await findPlayerWithTeam(wTeam);
+        if (playerId) {
+          await incrementTitleDefense(playerId, wTeam);
+        } else {
+          log('info', 'No player found for winning team', { wTeam });
+        }
+      } else {
+        log('info', 'Skipping defense increment due existing game record', {
+          gameID,
+          writeOutcome: 'record_exists',
+        });
+      }
+    } catch (error) {
+      await releaseProcessedGameClaim(gameID);
+      throw error;
     }
 
     log('info', 'Invocation complete', { gameID, champion: wTeam });
@@ -660,4 +706,11 @@ const handler = async (event, context) => {
   }
 };
 
-module.exports = { handler };
+module.exports = {
+  handler,
+  __test: {
+    isFinished,
+    getNextCheckDelaySeconds,
+    schedulerAtExpression,
+  },
+};
