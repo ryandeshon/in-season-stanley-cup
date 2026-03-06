@@ -89,7 +89,14 @@
         <div
           class="flex flex-row gap-4 justify-center items-center w-full my-4"
         >
-          <div>
+          <div
+            class="rounded-lg p-1 transition-colors"
+            :class="{
+              'cursor-pointer hover:bg-black/5': true,
+              'bg-black/10': selectedWinnerRole === 'champion',
+            }"
+            data-test="champion-select-card"
+          >
             <div class="text-center font-bold text-xl mb-2">Champion</div>
             <PlayerCard
               :player="playerChampion"
@@ -97,12 +104,21 @@
               :image-type="championAvatarType"
               :is-game-live="isGameLive"
               :is-champion="true"
+              :clickable="true"
+              @card-click="handleWinnerSelection('champion')"
             />
           </div>
           <div class="flex justify-center items-center">
             <strong>VS</strong>
           </div>
-          <div>
+          <div
+            class="rounded-lg p-1 transition-colors"
+            :class="{
+              'cursor-pointer hover:bg-black/5': true,
+              'bg-black/10': selectedWinnerRole === 'challenger',
+            }"
+            data-test="challenger-select-card"
+          >
             <div class="text-center font-bold text-xl mb-2">Challenger</div>
             <PlayerCard
               :player="playerChallenger"
@@ -110,6 +126,8 @@
               :image-type="challengerAvatarType"
               :is-game-live="isGameLive"
               :is-mirror-match="isMirrorMatch"
+              :clickable="true"
+              @card-click="handleWinnerSelection('challenger')"
             />
           </div>
         </div>
@@ -232,6 +250,10 @@ const cupGameId = ref(null);
 const selectedGameId = ref(null);
 const matchupOptions = ref([]);
 const matchupOptionsLoading = ref(false);
+const selectedWinnerRole = ref('');
+const conditionalMatchups = ref([]);
+const conditionalMatchupsLoading = ref(false);
+let conditionalMatchupsRequestId = 0;
 const lastLiveUpdateAt = ref(0);
 let pollIntervalId = null;
 const POLL_INTERVAL_MS = 30000;
@@ -347,6 +369,16 @@ const gameOverWinnerAvatarType = computed(() => {
 
 const gameOverLoserAvatarType = computed(() => {
   return 'Sad';
+});
+
+const conditionalMatchupsHeading = computed(() => {
+  if (selectedWinnerRole.value === 'champion') {
+    return `Possible Upcoming Match-ups If ${playerChampion.value?.name || 'Champion'} Wins Tonight`;
+  }
+  if (selectedWinnerRole.value === 'challenger') {
+    return `Possible Upcoming Match-ups If ${playerChallenger.value?.name || 'Challenger'} Wins Tonight`;
+  }
+  return 'Possible Upcoming Match-ups';
 });
 
 // const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
@@ -629,6 +661,10 @@ function getTeamOwner(teamAbbrev) {
     player.teams.includes(teamAbbrev)
   );
   return teamOwner;
+}
+
+function getTeamOwnerName(teamAbbrev) {
+  return getTeamOwner(teamAbbrev)?.name || 'Unknown';
 }
 
 function triggerAnguishAvatar(team) {
