@@ -19,28 +19,6 @@
     <SeasonChampion v-else-if="isSeasonOver" />
 
     <template v-else>
-      <div v-if="showMatchupSelector" class="mb-4" data-test="matchup-selector">
-        <label for="matchup-select" class="block text-sm font-semibold mb-1">
-          Today&apos;s Matchup
-        </label>
-        <select
-          id="matchup-select"
-          v-model="selectedGameId"
-          class="w-full border rounded px-3 py-2 bg-white"
-          :disabled="matchupOptionsLoading"
-          data-test="matchup-select"
-          @change="handleMatchupSelection"
-        >
-          <option
-            v-for="option in matchupOptions"
-            :key="option.id"
-            :value="option.id"
-          >
-            {{ option.label }}
-          </option>
-        </select>
-      </div>
-
       <!-- Winner for tonight -->
       <template v-if="isGameOver">
         <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
@@ -371,7 +349,7 @@ const gameOverLoserAvatarType = computed(() => {
   return 'Sad';
 });
 
-const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
+// const showMatchupSelector = computed(() => matchupOptions.value.length > 0);
 
 watch(
   () => todaysGame.value.clock?.secondsRemaining,
@@ -555,12 +533,12 @@ async function loadMatchupOptions() {
   }
 }
 
-async function handleMatchupSelection() {
-  if (!cupGameId.value) return;
-  selectedGameId.value = String(cupGameId.value);
-  loading.value = true;
-  await getGameInfo(cupGameId.value);
-}
+// async function handleMatchupSelection() {
+//   if (!cupGameId.value) return;
+//   selectedGameId.value = String(cupGameId.value);
+//   loading.value = true;
+//   await getGameInfo(cupGameId.value);
+// }
 
 function getTeamsInfo(gameData = todaysGame.value) {
   const homeTeam = gameData.homeTeam;
