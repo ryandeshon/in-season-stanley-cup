@@ -852,6 +852,7 @@ function applyGameUpdate(gameData) {
 
   if (!championPlaying) {
     // Champion is not playing today, treat as no game
+    resetConditionalMatchups();
     isGameToday.value = false;
     playerChampion.value = allPlayersData.value.find((player) =>
       player.teams.includes(currentChampion.value)
@@ -865,6 +866,7 @@ function applyGameUpdate(gameData) {
   isGameToday.value = true;
 
   if (isGameOver.value) {
+    resetConditionalMatchups();
     setGameOutcome(gameData);
     if (!wasGameOver) {
       refreshChampionAndGameState({ bustCache: true });
