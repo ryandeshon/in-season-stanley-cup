@@ -47,7 +47,10 @@ export async function getGameId(options = {}) {
     throw new Error('API_BASE is not configured. Check .env.local file.');
   }
 
-  const response = await fetch(buildUrl('/gameid', options), buildFetchOptions(options));
+  const response = await fetch(
+    buildUrl('/gameid', options),
+    buildFetchOptions(options)
+  );
   if (!response.ok) {
     throw new Error(`Failed to fetch gameID: ${response.status}`);
   }
