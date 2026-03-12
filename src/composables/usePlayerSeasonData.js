@@ -17,7 +17,9 @@ export function usePlayerSeasonData(playerName) {
       );
       console.log(`Game records table: ${seasonStore.gameRecordsTableName}`);
 
-      const gameRecordsData = await getGameRecords();
+      const gameRecordsData = await getGameRecords({
+        season: seasonStore.currentSeason,
+      });
       gameRecords.value = gameRecordsData;
 
       console.log(`Loaded ${gameRecordsData.length} game records`);
@@ -37,7 +39,9 @@ export function usePlayerSeasonData(playerName) {
       );
       console.log(`Players table: ${seasonStore.playersTableName}`);
 
-      const playerData = await getPlayerData(playerName);
+      const playerData = await getPlayerData(playerName, {
+        season: seasonStore.currentSeason,
+      });
       player.value = playerData;
 
       console.log(`Loaded player data for ${playerName}:`, playerData);

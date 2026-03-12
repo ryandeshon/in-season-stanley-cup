@@ -33,7 +33,7 @@
               >
             </v-card-text>
           </v-card>
-          <div v-if="playersGamesPlayed" class="mt-5 grid gap-5">
+          <div v-if="playersGamesPlayed.length" class="mt-5 grid gap-5">
             <v-table>
               <thead>
                 <tr>
@@ -109,9 +109,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
-import { useTheme } from 'vuetify';
 
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
@@ -124,21 +123,10 @@ const {
   player: seasonPlayer,
   // loading,
 } = usePlayerSeasonData(props.name);
-const theme = useTheme();
-const isDarkOrLight = ref(theme.global.name.value);
-
-watch(
-  () => theme.global.name.value,
-  (newVal) => {
-    isDarkOrLight.value = newVal;
-  },
-  { immediate: true }
-);
 
 // Use the player from the composable
 const player = seasonPlayer;
-const allGamesPlayed = ref(null);
-const playersGamesPlayed = ref(null);
+const playersGamesPlayed = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const displayedGames = ref([]);
@@ -189,21 +177,6 @@ const getLosses = (team) => {
   return playersGamesPlayed.value.filter((game) => game.lTeam === team).length;
 };
 
-onMounted(() => {
-  // Initial setup - the composable handles data fetching
-  // Just wait for data to be available
-  const waitForData = () => {
-    if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
-      updatePlayerGames();
-    } else {
-      // Retry after a short delay
-      setTimeout(waitForData, 100);
-    }
-  };
-
-  waitForData();
-});
-
 // Function to update player games when game records change
 const updatePlayerGames = () => {
   if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
@@ -214,50 +187,23 @@ const updatePlayerGames = () => {
     );
 
     playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
-    allGamesPlayed.value = gameRecords.value;
 
     // Reset displayed games to show new data
     displayedGames.value = [];
     currentPage.value = 1;
     loadMore();
   } else {
-    console.log('Conditions not met for updatePlayerGames');
+    playersGamesPlayed.value = [];
+    displayedGames.value = [];
+    currentPage.value = 1;
   }
 };
 
-// Watch for gameRecords changes (when season changes)
 watch(
-  () => gameRecords.value,
-  (newGameRecords, oldGameRecords) => {
-    console.log('gameRecords watcher triggered');
-    console.log('New length:', newGameRecords?.length);
-    console.log('Old length:', oldGameRecords?.length);
+  [gameRecords, player],
+  () => {
     updatePlayerGames();
   },
-  { deep: true }
+  { immediate: true }
 );
-
-// Watch for player changes (when season changes)
-watch(
-  () => player.value,
-  (newPlayer, oldPlayer) => {
-    console.log('player watcher triggered');
-    console.log('New player:', newPlayer?.name);
-    console.log('Old player:', oldPlayer?.name);
-    if (newPlayer && gameRecords.value?.length > 0) {
-      updatePlayerGames();
-    }
-  },
-  { deep: true }
-);
-
-watch(playersGamesPlayed, (newVal) => {
-  if (newVal && displayedGames.value.length === 0) {
-    loadMore(); // Load the first set of games when playersGamesPlayed is loaded
-  }
-});
-
-onMounted(() => {
-  loadMore(); // Load the first set of games when the component is mounted
-});
 </script>

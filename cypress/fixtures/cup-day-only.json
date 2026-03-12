@@ -33,7 +33,7 @@
   "gameInfoResponse": {
     "id": 2024022201,
     "gameState": "FUT",
-    "startTimeUTC": "2024-12-15T01:30:00Z",
+    "startTimeUTC": "2024-12-15T20:30:00Z",
     "clock": {
       "inIntermission": false,
       "timeRemaining": "20:00",
@@ -75,7 +75,7 @@
             "id": 2024022201,
             "homeTeam": { "abbrev": "DAL" },
             "awayTeam": { "abbrev": "COL" },
-            "startTimeUTC": "2024-12-15T01:30:00Z"
+            "startTimeUTC": "2024-12-15T20:30:00Z"
           }
         ]
       }

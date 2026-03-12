@@ -1,58 +1,62 @@
 // src/services/playersService.js
-const API_BASE = process.env.VUE_APP_API_BASE;
+import { apiRequest } from '@/services/apiClient';
 
-export async function getAllPlayers() {
-  const res = await fetch(`${API_BASE}/players`);
-  if (!res.ok) throw new Error('Failed to fetch players');
-  return res.json();
+function withSeasonQuery(season) {
+  if (!season) return undefined;
+  return { season };
 }
 
-export async function getPlayerData(name) {
-  const res = await fetch(`${API_BASE}/players/${encodeURIComponent(name)}`);
-  if (!res.ok) throw new Error('Failed to fetch player');
-  return res.json();
-}
-
-export async function getGameRecords() {
-  const res = await fetch(`${API_BASE}/game-records`);
-  if (!res.ok) throw new Error('Failed to fetch game records');
-  return res.json();
-}
-
-export async function getDraftState() {
-  const res = await fetch(`${API_BASE}/draft/state`);
-  if (!res.ok) throw new Error('Failed to fetch draft state');
-  return res.json();
-}
-
-export async function updateDraftState(patch) {
-  const res = await fetch(`${API_BASE}/draft/state`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
+export async function getAllPlayers(options = {}) {
+  return apiRequest('/players', {
+    query: withSeasonQuery(options.season),
+    retries: 1,
   });
-  if (!res.ok) throw new Error('Failed to update draft state');
-  return res.json();
+}
+
+export async function getPlayerData(name, options = {}) {
+  return apiRequest(`/players/${encodeURIComponent(name)}`, {
+    query: withSeasonQuery(options.season),
+    retries: 1,
+  });
+}
+
+export async function getGameRecords(options = {}) {
+  return apiRequest('/game-records', {
+    query: withSeasonQuery(options.season),
+    retries: 1,
+  });
+}
+
+export async function getDraftState(options = {}) {
+  return apiRequest('/draft/state', {
+    query: withSeasonQuery(options.season),
+    retries: 1,
+  });
+}
+
+export async function updateDraftState(patch, options = {}) {
+  return apiRequest('/draft/state', {
+    method: 'PATCH',
+    body: patch,
+    query: withSeasonQuery(options.season),
+  });
 }
 
 export async function getDraftPlayers() {
   return getAllPlayers();
 }
 
-export async function selectTeamForPlayer(playerId, team) {
-  const res = await fetch(`${API_BASE}/draft/select-team`, {
+export async function selectTeamForPlayer(playerId, team, options = {}) {
+  return apiRequest('/draft/select-team', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerId, team }),
+    body: { playerId, team },
+    query: withSeasonQuery(options.season),
   });
-  if (!res.ok) throw new Error('Failed to select team for player');
-  return res.json();
 }
 
-export async function resetAllPlayerTeams() {
-  const res = await fetch(`${API_BASE}/players/reset-teams`, {
+export async function resetAllPlayerTeams(options = {}) {
+  return apiRequest('/players/reset-teams', {
     method: 'POST',
+    query: withSeasonQuery(options.season),
   });
-  if (!res.ok) throw new Error('Failed to reset teams');
-  return res.json();
 }

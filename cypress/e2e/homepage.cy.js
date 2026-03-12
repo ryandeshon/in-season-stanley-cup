@@ -109,7 +109,7 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('11/02');
       cy.contains('11/03');
       cy.contains('Terry');
-      cy.contains('Ryan');
+      cy.contains('Boz');
     });
   });
 

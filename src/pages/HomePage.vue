@@ -34,7 +34,8 @@
               Final Score: {{ todaysWinner.score }} - {{ todaysLoser.score }}
             </div>
             <div>
-              Winner: <strong>{{ todaysWinner.player.name }}</strong> -
+              Winner:
+              <strong>{{ todaysWinner.player?.name || 'Unknown' }}</strong> -
               {{ todaysWinner.commonName.default }}
             </div>
           </div>
@@ -62,6 +63,7 @@
                 {{ firstGameNonChampionTeam.date }}
               </p>
               <PlayerCard
+                v-if="firstGameNonChampionTeam.player"
                 :player="firstGameNonChampionTeam.player"
                 :team="firstGameNonChampionTeam.team"
                 image-type="Angry"
@@ -217,11 +219,13 @@
         <div class="flex flex-col justify-center items-center my-4">
           <div class="text-center font-bold text-xl mb-2">Champion</div>
           <PlayerCard
+            v-if="playerChampion?.name"
             :player="playerChampion"
             :current-champion="currentChampion"
             subtitle="is not Defending the Championship Today"
             image-type="Happy"
           />
+          <p v-else class="text-sm mb-0">Loading champion owner...</p>
         </div>
 
         <template v-if="potentialLoading">
@@ -251,8 +255,8 @@
                     class="flex flex-col-reverse sm:flex-row sm:gap-2 justify-center items-center"
                   >
                     <router-link
-                      :to="`/player/${getTeamOwner(game.homeTeam.abbrev).name}`"
-                      >{{ getTeamOwner(game.homeTeam.abbrev).name }}
+                      :to="`/player/${getTeamOwnerName(game.homeTeam.abbrev)}`"
+                      >{{ getTeamOwnerName(game.homeTeam.abbrev) }}
                     </router-link>
                     <TeamLogo
                       :team="game.homeTeam.abbrev"
@@ -272,8 +276,8 @@
                       height="50"
                     />
                     <router-link
-                      :to="`/player/${getTeamOwner(game.awayTeam.abbrev).name}`"
-                      >{{ getTeamOwner(game.awayTeam.abbrev).name }}
+                      :to="`/player/${getTeamOwnerName(game.awayTeam.abbrev)}`"
+                      >{{ getTeamOwnerName(game.awayTeam.abbrev) }}
                     </router-link>
                   </div>
                 </td>
@@ -362,6 +366,18 @@ const period = computed(() => {
   return todaysGame.value.periodDescriptor?.number;
 });
 
+const playersList = computed(() => {
+  return Array.isArray(allPlayersData.value) ? allPlayersData.value : [];
+});
+
+function findPlayerByTeam(teamAbbrev) {
+  if (!teamAbbrev) return undefined;
+  return playersList.value.find(
+    (player) =>
+      Array.isArray(player?.teams) && player.teams.includes(teamAbbrev)
+  );
+}
+
 const firstGameNonChampionTeam = computed(() => {
   if (possibleMatchUps.value.length === 0) {
     return null;
@@ -371,9 +387,7 @@ const firstGameNonChampionTeam = computed(() => {
     firstGame.homeTeam.abbrev === todaysWinner.value.abbrev
       ? firstGame.awayTeam
       : firstGame.homeTeam;
-  const player = allPlayersData.value.find((player) =>
-    player.teams.includes(nonChampionTeam.abbrev)
-  );
+  const player = findPlayerByTeam(nonChampionTeam.abbrev);
   return {
     date: firstGame.dateTime,
     team: nonChampionTeam,
@@ -528,9 +542,7 @@ onMounted(async () => {
     startPolling();
   } else {
     matchupOptions.value = [];
-    playerChampion.value = allPlayersData.value.find((player) =>
-      player.teams.includes(currentChampion.value)
-    );
+    playerChampion.value = findPlayerByTeam(currentChampion.value) || {};
     getPossibleMatchUps(currentChampion.value);
     loading.value = false;
   }
@@ -657,18 +669,10 @@ function getTeamsInfo(gameData = todaysGame.value) {
   const challengerTeam = championIsHome ? awayTeam : homeTeam;
 
   const championPlayer =
-    allPlayersData.value.find((player) =>
-      player.teams.includes(championTeam?.abbrev)
-    ) ||
-    playerChampion.value ||
-    {};
+    findPlayerByTeam(championTeam?.abbrev) || playerChampion.value || {};
 
   const challengerPlayer =
-    allPlayersData.value.find((player) =>
-      player.teams.includes(challengerTeam?.abbrev)
-    ) ||
-    playerChallenger.value ||
-    {};
+    findPlayerByTeam(challengerTeam?.abbrev) || playerChallenger.value || {};
 
   playerChampion.value = { ...championPlayer, championTeam };
   playerChallenger.value = { ...challengerPlayer, challengerTeam };
@@ -806,10 +810,7 @@ async function getPossibleMatchUps(championTeam) {
 }
 
 function getTeamOwner(teamAbbrev) {
-  const teamOwner = allPlayersData.value.find((player) =>
-    player.teams.includes(teamAbbrev)
-  );
-  return teamOwner;
+  return findPlayerByTeam(teamAbbrev);
 }
 
 function getTeamOwnerName(teamAbbrev) {
@@ -854,9 +855,7 @@ function applyGameUpdate(gameData) {
     // Champion is not playing today, treat as no game
     resetConditionalMatchups();
     isGameToday.value = false;
-    playerChampion.value = allPlayersData.value.find((player) =>
-      player.teams.includes(currentChampion.value)
-    );
+    playerChampion.value = findPlayerByTeam(currentChampion.value) || {};
     potentialLoading.value = true;
     getPossibleMatchUps(currentChampion.value);
     stopPolling();
@@ -889,15 +888,11 @@ function setGameOutcome(gameData) {
 
   todaysWinner.value = {
     ...winnerTeam,
-    player: allPlayersData.value.find((player) =>
-      player.teams.includes(winnerTeam.abbrev)
-    ),
+    player: findPlayerByTeam(winnerTeam.abbrev),
   };
   todaysLoser.value = {
     ...loserTeam,
-    player: allPlayersData.value.find((player) =>
-      player.teams.includes(loserTeam.abbrev)
-    ),
+    player: findPlayerByTeam(loserTeam.abbrev),
   };
 }
 

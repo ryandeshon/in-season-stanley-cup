@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useSeasonData } from '@/composables/useSeasonData';
 import { getCurrentChampion } from '../services/championServices';
 import TeamLogo from '@/components/TeamLogo.vue';
@@ -113,23 +113,13 @@ const updateCurrentChampion = async () => {
   }
 };
 
-onMounted(() => {
-  // Watch for when players data is loaded to update champion
-  const unwatch = () => {
-    if (players.value?.length > 0) {
+watch(
+  players,
+  (newPlayers) => {
+    if (newPlayers?.length > 0) {
       updateCurrentChampion();
     }
-  };
-
-  // Check immediately if data is already loaded
-  unwatch();
-
-  // Also watch for future data changes
-  const interval = setInterval(() => {
-    if (players.value?.length > 0) {
-      updateCurrentChampion();
-      clearInterval(interval);
-    }
-  }, 100);
-});
+  },
+  { immediate: true }
+);
 </script>
