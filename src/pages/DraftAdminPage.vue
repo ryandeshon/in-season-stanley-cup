@@ -8,8 +8,19 @@
       Disconnected. Trying to reconnect...
     </v-alert>
   </transition>
+  <v-snackbar
+    v-model="snackbar.visible"
+    :color="snackbar.color"
+    location="top"
+    timeout="3500"
+  >
+    {{ snackbar.message }}
+  </v-snackbar>
 
   <v-container class="max-w-screen-lg">
+    <v-alert v-if="loadError && !isLoading" type="error" class="mb-4">
+      {{ loadError }}
+    </v-alert>
     <template v-if="isLoading">
       <div class="flex justify-center items-center mt-10">
         <v-progress-circular indeterminate color="primary" />
@@ -65,7 +76,12 @@
                 </v-btn>
               </v-col>
               <v-col cols="12" sm="6" md="4" class="text-center">
-                <v-btn @click="resetTeams" color="error" size="large" block>
+                <v-btn
+                  @click="openResetDialog"
+                  color="error"
+                  size="large"
+                  block
+                >
                   Reset Draft
                 </v-btn>
               </v-col>
@@ -156,11 +172,27 @@
         </v-col>
       </v-row>
     </template>
+
+    <v-dialog v-model="resetDialogVisible" max-width="480">
+      <v-card>
+        <v-card-title class="text-h6">Reset Draft?</v-card-title>
+        <v-card-text>
+          This will clear all drafted teams and reset draft state.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="resetDialogVisible = false">
+            Cancel
+          </v-btn>
+          <v-btn color="error" @click="confirmResetTeams">Reset</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   getDraftPlayers,
   getDraftState,
@@ -168,30 +200,27 @@ import {
   updateDraftState,
   resetAllPlayerTeams,
 } from '../services/dynamodbService';
-import {
-  initSocket,
-  closeSocket,
-  clearSocketHandlers,
-  sendSocketMessage,
-  useSocket,
-} from '@/services/socketClient';
+import { sendSocketMessage } from '@/services/socketClient';
+import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 
-const { isConnected, lastMessage } = useSocket();
 const isLoading = ref(true);
-
-const isDisconnected = ref(false);
-watch(isConnected, (newVal) => {
-  isDisconnected.value = !newVal;
+const loadError = ref('');
+const resetDialogVisible = ref(false);
+const snackbar = ref({
+  visible: false,
+  message: '',
+  color: 'error',
 });
 
-watch(lastMessage, (data) => {
-  if (data?.type === 'draftUpdate') {
-    draftState.value = data.payload;
-    loadInitialData();
-  }
-});
+function showSnackbar(message, color = 'error') {
+  snackbar.value = {
+    visible: true,
+    message,
+    color,
+  };
+}
 
 const allPlayersData = ref([]);
 const currentPickerId = ref('');
@@ -234,9 +263,7 @@ const nhlTeams = ref([
 ]);
 
 const currentPicker = computed(() =>
-  allPlayersData.value.find((player) => {
-    return player.id === currentPickerId.value;
-  })
+  allPlayersData.value.find((player) => player.id === currentPickerId.value)
 );
 
 const orderedPlayers = computed(() => {
@@ -247,39 +274,51 @@ const orderedPlayers = computed(() => {
     .filter(Boolean);
 });
 
-async function loadInitialData() {
+const { isDisconnected } = useDraftRealtime({
+  onDraftUpdate(payload) {
+    draftState.value = payload || draftState.value;
+    availableTeams.value = payload?.availableTeams || [];
+    currentPickerId.value = payload?.currentPicker || '';
+    loadInitialData({ showLoading: false, skipDraftState: true });
+  },
+});
+
+async function loadInitialData(options = {}) {
+  const { showLoading = true, skipDraftState = false } = options;
+  if (showLoading) {
+    isLoading.value = true;
+  }
   try {
-    allPlayersData.value = await getDraftPlayers();
-    draftState.value = await getDraftState();
-    availableTeams.value = draftState.value.availableTeams;
-    currentPickerId.value = draftState.value.currentPicker;
-    isLoading.value = false;
+    const [playersData, stateData] = await Promise.all([
+      getDraftPlayers(),
+      skipDraftState ? Promise.resolve(draftState.value) : getDraftState(),
+    ]);
+    allPlayersData.value = playersData || [];
+    if (stateData) {
+      draftState.value = stateData;
+      availableTeams.value = stateData.availableTeams || [];
+      currentPickerId.value = stateData.currentPicker || '';
+    }
+    loadError.value = '';
   } catch (error) {
     console.error('Error fetching data:', error);
+    loadError.value = 'Unable to load draft admin data right now.';
+    showSnackbar(loadError.value, 'error');
+  } finally {
+    isLoading.value = false;
   }
 }
 
-watch(lastMessage, (data) => {
-  if (data?.type === 'draftUpdate') {
-    draftState.value = data.payload;
-    loadInitialData();
-  }
-});
-
-watch(availableTeams, (newVal) => {
-  if (newVal.length === 0) {
-    isDraftOver.value = true;
-  }
-});
+watch(
+  availableTeams,
+  (newVal) => {
+    isDraftOver.value = newVal.length === 0;
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
-  initSocket();
   loadInitialData();
-});
-
-onBeforeUnmount(() => {
-  closeSocket();
-  clearSocketHandlers();
 });
 
 function getPlayerName(playerId) {
@@ -316,10 +355,11 @@ async function startDraft() {
     const updatedState = await getDraftState();
 
     sendSocketMessage('default', updatedState);
-    await loadInitialData();
+    await loadInitialData({ showLoading: false });
+    showSnackbar('Draft started successfully.', 'success');
   } catch (error) {
     console.error('Failed to start draft:', error);
-    alert('Could not start the draft.');
+    showSnackbar('Could not start the draft.', 'error');
   }
 }
 
@@ -354,18 +394,18 @@ async function advanceDraft() {
 
     const updatedState = await getDraftState();
     sendSocketMessage('default', updatedState);
-    await loadInitialData();
+    await loadInitialData({ showLoading: false });
   } catch (error) {
     console.error('Failed to advance draft:', error);
-    alert('Could not advance the draft.');
+    showSnackbar('Could not advance the draft.', 'error');
   }
 }
 
-async function resetTeams() {
-  const confirmed = confirm('Are you sure you want to reset all teams?');
+function openResetDialog() {
+  resetDialogVisible.value = true;
+}
 
-  if (!confirmed) return;
-
+async function confirmResetTeams() {
   try {
     await resetAllPlayerTeams();
     await updateDraftState({
@@ -375,11 +415,13 @@ async function resetTeams() {
       currentPickNumber: 0,
       availableTeams: [...nhlTeams.value],
     });
-    await loadInitialData();
+    await loadInitialData({ showLoading: false });
     isDraftOver.value = false;
-    alert('Teams have been reset.');
+    resetDialogVisible.value = false;
+    showSnackbar('Teams have been reset.', 'success');
   } catch (error) {
-    alert('Failed to reset teams.');
+    console.error('Failed to reset teams:', error);
+    showSnackbar('Failed to reset teams.', 'error');
   }
 }
 </script>

@@ -28,7 +28,18 @@
       It's not your turn!
     </v-alert>
   </transition>
+  <v-snackbar
+    v-model="snackbar.visible"
+    :color="snackbar.color"
+    location="top"
+    timeout="3500"
+  >
+    {{ snackbar.message }}
+  </v-snackbar>
   <v-container class="max-w-screen-lg">
+    <v-alert v-if="loadError && !isLoading" type="error" class="mb-4">
+      {{ loadError }}
+    </v-alert>
     <template v-if="isLoading">
       <div class="flex justify-center items-center mt-10">
         <v-progress-circular
@@ -163,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   getDraftPlayers,
@@ -171,50 +182,34 @@ import {
   selectTeamForPlayer,
   updateDraftState,
 } from '../services/dynamodbService';
-import {
-  initSocket,
-  closeSocket,
-  clearSocketHandlers,
-  sendSocketMessage,
-  useSocket,
-} from '@/services/socketClient';
+import { sendSocketMessage } from '@/services/socketClient';
+import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
-const { isConnected, lastMessage } = useSocket();
 const isLoading = ref(true);
-
-const isDisconnected = ref(false);
-watch(isConnected, (newVal) => {
-  isDisconnected.value = !newVal;
-});
-
-watch(lastMessage, (data) => {
-  if (data?.type === 'draftUpdate') {
-    draftState.value = data.payload;
-    // Update available teams and current picker from the new state
-    availableTeams.value = data.payload.availableTeams || [];
-    currentPickerId.value = data.payload.currentPicker;
-
-    // Recalculate if it's the current player's turn
-    if (currentPlayer.value) {
-      isYourTurn.value = currentPlayer.value.id === currentPickerId.value;
-    }
-
-    // If draft just started and we don't have player data yet, reload it
-    if (data.payload.draftStarted && allPlayersData.value.length === 0) {
-      loadInitialData();
-    }
-  }
-});
-
+const loadError = ref('');
 const showIsNotYourTurn = ref(false);
+const snackbar = ref({
+  visible: false,
+  message: '',
+  color: 'error',
+});
+
 // Initialize audio objects with imported files
 const successSound = new Audio(successSoundFile);
 const errorSound = new Audio(errorSoundFile);
 const audioReady = ref(false);
+
+function showSnackbar(message, color = 'error') {
+  snackbar.value = {
+    visible: true,
+    message,
+    color,
+  };
+}
 
 // Call this function on user interaction to preload audio
 function preloadAudio() {
@@ -269,49 +264,70 @@ const nhlTeams = ref([
 ]);
 
 const currentPicker = computed(() =>
-  allPlayersData.value.find((player) => {
-    return player.id === currentPickerId.value;
-  })
+  allPlayersData.value.find((player) => player.id === currentPickerId.value)
 );
 
-// Fetch initial data from backend
-async function loadInitialData() {
-  try {
-    allPlayersData.value = await getDraftPlayers();
-    draftState.value = await getDraftState();
-    availableTeams.value = draftState.value.availableTeams;
+const { isDisconnected } = useDraftRealtime({
+  onDraftUpdate(payload) {
+    draftState.value = payload || draftState.value;
+    availableTeams.value = payload?.availableTeams || [];
+    currentPickerId.value = payload?.currentPicker || '';
+    syncCurrentPlayer();
+    loadInitialData({ showLoading: false, skipDraftState: true });
+  },
+});
 
-    allPlayersData.value.forEach((player) => {
-      if (player.name.toLowerCase() === playerName.toLowerCase()) {
-        currentPlayer.value = player;
-      }
-    });
-    if (!currentPlayer.value) {
-      alert('Player not found. Please check your URL.');
-      isLoading.value = false;
-      return;
+function syncCurrentPlayer() {
+  const foundPlayer = allPlayersData.value.find(
+    (player) => player.name.toLowerCase() === String(playerName).toLowerCase()
+  );
+  currentPlayer.value = foundPlayer || null;
+  if (!currentPlayer.value) {
+    loadError.value = 'Player not found. Please check your URL.';
+    showSnackbar(loadError.value, 'error');
+    return false;
+  }
+  isYourTurn.value = currentPlayer.value.id === currentPickerId.value;
+  loadError.value = '';
+  return true;
+}
+
+// Fetch initial data from backend
+async function loadInitialData(options = {}) {
+  const { showLoading = true, skipDraftState = false } = options;
+  if (showLoading) {
+    isLoading.value = true;
+  }
+  try {
+    const [playersData, stateData] = await Promise.all([
+      getDraftPlayers(),
+      skipDraftState ? Promise.resolve(draftState.value) : getDraftState(),
+    ]);
+    allPlayersData.value = playersData || [];
+
+    if (stateData) {
+      draftState.value = stateData;
+      availableTeams.value = stateData.availableTeams || [];
+      currentPickerId.value = stateData.currentPicker || '';
     }
 
-    currentPickerId.value = draftState.value.currentPicker;
-    isYourTurn.value = currentPlayer?.value.id === currentPickerId.value;
-    isLoading.value = false;
+    syncCurrentPlayer();
   } catch (error) {
     console.error('Error fetching data:', error);
+    loadError.value = 'Unable to load draft data right now.';
+    showSnackbar(loadError.value, 'error');
+  } finally {
+    isLoading.value = false;
   }
 }
 
-watch(lastMessage, (data) => {
-  if (data?.type === 'draftUpdate') {
-    draftState.value = data.payload;
-    loadInitialData(); // or use patching for better perf
-  }
-});
-
-watch(availableTeams, (newVal) => {
-  if (newVal.length === 0) {
-    isDraftOver.value = true;
-  }
-});
+watch(
+  availableTeams,
+  (newVal) => {
+    isDraftOver.value = newVal.length === 0;
+  },
+  { immediate: true }
+);
 
 // Watch for draft state changes to update UI reactively
 watch(
@@ -341,13 +357,7 @@ watch(
 );
 
 onMounted(() => {
-  initSocket();
   loadInitialData();
-});
-
-onBeforeUnmount(() => {
-  closeSocket();
-  clearSocketHandlers();
 });
 
 // Team selection logic (only when it's player's turn)
@@ -389,20 +399,19 @@ async function selectTeam(team) {
       currentPickNumber: draftState.value.currentPickNumber + 1,
     });
     const updatedState = await getDraftState(); // re-fetch full state
-    sendSocketMessage('default', updatedState); // 🔥 broadcast
+    sendSocketMessage('default', updatedState); // broadcast
 
-    await loadInitialData(); // refresh everything
+    await loadInitialData({ showLoading: false });
   } catch (error) {
     console.error('Error selecting team:', error);
-    alert('Something went wrong.');
+    showSnackbar('Something went wrong while picking a team.', 'error');
   }
 }
 
 // Computed property to grayscale picked teams
-const pickedTeams = computed(() => {
-  const picked = allPlayersData.value.flatMap((player) => player.teams || []);
-  return picked;
-});
+const pickedTeams = computed(() =>
+  allPlayersData.value.flatMap((player) => player.teams || [])
+);
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
