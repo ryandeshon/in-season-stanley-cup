@@ -16,6 +16,14 @@
 - Use placeholders for infrastructure identifiers.
 - Keep runbooks operationally useful without exposing sensitive metadata.
 
+## PR and issue linking
+- Every PR must reference related issue(s) in the PR description.
+- Use GitHub closing keywords when work is complete so issues auto-close on merge:
+  - `Closes #<issue-number>`
+  - `Fixes #<issue-number>`
+  - `Resolves #<issue-number>`
+- Use `Refs #<issue-number>` only for partial/non-closing relationships.
+
 ## AWS operations
 - Verify before changing production resources.
 - Change one layer at a time:
