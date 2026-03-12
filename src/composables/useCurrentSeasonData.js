@@ -1,5 +1,6 @@
 // src/composables/useCurrentSeasonData.js
 import { ref, onMounted } from 'vue';
+import { getAllPlayers, getGameRecords } from '@/services/dynamodbService';
 
 // using the same env var you used elsewhere
 const API_BASE = process.env.VUE_APP_API_BASE;
@@ -16,14 +17,8 @@ export function useCurrentSeasonData() {
 
     try {
       const [playersData, gameRecordsData] = await Promise.all([
-        fetch(`${API_BASE}/players`).then((r) => {
-          if (!r.ok) throw new Error('Failed to fetch players');
-          return r.json();
-        }),
-        fetch(`${API_BASE}/game-records`).then((r) => {
-          if (!r.ok) throw new Error('Failed to fetch game records');
-          return r.json();
-        }),
+        getAllPlayers(),
+        getGameRecords(),
       ]);
 
       players.value = playersData || [];
