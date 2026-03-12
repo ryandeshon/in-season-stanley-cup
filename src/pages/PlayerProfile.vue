@@ -1,115 +1,127 @@
 <template>
   <v-container class="max-w-screen-md min-h-32">
-    <div v-if="player">
-      <div class="flex flex-col justify-center items-center my-4">
-        <div v-if="player">
-          <v-card class="pb-3">
-            <v-card-text class="flex flex-col justify-center items-center">
-              <PlayerCard
-                :player="player"
-                :show-team-logo="false"
-                :image-type="currentImageType"
-                :clickable="true"
-                @card-click="cycleImage"
-                class="mb-4"
-              />
-              <div
-                v-if="player.championships && player.championships > 0"
-                class="flex gap-2 mb-2"
-              >
-                <img
-                  v-for="n in player.championships"
-                  :key="n"
-                  :src="cup"
-                  alt="Stanley Cup"
-                  class="w-10 h-10"
-                />
-              </div>
-              <span class="text-lg"
-                >Title Defenses: {{ player.titleDefenses }}</span
-              >
-              <span class="text-md" v-if="player.totalDefenses"
-                >Lifetime Defenses: {{ player.totalDefenses }}</span
-              >
-            </v-card-text>
-          </v-card>
-          <div v-if="playersGamesPlayed.length" class="mt-5 grid gap-5">
-            <v-table>
-              <thead>
-                <tr>
-                  <th class="text-center font-bold">Match Up</th>
-                  <th class="text-center font-bold">Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="game in displayedGames" :key="game.id" class="py-2">
-                  <td
-                    class="text-center flex gap-2 justify-center items-center"
-                  >
-                    <TeamLogo :team="game.wTeam" />
-                    vs.
-                    <TeamLogo :team="game.lTeam" />
-                  </td>
-
-                  <td class="text-center">
-                    <div
-                      class="text-center flex gap-2 justify-center items-center"
-                    >
-                      <TeamLogo :team="getResults(game).team" />
-                      <router-link
-                        :to="{ name: 'GamePage', params: { id: game.id } }"
-                        >{{ getResults(game).result }}</router-link
-                      >
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-            <v-btn
-              v-if="displayedGames.length < playersGamesPlayed.length"
-              @click="loadMore"
-            >
-              Load More
-            </v-btn>
-            <v-table>
-              <thead>
-                <tr>
-                  <th class="text-center">Team</th>
-                  <th class="text-center">Record</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="team in player.teams"
-                  :key="team"
-                  class="py-2 align-middle"
-                >
-                  <td class="text-center">
-                    <div class="flex justify-center items-center">
-                      <TeamLogo :team="team" class="!w-10 !h-10" />
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    {{ getWins(team) }} - {{ getLosses(team) }}
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
+    <div v-if="loading" class="flex justify-center items-center mt-10">
+      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+    </div>
+    <v-alert
+      v-else-if="profileErrorMessage"
+      type="error"
+      variant="tonal"
+      data-test="player-profile-error"
+    >
+      {{ profileErrorMessage }}
+    </v-alert>
+    <v-alert
+      v-else-if="!player"
+      type="warning"
+      variant="tonal"
+      data-test="player-profile-empty"
+    >
+      Player profile is not available.
+    </v-alert>
+    <div v-else class="flex flex-col justify-center items-center my-4">
+      <v-card class="pb-3">
+        <v-card-text class="flex flex-col justify-center items-center">
+          <PlayerCard
+            :player="player"
+            :show-team-logo="false"
+            :image-type="currentImageType"
+            :clickable="true"
+            @card-click="cycleImage"
+            class="mb-4"
+          />
+          <div
+            v-if="player.championships && player.championships > 0"
+            class="flex gap-2 mb-2"
+          >
+            <img
+              v-for="n in player.championships"
+              :key="n"
+              :src="cup"
+              alt="Stanley Cup"
+              class="w-10 h-10"
+            />
           </div>
-        </div>
-        <div v-else class="flex justify-center items-center mt-10">
-          <v-progress-circular
-            indeterminate
-            color="primary"
-          ></v-progress-circular>
-        </div>
+          <span class="text-lg"
+            >Title Defenses: {{ player.titleDefenses }}</span
+          >
+          <span class="text-md" v-if="player.totalDefenses"
+            >Lifetime Defenses: {{ player.totalDefenses }}</span
+          >
+        </v-card-text>
+      </v-card>
+      <div v-if="playersGamesPlayed.length" class="mt-5 grid gap-5">
+        <v-table>
+          <thead>
+            <tr>
+              <th class="text-center font-bold">Match Up</th>
+              <th class="text-center font-bold">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="game in displayedGames" :key="game.id" class="py-2">
+              <td class="text-center flex gap-2 justify-center items-center">
+                <TeamLogo :team="game.wTeam" />
+                vs.
+                <TeamLogo :team="game.lTeam" />
+              </td>
+
+              <td class="text-center">
+                <div class="text-center flex gap-2 justify-center items-center">
+                  <TeamLogo
+                    v-if="getResults(game).team"
+                    :team="getResults(game).team"
+                  />
+                  <router-link
+                    :to="{ name: 'GamePage', params: { id: game.id } }"
+                  >
+                    {{ getResults(game).result }}
+                  </router-link>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+        <v-btn
+          v-if="displayedGames.length < playersGamesPlayed.length"
+          @click="loadMore"
+        >
+          Load More
+        </v-btn>
+        <v-table>
+          <thead>
+            <tr>
+              <th class="text-center">Team</th>
+              <th class="text-center">Record</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="team in player.teams"
+              :key="team"
+              class="py-2 align-middle"
+            >
+              <td class="text-center">
+                <div class="flex justify-center items-center">
+                  <TeamLogo :team="team" class="!w-10 !h-10" />
+                </div>
+              </td>
+              <td class="text-center">
+                {{ getWins(team) }} - {{ getLosses(team) }}
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
       </div>
+      <p v-else class="text-sm mt-5" data-test="player-profile-no-games">
+        No game records yet for this player.
+      </p>
     </div>
   </v-container>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
 
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -121,7 +133,8 @@ const props = defineProps(['name']);
 const {
   gameRecords,
   player: seasonPlayer,
-  // loading,
+  loading,
+  error,
 } = usePlayerSeasonData(props.name);
 
 // Use the player from the composable
@@ -134,6 +147,11 @@ const displayedGames = ref([]);
 const currentImageType = ref('Happy');
 
 const imageTypes = ['Happy', 'Sad', 'Angry', 'Anguish'];
+
+const profileErrorMessage = computed(() => {
+  if (!error.value) return '';
+  return 'Unable to load this player profile right now. Please try again shortly.';
+});
 
 const cycleImage = () => {
   const currentIndex = imageTypes.indexOf(currentImageType.value);
