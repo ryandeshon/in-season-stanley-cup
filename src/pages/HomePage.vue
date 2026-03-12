@@ -251,8 +251,8 @@
                     class="flex flex-col-reverse sm:flex-row sm:gap-2 justify-center items-center"
                   >
                     <router-link
-                      :to="`/player/${getTeamOwner(game.homeTeam.abbrev).name}`"
-                      >{{ getTeamOwner(game.homeTeam.abbrev).name }}
+                      :to="`/player/${getTeamOwnerName(game.homeTeam.abbrev)}`"
+                      >{{ getTeamOwnerName(game.homeTeam.abbrev) }}
                     </router-link>
                     <TeamLogo
                       :team="game.homeTeam.abbrev"
@@ -272,8 +272,8 @@
                       height="50"
                     />
                     <router-link
-                      :to="`/player/${getTeamOwner(game.awayTeam.abbrev).name}`"
-                      >{{ getTeamOwner(game.awayTeam.abbrev).name }}
+                      :to="`/player/${getTeamOwnerName(game.awayTeam.abbrev)}`"
+                      >{{ getTeamOwnerName(game.awayTeam.abbrev) }}
                     </router-link>
                   </div>
                 </td>
