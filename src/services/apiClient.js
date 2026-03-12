@@ -42,7 +42,15 @@ async function parseResponseBody(response) {
   if (contentType.includes('application/json')) {
     return response.json();
   }
-  return response.text();
+  const text = await response.text();
+  if (!text) return null;
+
+  // Some API Gateway integrations return JSON with text/plain content-type.
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
 
 function shouldRetry(error, attempt, retries) {
@@ -81,11 +89,6 @@ export async function apiRequest(path, options = {}) {
 
       if (options.body !== undefined && options.body !== null) {
         headers['Content-Type'] = 'application/json';
-      }
-
-      if (options.bustCache) {
-        headers['Cache-Control'] = 'no-cache';
-        headers.Pragma = 'no-cache';
       }
 
       const response = await fetch(url.toString(), {
