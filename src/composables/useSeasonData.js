@@ -20,8 +20,8 @@ export function useSeasonData() {
       console.log(`Game records table: ${seasonStore.gameRecordsTableName}`);
 
       const [playersData, gameRecordsData] = await Promise.all([
-        getAllPlayers(),
-        getGameRecords(),
+        getAllPlayers({ season: seasonStore.currentSeason }),
+        getGameRecords({ season: seasonStore.currentSeason }),
       ]);
 
       players.value = playersData;
@@ -45,7 +45,9 @@ export function useSeasonData() {
 
     try {
       console.log(`Fetching players from ${seasonStore.playersTableName}...`);
-      const playersData = await getAllPlayers();
+      const playersData = await getAllPlayers({
+        season: seasonStore.currentSeason,
+      });
       players.value = playersData;
       console.log(`Loaded ${playersData.length} players`);
     } catch (err) {
@@ -65,7 +67,9 @@ export function useSeasonData() {
       console.log(
         `Fetching game records from ${seasonStore.gameRecordsTableName}...`
       );
-      const gameRecordsData = await getGameRecords();
+      const gameRecordsData = await getGameRecords({
+        season: seasonStore.currentSeason,
+      });
       gameRecords.value = gameRecordsData;
       console.log(`Loaded ${gameRecordsData.length} game records`);
     } catch (err) {
