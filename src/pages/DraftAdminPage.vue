@@ -13,12 +13,18 @@
     :color="snackbar.color"
     location="top"
     timeout="3500"
+    data-test="draft-admin-snackbar"
   >
     {{ snackbar.message }}
   </v-snackbar>
 
   <v-container class="max-w-screen-lg">
-    <v-alert v-if="loadError && !isLoading" type="error" class="mb-4">
+    <v-alert
+      v-if="loadError && !isLoading"
+      type="error"
+      class="mb-4"
+      data-test="draft-admin-load-error"
+    >
       {{ loadError }}
     </v-alert>
     <template v-if="isLoading">
@@ -173,7 +179,11 @@
       </v-row>
     </template>
 
-    <v-dialog v-model="resetDialogVisible" max-width="480">
+    <v-dialog
+      v-model="resetDialogVisible"
+      max-width="480"
+      data-test="draft-admin-reset-dialog"
+    >
       <v-card>
         <v-card-title class="text-h6">Reset Draft?</v-card-title>
         <v-card-text>
@@ -181,10 +191,20 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="resetDialogVisible = false">
+          <v-btn
+            variant="text"
+            data-test="draft-admin-reset-cancel"
+            @click="resetDialogVisible = false"
+          >
             Cancel
           </v-btn>
-          <v-btn color="error" @click="confirmResetTeams">Reset</v-btn>
+          <v-btn
+            color="error"
+            data-test="draft-admin-reset-confirm"
+            @click="confirmResetTeams"
+          >
+            Reset
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

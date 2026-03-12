@@ -33,11 +33,17 @@
     :color="snackbar.color"
     location="top"
     timeout="3500"
+    data-test="draft-player-snackbar"
   >
     {{ snackbar.message }}
   </v-snackbar>
   <v-container class="max-w-screen-lg">
-    <v-alert v-if="loadError && !isLoading" type="error" class="mb-4">
+    <v-alert
+      v-if="loadError && !isLoading"
+      type="error"
+      class="mb-4"
+      data-test="draft-player-load-error"
+    >
       {{ loadError }}
     </v-alert>
     <template v-if="isLoading">
