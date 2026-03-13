@@ -22,6 +22,7 @@ Example:
 2. Create `BACKLOG.md` from the template and split work into small verifiable tasks.
 3. Implement tasks one by one, updating `BACKLOG.md` statuses.
 4. Before PR/merge, run the security checklist in `ai/SECURITY.md`.
+5. In every PR description, include related issue links and use closing keywords for completed work (for example: `Closes #18`).
 
 ## Templates
 - `ai/project/_template/SPEC.md`

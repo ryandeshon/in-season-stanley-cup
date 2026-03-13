@@ -19,3 +19,4 @@
 - Keep tasks small and independently verifiable.
 - Update this file as work progresses.
 - Link PRs, commits, and test evidence here.
+- For merged PRs that complete tasks/issues, include closing keywords in PR body (e.g., `Closes #123`).
