@@ -18,15 +18,23 @@ applications:
               else
                 npm ci
               fi
+            - |
+              if [ "$AWS_BRANCH" = "test" ]; then
+                echo "Installing Cypress binary for branch $AWS_BRANCH"
+                ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" npx cypress install
+                ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" npx cypress verify
+              else
+                echo "Skipping Cypress binary install on branch $AWS_BRANCH"
+              fi
         build:
           commands:
             - |
               if [ "$AWS_BRANCH" = "test" ]; then
                 echo "Running Cypress end-to-end tests for branch $AWS_BRANCH"
                 if command -v yarn >/dev/null 2>&1; then
-                  yarn test:e2e
+                  ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" yarn test:e2e
                 else
-                  npm run test:e2e
+                  ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" npm run test:e2e
                 fi
               else
                 echo "Skipping Cypress on branch $AWS_BRANCH"
@@ -44,3 +52,4 @@ applications:
       cache:
         paths:
           - node_modules/**/*
+          - .cache/Cypress/**/*

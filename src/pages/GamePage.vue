@@ -4,6 +4,22 @@
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
     </div>
   </template>
+  <template v-else-if="errorMessage">
+    <v-container class="max-w-screen-md">
+      <h1 class="text-4xl font-bold mb-4">Game Details</h1>
+      <v-alert type="error" variant="tonal" data-test="game-error">
+        {{ errorMessage }}
+      </v-alert>
+    </v-container>
+  </template>
+  <template v-else-if="!gameDetails">
+    <v-container class="max-w-screen-md">
+      <h1 class="text-4xl font-bold mb-4">Game Details</h1>
+      <v-alert type="warning" variant="tonal" data-test="game-empty">
+        Game details are not available yet.
+      </v-alert>
+    </v-container>
+  </template>
   <template v-else>
     <v-container class="max-w-screen-md">
       <h1 class="text-4xl font-bold mb-4">Game Details</h1>
@@ -179,6 +195,7 @@ import TeamLogo from '@/components/TeamLogo.vue';
 
 const loading = ref(true);
 const gameDetails = ref(null);
+const errorMessage = ref('');
 const localStartTime = ref(null);
 const homeTeamPlayers = ref([]);
 const homeTeamGoalies = ref([]);
@@ -208,9 +225,10 @@ onMounted(async () => {
       );
     awayTeamGoalies.value =
       gameDetails.value.playerByGameStats.awayTeam.goalies;
-
-    console.log('🚀 ~ onMounted ~ gameDetails:', gameDetails.value);
+    errorMessage.value = '';
   } catch (error) {
+    errorMessage.value =
+      'Unable to load game details right now. Please try again in a moment.';
     console.error('Error fetching game details:', error);
   } finally {
     loading.value = false;

@@ -7,6 +7,15 @@
     >
       In Season Cup <span v-if="isSeasonOver">Champion</span>
     </h1>
+    <v-alert
+      v-if="homeErrorMessage"
+      type="warning"
+      variant="tonal"
+      class="mb-4"
+      data-test="home-warning"
+    >
+      {{ homeErrorMessage }}
+    </v-alert>
     <template v-if="loading">
       <div class="flex justify-center items-center mt-4 h-40">
         <v-progress-circular
@@ -303,9 +312,11 @@ import SeasonChampion from '@/pages/SeasonChampion.vue';
 
 import quotes from '@/utilities/quotes.json';
 
-const { players: allPlayersData } = useCurrentSeasonData();
+const { players: allPlayersData, error: seasonDataError } =
+  useCurrentSeasonData();
 const loading = ref(true);
 const potentialLoading = ref(true);
+const homeError = ref('');
 const currentChampion = ref(null);
 const localStartTime = ref(null);
 const todaysGame = ref({});
@@ -368,6 +379,14 @@ const period = computed(() => {
 
 const playersList = computed(() => {
   return Array.isArray(allPlayersData.value) ? allPlayersData.value : [];
+});
+
+const homeErrorMessage = computed(() => {
+  if (homeError.value) return homeError.value;
+  if (seasonDataError.value) {
+    return 'Player data is unavailable right now. Team owners may appear as Unknown.';
+  }
+  return '';
 });
 
 function findPlayerByTeam(teamAbbrev) {
@@ -554,6 +573,7 @@ async function refreshChampionAndGameState(options = {}) {
       getCurrentChampion(options),
       getGameId(options),
     ]);
+    homeError.value = '';
     currentChampion.value = champion;
     gameID.value = activeGameId;
     cupGameId.value = activeGameId;
@@ -561,6 +581,8 @@ async function refreshChampionAndGameState(options = {}) {
       selectedGameId.value = activeGameId;
     }
   } catch (error) {
+    homeError.value =
+      'Unable to refresh champion/game status right now. Retrying automatically.';
     console.error('Error refreshing champion/game state:', error);
   }
 }
@@ -573,7 +595,10 @@ async function getGameInfo(
   try {
     const result = await nhlApi.getGameInfo(targetGameId);
     applyGameUpdate(result.data);
+    homeError.value = '';
   } catch (error) {
+    homeError.value =
+      'Live game details are temporarily unavailable. Showing last known state.';
     console.error('Error fetching game result:', error);
   } finally {
     loading.value = false;
