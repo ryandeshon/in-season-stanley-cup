@@ -106,6 +106,14 @@ initSocket({
 - `yarn serve` - Dev server with hot reload
 - `yarn build` - Production build
 - `yarn lint` / `yarn lint:fix` - ESLint + Prettier formatting
+- `yarn test:e2e` - Headless Cypress run for PR validation
+
+### PR Test Policy
+
+- Every PR must run Cypress before review/merge (`yarn test:e2e`).
+- Any new user-facing feature must include new or updated Cypress coverage in `cypress/e2e/`.
+- Bug fixes must include a Cypress assertion that would fail before the fix and pass after.
+- PR descriptions must list Cypress coverage changes and test results.
 
 ### Code Style
 

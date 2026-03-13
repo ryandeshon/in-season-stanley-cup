@@ -11,8 +11,8 @@
     "assets:optimize": "bash ./scripts/assets/optimize-images.sh",
     "assets:upload": "bash ./scripts/assets/upload-assets.sh",
     "assets:bootstrap": "bash ./scripts/assets/bootstrap-assets-infra.sh",
-    "test:e2e": "start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
-    "test:e2e:open": "start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
+    "test:e2e": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
+    "test:e2e:open": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
     "security:audit": "bash ./scripts/security-scan.sh"
   },
   "dependencies": {
