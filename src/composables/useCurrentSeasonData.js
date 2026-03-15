@@ -1,11 +1,13 @@
 // src/composables/useCurrentSeasonData.js
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { getAllPlayers, getGameRecords } from '@/services/dynamodbService';
+import { useSeasonStore } from '@/store/seasonStore';
 
 // using the same env var you used elsewhere
 const API_BASE = process.env.VUE_APP_API_BASE;
 
 export function useCurrentSeasonData() {
+  const seasonStore = useSeasonStore();
   const players = ref([]);
   const gameRecords = ref([]);
   const loading = ref(false);
@@ -17,8 +19,8 @@ export function useCurrentSeasonData() {
 
     try {
       const [playersData, gameRecordsData] = await Promise.all([
-        getAllPlayers(),
-        getGameRecords(),
+        getAllPlayers({ season: seasonStore.currentSeason }),
+        getGameRecords({ season: seasonStore.currentSeason }),
       ]);
 
       players.value = playersData || [];
@@ -40,6 +42,15 @@ export function useCurrentSeasonData() {
     }
     fetchCurrentSeasonData();
   });
+
+  watch(
+    () => seasonStore.currentSeason,
+    () => {
+      if (API_BASE) {
+        fetchCurrentSeasonData();
+      }
+    }
+  );
 
   return {
     players,

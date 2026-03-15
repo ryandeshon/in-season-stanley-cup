@@ -85,6 +85,7 @@ Create a `.env.local` file at the repo root with:
 VUE_APP_API_BASE=<your-api-gateway-base-url>
 VUE_APP_NHL_API_URL=<nhl-api-base-or-proxy>
 VUE_APP_WEB_SOCKET_URL=<websocket-url>
+VUE_APP_ENABLE_SEASON_CONTRACTS=<optional true|false for /season/meta and /champion/history calls>
 VUE_APP_ASSET_BASE_URL=<optional-cloudfront-asset-domain>
 VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
 ```
@@ -124,6 +125,10 @@ Notes:
   scores, standings, and boxscores.
 - `VUE_APP_WEB_SOCKET_URL` enables real-time updates (live games + draft).
   If unset, the app will fall back to polling for game updates.
+- `VUE_APP_ENABLE_SEASON_CONTRACTS` controls whether the homepage calls newer
+  season endpoints (`/season/meta`, `/champion/history`). If unset, local dev
+  defaults to disabled to avoid noisy CORS/404 when backend routes are not yet
+  deployed; production remains enabled.
 - `VUE_APP_ASSET_BASE_URL` enables remote-first loading for player avatars and
   Season 2 custom team logos, with local fallback if remote assets fail.
 - `VUE_APP_ASSET_VERSION` optionally prepends a path segment (e.g., `v1`) so
@@ -205,9 +210,9 @@ Season state lives in `src/store/seasonStore.js` and is persisted to
 - Visual theme (`season1` vs `season2`, plus light/dark).
 - Player/avatar assets and team logo source.
 
-Note: The backend API doesn’t currently take a season parameter. The season
-selector affects UI/branding and local assets; data remains whatever the API
-serves.
+The backend API supports `?season=seasonN` (or `?season=N`) for season-aware
+data reads/writes. The UI season selector controls branding, and key data
+fetches now pass the selected season.
 
 ## Backend API (Lambda)
 
@@ -224,13 +229,20 @@ PATCH  /players/:id/teams
 GET    /game-records
 
 GET    /champion
+GET    /champion/history
 GET    /gameid
 GET    /check-status
+GET    /season/meta
 
 GET    /draft/state
 PATCH  /draft/state
 POST   /draft/select-team
 ```
+
+Notes:
+- `PATCH /draft/state` requires a `version` field for optimistic concurrency.
+- Stale draft updates return `409` with `currentState` + `currentVersion`.
+- Protected mutating routes enforce `x-admin-token` when `ADMIN_API_TOKEN` is configured.
 
 ### Key DynamoDB tables
 
@@ -252,6 +264,21 @@ DRAFT_STATE_ID
 CORS_ORIGIN
 NHL_API_BASE
 NHL_TEAMS
+DEFAULT_SEASON
+ADMIN_API_TOKEN
+PLAYERS_TABLE_SEASON1
+GAME_RECORDS_TABLE_SEASON1
+PLAYERS_TABLE_SEASON2
+GAME_RECORDS_TABLE_SEASON2
+PLAYERS_TABLE_SEASON3
+GAME_RECORDS_TABLE_SEASON3
+...
+SEASON2_REGULAR_SEASON_END
+SEASON2_PLAYOFFS_START
+SEASON2_SEASON_OVER
+SEASON3_REGULAR_SEASON_END
+SEASON3_PLAYOFFS_START
+SEASON3_SEASON_OVER
 ```
 
 Used by `lambdas/check-game/index.js`:
@@ -343,8 +370,8 @@ The NHL data comes from `https://api-web.nhle.com/v1` (or a proxy set via
 
 - `src/services/dynamodbService.js` is a frontend API client (not raw DynamoDB).
 - `src/store/index.js` is legacy and not used by the current app entry.
-- The season selector does not change backend data unless the API is built to
-  do so.
+- Season rollover and table/env conventions are documented in
+  `docs/season-data-runbook.md`.
 
 ## License
 

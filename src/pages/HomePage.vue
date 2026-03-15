@@ -234,20 +234,35 @@
             subtitle="is not Defending the Championship Today"
             image-type="Happy"
           />
-          <p v-else class="text-sm mb-0">Loading champion owner...</p>
+          <p v-else class="text-sm mb-0" data-test="champion-team-fallback">
+            Current champion team:
+            <strong>{{ currentChampion || 'Unknown' }}</strong>
+            (owner unavailable)
+          </p>
         </div>
 
-        <template v-if="potentialLoading">
-          <div class="flex justify-center items-center mt-4 h-40">
-            <v-progress-circular
-              indeterminate
-              color="primary"
-            ></v-progress-circular>
-          </div>
-        </template>
-        <div v-else class="text-center mb-4">
-          <h2 class="text-xl font-bold">Possible Upcoming Match-ups</h2>
-          <v-table class="mt-4">
+        <div class="text-center mb-4" data-test="whats-next-panel">
+          <h2 class="text-xl font-bold">What's Next</h2>
+          <p class="text-sm mb-2">Possible Upcoming Match-ups</p>
+          <template v-if="potentialLoading">
+            <div
+              class="flex justify-center items-center mt-4 h-40"
+              data-test="whats-next-loading"
+            >
+              <v-progress-circular
+                indeterminate
+                color="primary"
+              ></v-progress-circular>
+            </div>
+          </template>
+          <p
+            v-else-if="possibleMatchupsError"
+            data-test="whats-next-error"
+            class="text-sm"
+          >
+            {{ possibleMatchupsError }}
+          </p>
+          <v-table v-else-if="possibleMatchUps.length" class="mt-4">
             <thead>
               <tr>
                 <th class="text-center"><strong>Date</strong></th>
@@ -257,7 +272,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="game in possibleMatchUps" :key="game.id" class="py-2">
+              <tr
+                v-for="game in possibleMatchUps"
+                :key="game.id"
+                class="py-2"
+                data-test="whats-next-row"
+              >
                 <td class="text-center">{{ game.dateTime }}</td>
                 <td>
                   <div
@@ -293,24 +313,71 @@
               </tr>
             </tbody>
           </v-table>
+          <p v-else data-test="whats-next-empty" class="text-sm">
+            No next-defense games are scheduled this week.
+          </p>
         </div>
       </template>
+
+      <section class="mt-8" data-test="champion-timeline">
+        <h2 class="text-2xl font-bold mb-2">Champion Timeline</h2>
+        <template v-if="championHistoryLoading">
+          <div class="flex justify-center items-center h-20">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+              data-test="champion-history-loading"
+            />
+          </div>
+        </template>
+        <p v-else-if="championHistoryError" data-test="champion-history-error">
+          {{ championHistoryError }}
+        </p>
+        <ul
+          v-else-if="championHistory.length"
+          class="list-none p-0 m-0"
+          data-test="champion-history-list"
+        >
+          <li
+            v-for="entry in championHistory"
+            :key="entry.gameId || entry.recordedAt"
+            class="py-2 border-b border-black/10"
+            data-test="champion-history-item"
+          >
+            {{ formatHistoryEntry(entry) }}
+          </li>
+        </ul>
+        <p v-else data-test="champion-history-empty">
+          No champion transitions recorded yet.
+        </p>
+      </section>
     </template>
   </v-container>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { useCupGameState } from '@/composables/useCupGameState';
 import { useLiveGameFeed } from '@/composables/useLiveGameFeed';
 import { useUpcomingMatchups } from '@/composables/useUpcomingMatchups';
+import {
+  areSeasonContractEndpointsEnabled,
+  getChampionHistory,
+  shouldUseContractFallback,
+} from '@/services/championServices';
+import { useSeasonStore } from '@/store/seasonStore';
+import {
+  hasSessionWarning,
+  setSessionWarning,
+} from '@/utilities/sessionWarnings';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
 
 const { players: allPlayersData, error: seasonDataError } =
   useCurrentSeasonData();
+const seasonStore = useSeasonStore();
 
 const playersList = computed(() => {
   return Array.isArray(allPlayersData.value) ? allPlayersData.value : [];
@@ -350,7 +417,9 @@ const {
   challengerAvatarType,
   gameOverWinnerAvatarType,
   gameOverLoserAvatarType,
+  seasonMetaWarning,
   setLifecycleHandlers,
+  refreshSeasonMeta,
   refreshChampionAndGameState,
   getGameInfo,
   getQuote,
@@ -369,6 +438,7 @@ const upcomingMatchups = useUpcomingMatchups({
 const {
   potentialLoading,
   possibleMatchUps,
+  possibleMatchupsError,
   matchupOptions,
   selectedWinnerRole,
   conditionalMatchups,
@@ -417,8 +487,80 @@ setLifecycleHandlers({
   },
 });
 
+const championHistory = ref([]);
+const championHistoryLoading = ref(true);
+const championHistoryError = ref('');
+const contractWarning = ref('');
+const CHAMPION_HISTORY_CONTRACT_WARNING_KEY =
+  'home-champion-history-contract-warning';
+
+async function loadChampionHistory() {
+  if (!areSeasonContractEndpointsEnabled()) {
+    championHistory.value = [];
+    championHistoryLoading.value = false;
+    championHistoryError.value = '';
+    if (!hasSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY)) {
+      setSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY);
+      contractWarning.value =
+        'Champion timeline checks are disabled by configuration (VUE_APP_ENABLE_SEASON_CONTRACTS=false).';
+    }
+    return;
+  }
+
+  championHistoryLoading.value = true;
+  championHistoryError.value = '';
+  try {
+    const response = await getChampionHistory({
+      season: seasonStore.currentSeason,
+      limit: 6,
+    });
+    championHistory.value = Array.isArray(response?.history)
+      ? response.history
+      : [];
+  } catch (error) {
+    championHistory.value = [];
+    if (shouldUseContractFallback(error)) {
+      championHistoryError.value = '';
+      if (!hasSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY)) {
+        setSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY);
+        contractWarning.value =
+          'Backend timeline endpoints from this branch are not deployed in this environment yet. Showing timeline empty state.';
+        console.warn(
+          '[home] Using local fallback because /champion/history is unavailable in the current API deployment.'
+        );
+      }
+      return;
+    }
+    championHistoryError.value =
+      'Champion timeline is unavailable right now. Please try again later.';
+    console.error('Error loading champion history:', error);
+  } finally {
+    championHistoryLoading.value = false;
+  }
+}
+
+function formatHistoryEntry(entry) {
+  const winner = entry?.winnerTeam || 'Unknown';
+  const winnerOwner = getTeamOwnerName(winner);
+  const loser = entry?.loserTeam || 'Unknown';
+  const hasScore =
+    Number.isFinite(entry?.winnerScore) && Number.isFinite(entry?.loserScore);
+  const scoreText = hasScore
+    ? ` (${entry.winnerScore}-${entry.loserScore})`
+    : '';
+  const recordedDate = entry?.recordedAt
+    ? new Date(entry.recordedAt).toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+      })
+    : 'Unknown date';
+  return `${winnerOwner} \u2022 ${winner} def. ${loser}${scoreText} \u2022 ${recordedDate}`;
+}
+
 const homeErrorMessage = computed(() => {
   if (homeError.value) return homeError.value;
+  if (seasonMetaWarning.value) return seasonMetaWarning.value;
+  if (contractWarning.value) return contractWarning.value;
   if (seasonDataError.value) {
     return 'Player data is unavailable right now. Team owners may appear as Unknown.';
   }
@@ -426,6 +568,9 @@ const homeErrorMessage = computed(() => {
 });
 
 onMounted(async () => {
+  await refreshSeasonMeta();
+  await loadChampionHistory();
+
   if (isSeasonOver.value) {
     loading.value = false;
     return;

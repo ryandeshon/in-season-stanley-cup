@@ -2,6 +2,34 @@
   "championResponse": {
     "champion": "VAN"
   },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": false
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 6,
+    "history": [
+      {
+        "gameId": 2024021010,
+        "winnerTeam": "VAN",
+        "winnerScore": 4,
+        "loserTeam": "PHI",
+        "loserScore": 2,
+        "participants": ["VAN", "PHI"],
+        "recordedAt": "2026-02-15T02:00:00.000Z"
+      },
+      {
+        "gameId": 2024020999,
+        "winnerTeam": "PHI",
+        "winnerScore": 3,
+        "loserTeam": "BOS",
+        "loserScore": 1,
+        "participants": ["PHI", "BOS"],
+        "recordedAt": "2026-02-13T02:00:00.000Z"
+      }
+    ]
+  },
   "gameIdResponse": {
     "gameID": null,
     "message": "Champion off day"

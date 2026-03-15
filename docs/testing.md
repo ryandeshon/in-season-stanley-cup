@@ -4,6 +4,7 @@
 - Use Node 20 for Cypress (`nvm use 20` if you have nvm installed).
 - Install dependencies: `yarn install --frozen-lockfile` (or `npm ci`).
 - Test env vars live in `.env.cypress` and are loaded automatically by `vue-cli-service serve --mode cypress`. Values point at local mock endpoints so the app never calls real services during tests.
+- `.env.cypress` sets `VUE_APP_ENABLE_SEASON_CONTRACTS=true` explicitly so Cypress always exercises `/season/meta` and `/champion/history` paths.
 
 ## Commands
 - `npm run test:e2e` (or `yarn test:e2e`) — headless CI run (spins up the dev server, stubs APIs, exits non-zero on failures).
@@ -17,19 +18,29 @@
   - `cup-day-multiple-games.json` — Cup defense plus extra games on the slate.
   - `cup-day-only.json` — only the Cup game is scheduled.
   - `no-games.json` — off day / off-season with upcoming matchups.
+  - `no-games-empty-next.json` — off day with no next-defense games.
+  - `no-games-next-error.json` — off day with schedule API failure.
+  - `season-over.json` — backend metadata indicates season is over.
   - `api-error.json` — upstream failures for champion/game endpoints.
-- Tests call `cy.mockApiScenario(<fixtureName>)` (defined in `cypress/support/commands.js`) to intercept:
-  - `VUE_APP_API_BASE` endpoints: `/champion`, `/gameid`, `/players`, `/game-records`
+- Homepage tests call `cy.mockApiScenario(<fixtureName>)` (defined in `cypress/support/commands.js`) to intercept:
+  - `VUE_APP_API_BASE` endpoints: `/season/meta`, `/champion/history`, `/champion`, `/gameid`, `/players`, `/game-records`
   - `VUE_APP_NHL_API_URL` endpoints: `/gamecenter/:id/boxscore`, `/schedule/:date`
+- Draft tests call `cy.mockDraftScenario(<fixtureName>)` to intercept:
+  - `VUE_APP_API_BASE` endpoints: `/players`, `/draft/state`, `/draft/select-team`, `/players/reset-teams`
 - Add new scenarios by dropping a fixture and reusing the same shape (`championResponse`, `gameIdResponse`, `playersResponse`, `gameRecordsResponse`, `gameInfoResponse`, optional `championStatus`/`gameIdStatus`/`gameInfoStatus`/`scheduleStatus`, `scheduleResponse`).
 - Matchup selector is constrained to the Cup game on game days.
 
 ## What is covered
 - Homepage Cup matchup rendering (champion/challenger, live clock, View Game Details link).
 - Matchup selector behavior (Cup game selected by default).
+- Backend-driven season-over branch from `/season/meta`.
+- Champion timeline rendering from `/champion/history`.
+- "What's Next" panel states: data, empty, and error.
 - Navigation into `/game/:id` and rendering of the boxscore tables.
 - Off-day state (champion not defending, upcoming matchups table).
 - Graceful handling when upstream APIs error.
+- Draft participant flow (team selection + optimistic draft version patch payload).
+- Draft admin controls (start, advance, reset) and disconnected socket warning.
 
 ## Check-game Lambda tests
 - Unit tests for core finalization timing logic live in `lambdas/check-game/index.test.cjs`.

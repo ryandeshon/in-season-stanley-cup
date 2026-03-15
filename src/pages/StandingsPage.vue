@@ -58,10 +58,10 @@
         Champion
       </div>
     </div>
-    <template v-if="totalGamesPlayed">
+    <template v-if="totalGamesPlayed && seasonProgressPercentage !== null">
       <h2 class="text-center text-xl font-bold">Season Progress</h2>
       <v-progress-linear
-        v-model="totalGamesPercentage"
+        v-model="seasonProgressPercentage"
         color="primary"
         height="20"
         class="my-4"
@@ -71,7 +71,7 @@
         </template>
       </v-progress-linear>
       <div class="text-center text-sm">
-        <span>{{ totalGamesPlayed }} Games Played</span>
+        <span>{{ daysRemainingLabel }}</span>
       </div>
     </template>
   </v-container>
@@ -95,9 +95,86 @@ const allPlayersData = computed(() => {
 
 // Computed properties for game statistics
 const totalGamesPlayed = computed(() => gameRecords.value?.length || 0);
-const totalGamesPercentage = computed(
-  () => (totalGamesPlayed.value / 87) * 100
-);
+
+function getRecordTimestamp(record) {
+  const candidates = [
+    record?.savedAt,
+    record?.recordedAt,
+    record?.finalizedAt,
+    record?.updatedAt,
+    record?.createdAt,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = Date.parse(candidate || '');
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+const seasonStartDate = computed(() => {
+  if (!Array.isArray(gameRecords.value) || gameRecords.value.length === 0) {
+    return null;
+  }
+
+  let earliest = null;
+  gameRecords.value.forEach((record) => {
+    const ts = getRecordTimestamp(record);
+    if (ts === null) return;
+    if (earliest === null || ts < earliest) {
+      earliest = ts;
+    }
+  });
+
+  return earliest === null ? null : new Date(earliest);
+});
+
+const seasonEndDate = computed(() => {
+  if (!seasonStartDate.value) return null;
+  const startYear = seasonStartDate.value.getUTCFullYear();
+  return new Date(Date.UTC(startYear + 1, 3, 16, 23, 59, 59, 999));
+});
+
+const seasonProgressPercentage = computed(() => {
+  if (!seasonStartDate.value || !seasonEndDate.value) return null;
+
+  const start = seasonStartDate.value.getTime();
+  const end = seasonEndDate.value.getTime();
+  const now = Date.now();
+  if (end <= start) return null;
+  if (now <= start) return 0;
+  if (now >= end) return 100;
+
+  return ((now - start) / (end - start)) * 100;
+});
+
+const daysRemaining = computed(() => {
+  if (!seasonEndDate.value) return null;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.max(
+    0,
+    Math.ceil((seasonEndDate.value.getTime() - Date.now()) / msPerDay)
+  );
+});
+
+function formatMonthDay(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+  });
+}
+
+const daysRemainingLabel = computed(() => {
+  if (!seasonStartDate.value || !seasonEndDate.value) {
+    return `${totalGamesPlayed.value} games tracked`;
+  }
+  return `${daysRemaining.value} days left (${formatMonthDay(
+    seasonStartDate.value
+  )} to ${formatMonthDay(seasonEndDate.value)}) • ${totalGamesPlayed.value} games tracked`;
+});
 
 // Function to update current champion when data changes
 const updateCurrentChampion = async () => {

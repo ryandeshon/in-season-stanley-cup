@@ -1,8 +1,19 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '@/services/nhlApi';
-import { getCurrentChampion, getGameId } from '@/services/championServices';
+import {
+  areSeasonContractEndpointsEnabled,
+  getCurrentChampion,
+  getGameId,
+  getSeasonMeta,
+  shouldUseContractFallback,
+} from '@/services/championServices';
+import { useSeasonStore } from '@/store/seasonStore';
 import quotes from '@/utilities/quotes.json';
+import {
+  hasSessionWarning,
+  setSessionWarning,
+} from '@/utilities/sessionWarnings';
 
 /**
  * Home page game-state orchestration for champion/game identity, current matchup,
@@ -17,6 +28,9 @@ import quotes from '@/utilities/quotes.json';
  * - `setLifecycleHandlers` to react to champion-idle/game-over/live transitions
  */
 export function useCupGameState({ findPlayerByTeam } = {}) {
+  const SEASON_META_CONTRACT_WARNING_KEY = 'home-season-meta-contract-warning';
+
+  const seasonStore = useSeasonStore();
   const resolvePlayerByTeam = (teamAbbrev) =>
     typeof findPlayerByTeam === 'function'
       ? findPlayerByTeam(teamAbbrev)
@@ -45,6 +59,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   const previousAwayScore = ref(0);
   const recentGoalAgainst = ref({ home: false, away: false });
   const goalTimers = ref({ home: null, away: null });
+  const seasonMetaWarning = ref('');
 
   const lifecycleHandlers = {
     onChampionNotPlaying: null,
@@ -57,6 +72,14 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       handlers.onChampionNotPlaying || null;
     lifecycleHandlers.onGameOver = handlers.onGameOver || null;
     lifecycleHandlers.onGameInProgress = handlers.onGameInProgress || null;
+  }
+
+  function withSeasonOptions(options = {}) {
+    if (options.season) return options;
+    return {
+      ...options,
+      season: seasonStore.currentSeason,
+    };
   }
 
   const clockTime = computed(() => {
@@ -154,9 +177,10 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
 
   async function refreshChampionAndGameState(options = {}) {
     try {
+      const seasonOptions = withSeasonOptions(options);
       const [champion, activeGameId] = await Promise.all([
-        getCurrentChampion(options),
-        getGameId(options),
+        getCurrentChampion(seasonOptions),
+        getGameId(seasonOptions),
       ]);
       homeError.value = '';
       currentChampion.value = champion;
@@ -169,6 +193,46 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       homeError.value =
         'Unable to refresh champion/game status right now. Retrying automatically.';
       console.error('Error refreshing champion/game state:', error);
+    }
+  }
+
+  async function refreshSeasonMeta(options = {}) {
+    if (!areSeasonContractEndpointsEnabled()) {
+      if (!hasSessionWarning(SEASON_META_CONTRACT_WARNING_KEY)) {
+        setSessionWarning(SEASON_META_CONTRACT_WARNING_KEY);
+        seasonMetaWarning.value =
+          'Season metadata checks are disabled by configuration (VUE_APP_ENABLE_SEASON_CONTRACTS=false). Showing live mode by default.';
+      } else {
+        seasonMetaWarning.value = '';
+      }
+      isSeasonOver.value = false;
+      return null;
+    }
+
+    try {
+      const seasonMeta = await getSeasonMeta(withSeasonOptions(options));
+      isSeasonOver.value = Boolean(seasonMeta?.seasonOver);
+      seasonMetaWarning.value = '';
+      return seasonMeta;
+    } catch (error) {
+      isSeasonOver.value = false;
+      if (shouldUseContractFallback(error)) {
+        if (!hasSessionWarning(SEASON_META_CONTRACT_WARNING_KEY)) {
+          setSessionWarning(SEASON_META_CONTRACT_WARNING_KEY);
+          seasonMetaWarning.value =
+            'Backend season endpoints from this branch are not deployed in this environment yet. Showing live mode by default.';
+          console.warn(
+            '[home] Using local fallback because /season/meta is unavailable in the current API deployment.'
+          );
+        } else {
+          seasonMetaWarning.value = '';
+        }
+        return null;
+      }
+      seasonMetaWarning.value =
+        'Season metadata is temporarily unavailable. Showing live mode by default.';
+      console.error('Error fetching season metadata:', error);
+      return null;
     }
   }
 
@@ -336,7 +400,9 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     challengerAvatarType,
     gameOverWinnerAvatarType,
     gameOverLoserAvatarType,
+    seasonMetaWarning,
     setLifecycleHandlers,
+    refreshSeasonMeta,
     refreshChampionAndGameState,
     getGameInfo,
     getQuote,

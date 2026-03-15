@@ -65,6 +65,7 @@
                   color="success"
                   size="large"
                   :disabled="draftState?.draftStarted"
+                  data-test="draft-admin-start"
                   block
                 >
                   Start Draft
@@ -76,6 +77,7 @@
                   color="primary"
                   size="large"
                   :disabled="!draftState?.draftStarted || isDraftOver"
+                  data-test="draft-admin-advance"
                   block
                 >
                   Advance Draft
@@ -86,6 +88,7 @@
                   @click="openResetDialog"
                   color="error"
                   size="large"
+                  data-test="draft-admin-reset"
                   block
                 >
                   Reset Draft
@@ -220,14 +223,17 @@ import {
   updateDraftState,
   resetAllPlayerTeams,
 } from '../services/dynamodbService';
+import { ApiClientError } from '@/services/apiClient';
 import { sendSocketMessage } from '@/services/socketClient';
 import { useDraftRealtime } from '@/composables/useDraftRealtime';
+import { useSeasonStore } from '@/store/seasonStore';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 
 const isLoading = ref(true);
 const loadError = ref('');
 const resetDialogVisible = ref(false);
+const seasonStore = useSeasonStore();
 const snackbar = ref({
   visible: false,
   message: '',
@@ -296,12 +302,48 @@ const orderedPlayers = computed(() => {
 
 const { isDisconnected } = useDraftRealtime({
   onDraftUpdate(payload) {
-    draftState.value = payload || draftState.value;
-    availableTeams.value = payload?.availableTeams || [];
-    currentPickerId.value = payload?.currentPicker || '';
+    applyDraftStateToView(payload || draftState.value);
     loadInitialData({ showLoading: false, skipDraftState: true });
   },
 });
+
+function applyDraftStateToView(stateData) {
+  if (!stateData) return;
+  draftState.value = stateData;
+  availableTeams.value = stateData.availableTeams || [];
+  currentPickerId.value = stateData.currentPicker || '';
+}
+
+async function patchDraftStateWithVersion(patch) {
+  const currentVersion = Number(draftState.value?.version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+    throw new Error('Draft state version is unavailable. Refresh and retry.');
+  }
+
+  try {
+    const updatedState = await updateDraftState(
+      {
+        ...patch,
+        version: currentVersion,
+      },
+      {
+        season: seasonStore.currentSeason,
+      }
+    );
+    applyDraftStateToView(updatedState);
+    return updatedState;
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 409) {
+      applyDraftStateToView(error.details?.currentState || null);
+      showSnackbar(
+        'Draft changed in another session. Loaded the latest state.',
+        'warning'
+      );
+      return null;
+    }
+    throw error;
+  }
+}
 
 async function loadInitialData(options = {}) {
   const { showLoading = true, skipDraftState = false } = options;
@@ -310,15 +352,13 @@ async function loadInitialData(options = {}) {
   }
   try {
     const [playersData, stateData] = await Promise.all([
-      getDraftPlayers(),
-      skipDraftState ? Promise.resolve(draftState.value) : getDraftState(),
+      getDraftPlayers({ season: seasonStore.currentSeason }),
+      skipDraftState
+        ? Promise.resolve(draftState.value)
+        : getDraftState({ season: seasonStore.currentSeason }),
     ]);
     allPlayersData.value = playersData || [];
-    if (stateData) {
-      draftState.value = stateData;
-      availableTeams.value = stateData.availableTeams || [];
-      currentPickerId.value = stateData.currentPicker || '';
-    }
+    applyDraftStateToView(stateData);
     loadError.value = '';
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -361,7 +401,9 @@ function shuffle(array) {
 
 async function startDraft() {
   try {
-    const players = await getDraftPlayers();
+    const players = await getDraftPlayers({
+      season: seasonStore.currentSeason,
+    });
     const shuffled = shuffle(players.map((p) => p.id));
 
     const newState = {
@@ -371,8 +413,10 @@ async function startDraft() {
       draftStarted: true,
     };
 
-    await updateDraftState(newState);
-    const updatedState = await getDraftState();
+    const updatedState = await patchDraftStateWithVersion(newState);
+    if (!updatedState) {
+      return;
+    }
 
     sendSocketMessage('default', updatedState);
     await loadInitialData({ showLoading: false });
@@ -396,24 +440,31 @@ async function advanceDraft() {
       );
       const randomTeam = availableTeams.value[randomTeamIndex];
 
-      await selectTeamForPlayer(currentPickerId.value, randomTeam);
+      await selectTeamForPlayer(currentPickerId.value, randomTeam, {
+        season: seasonStore.currentSeason,
+      });
 
       const updatedTeams = availableTeams.value.filter((t) => t !== randomTeam);
 
-      await updateDraftState({
+      const updatedState = await patchDraftStateWithVersion({
         availableTeams: updatedTeams,
         currentPicker: nextPicker,
         currentPickNumber: draftState.value.currentPickNumber + 1,
       });
+      if (!updatedState) {
+        return;
+      }
     } else {
-      await updateDraftState({
+      const updatedState = await patchDraftStateWithVersion({
         currentPicker: nextPicker,
         currentPickNumber: draftState.value.currentPickNumber + 1,
       });
+      if (!updatedState) {
+        return;
+      }
     }
 
-    const updatedState = await getDraftState();
-    sendSocketMessage('default', updatedState);
+    sendSocketMessage('default', draftState.value);
     await loadInitialData({ showLoading: false });
   } catch (error) {
     console.error('Failed to advance draft:', error);
@@ -427,14 +478,18 @@ function openResetDialog() {
 
 async function confirmResetTeams() {
   try {
-    await resetAllPlayerTeams();
-    await updateDraftState({
+    await resetAllPlayerTeams({ season: seasonStore.currentSeason });
+    const updatedState = await patchDraftStateWithVersion({
       draftStarted: false,
       pickOrder: [],
       currentPicker: null,
       currentPickNumber: 0,
       availableTeams: [...nhlTeams.value],
     });
+    if (!updatedState) {
+      return;
+    }
+    sendSocketMessage('default', updatedState);
     await loadInitialData({ showLoading: false });
     isDraftOver.value = false;
     resetDialogVisible.value = false;

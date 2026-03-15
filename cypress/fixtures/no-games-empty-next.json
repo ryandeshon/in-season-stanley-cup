@@ -1,0 +1,51 @@
+{
+  "championResponse": {
+    "champion": "VAN"
+  },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": false
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 6,
+    "history": []
+  },
+  "gameIdResponse": {
+    "gameID": null,
+    "message": "Champion off day"
+  },
+  "playersResponse": [
+    {
+      "id": 21,
+      "name": "Terry",
+      "teams": ["VAN", "COL"],
+      "titleDefenses": 2,
+      "championships": 1
+    },
+    {
+      "id": 22,
+      "name": "Ryan",
+      "teams": ["NYR", "PHI"],
+      "titleDefenses": 3,
+      "championships": 0
+    }
+  ],
+  "gameRecordsResponse": [],
+  "gameInfoResponse": {},
+  "scheduleResponse": {
+    "gameWeek": [
+      {
+        "date": "2024-11-02",
+        "games": [
+          {
+            "id": 2024022008,
+            "homeTeam": { "abbrev": "LAK" },
+            "awayTeam": { "abbrev": "SEA" },
+            "startTimeUTC": "2024-11-02T19:00:00Z"
+          }
+        ]
+      }
+    ]
+  }
+}

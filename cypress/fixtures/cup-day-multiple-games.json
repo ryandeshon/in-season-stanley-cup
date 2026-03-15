@@ -2,6 +2,25 @@
   "championResponse": {
     "champion": "BOS"
   },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": false
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 6,
+    "history": [
+      {
+        "gameId": 2024020001,
+        "winnerTeam": "BOS",
+        "winnerScore": 3,
+        "loserTeam": "TOR",
+        "loserScore": 2,
+        "participants": ["BOS", "TOR"],
+        "recordedAt": "2026-02-20T02:00:00.000Z"
+      }
+    ]
+  },
   "gameIdResponse": {
     "gameID": 2024021111,
     "message": "Cup defense vs TOR"

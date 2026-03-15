@@ -27,6 +27,7 @@ Example:
 7. When committing, group file changes into logical, sizable chunks and write commit messages that describe what changed (and why when helpful).
 8. Before PR/merge, run the security checklist in `ai/SECURITY.md`.
 9. In every PR description, include related issue links and use closing keywords for completed work (for example: `Closes #18`).
+10. Environment policy: local, test, and prod workflows should all use production data/API by default unless explicitly told otherwise for a task.
 
 ## Templates
 - `ai/project/_template/SPEC.md`

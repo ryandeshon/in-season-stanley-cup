@@ -3,6 +3,14 @@
     "message": "Upstream champion service failed"
   },
   "championStatus": 500,
+  "seasonMetaResponse": {
+    "message": "Season metadata unavailable"
+  },
+  "seasonMetaStatus": 500,
+  "championHistoryResponse": {
+    "message": "Champion history unavailable"
+  },
+  "championHistoryStatus": 500,
   "gameIdResponse": {
     "gameID": null,
     "message": "Game ID unavailable"
