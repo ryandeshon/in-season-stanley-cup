@@ -68,12 +68,7 @@ export function areSeasonContractEndpointsEnabled() {
   if (explicit !== null) {
     return explicit;
   }
-  if (process.env.NODE_ENV === 'test') {
-    return true;
-  }
-  // In local dev we default to disabled because API stage drift commonly
-  // causes noisy CORS+404 for these newer endpoints.
-  return !isLocalDevelopmentRuntime();
+  return true;
 }
 
 export function isContractEndpointUnavailableError(error) {

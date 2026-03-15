@@ -201,7 +201,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       if (!hasSessionWarning(SEASON_META_CONTRACT_WARNING_KEY)) {
         setSessionWarning(SEASON_META_CONTRACT_WARNING_KEY);
         seasonMetaWarning.value =
-          'Season metadata checks are disabled in local development. Set VUE_APP_ENABLE_SEASON_CONTRACTS=true to test deployed season endpoints.';
+          'Season metadata checks are disabled by configuration (VUE_APP_ENABLE_SEASON_CONTRACTS=false). Showing live mode by default.';
       } else {
         seasonMetaWarning.value = '';
       }

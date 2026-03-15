@@ -502,7 +502,7 @@ async function loadChampionHistory() {
     if (!hasSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY)) {
       setSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY);
       contractWarning.value =
-        'Champion timeline checks are disabled in local development. Set VUE_APP_ENABLE_SEASON_CONTRACTS=true to test deployed timeline endpoints.';
+        'Champion timeline checks are disabled by configuration (VUE_APP_ENABLE_SEASON_CONTRACTS=false).';
     }
     return;
   }

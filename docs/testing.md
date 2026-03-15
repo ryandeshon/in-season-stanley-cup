@@ -4,7 +4,7 @@
 - Use Node 20 for Cypress (`nvm use 20` if you have nvm installed).
 - Install dependencies: `yarn install --frozen-lockfile` (or `npm ci`).
 - Test env vars live in `.env.cypress` and are loaded automatically by `vue-cli-service serve --mode cypress`. Values point at local mock endpoints so the app never calls real services during tests.
-- `.env.cypress` enables `VUE_APP_ENABLE_SEASON_CONTRACTS=true` so Cypress always exercises `/season/meta` and `/champion/history` paths.
+- `.env.cypress` sets `VUE_APP_ENABLE_SEASON_CONTRACTS=true` explicitly so Cypress always exercises `/season/meta` and `/champion/history` paths.
 
 ## Commands
 - `npm run test:e2e` (or `yarn test:e2e`) — headless CI run (spins up the dev server, stubs APIs, exits non-zero on failures).
