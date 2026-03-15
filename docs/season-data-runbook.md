@@ -24,6 +24,30 @@
 - `PATCH /draft/state`
 - `POST /draft/select-team`
 
+## Contract deployment verification checklist
+Use this checklist any time frontend code depends on new HTTP API routes (for example PR #48 season contracts).
+
+1. Verify routes exist on the target API/stage:
+   - `GET /season/meta`
+   - `GET /champion/history`
+2. Verify CORS from local-dev origin:
+   - `curl -i -H 'Origin: http://localhost:8080' 'https://<api-id>.execute-api.us-east-1.amazonaws.com/<stage>/season/meta?season=season2'`
+   - `curl -i -H 'Origin: http://localhost:8080' 'https://<api-id>.execute-api.us-east-1.amazonaws.com/<stage>/champion/history?season=season2&limit=6'`
+3. Pass criteria:
+   - Non-`404` status on both endpoints.
+   - Response includes `access-control-allow-origin` for browser requests.
+4. Run post-deploy smoke tests:
+   - `GET /champion?season=season2`
+   - `GET /season/meta?season=season2`
+   - `GET /champion/history?season=season2&limit=6`
+
+### Troubleshooting: Browser CORS error + endpoint 404
+If you see browser errors like:
+- `blocked by CORS policy: No 'Access-Control-Allow-Origin' header`
+- paired with failed requests to `/season/meta` or `/champion/history`
+
+Then check the same endpoint with `curl -i` first. A `404` response from API Gateway without CORS headers means the route is missing or not deployed on that stage yet. Fix route/deployment first; frontend fallback should stay non-blocking locally, but production should not rely on fallback.
+
 ## New season rollover checklist
 1. Pick the season ID you will use (example: `season3`).
 2. Create season tables (or decide to keep shared tables and add `seasonId` attributes).
