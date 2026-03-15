@@ -24,8 +24,9 @@ Example:
 4. Create `SPEC.md` first.
 5. Create `BACKLOG.md` from the template and split work into small verifiable tasks.
 6. Implement tasks one by one, updating `BACKLOG.md` statuses.
-7. Before PR/merge, run the security checklist in `ai/SECURITY.md`.
-8. In every PR description, include related issue links and use closing keywords for completed work (for example: `Closes #18`).
+7. When committing, group file changes into logical, sizable chunks and write commit messages that describe what changed (and why when helpful).
+8. Before PR/merge, run the security checklist in `ai/SECURITY.md`.
+9. In every PR description, include related issue links and use closing keywords for completed work (for example: `Closes #18`).
 
 ## Templates
 - `ai/project/_template/SPEC.md`
