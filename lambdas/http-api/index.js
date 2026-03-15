@@ -29,16 +29,27 @@ const NHL_TEAMS = (process.env.NHL_TEAMS ||
   .map((t) => t.trim())
   .filter(Boolean);
 
-const SEASON_TABLES = {
-  season1: {
-    players: process.env.PLAYERS_TABLE_SEASON1 || PLAYERS_TABLE,
-    gameRecords: process.env.GAME_RECORDS_TABLE_SEASON1 || GAME_RECORDS_TABLE,
-  },
-  season2: {
-    players: PLAYERS_TABLE,
-    gameRecords: GAME_RECORDS_TABLE,
-  },
-};
+const DEFAULT_DRAFT_STATE = Object.freeze({
+  draftStarted: false,
+  pickOrder: [],
+  currentPicker: null,
+  currentPickNumber: 0,
+});
+
+class DraftStateValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'DraftStateValidationError';
+  }
+}
+
+class DraftStateConflictError extends Error {
+  constructor(message, currentState = null) {
+    super(message);
+    this.name = 'DraftStateConflictError';
+    this.currentState = currentState;
+  }
+}
 
 function buildCacheControl(ttlSeconds, options = {}) {
   if (!ttlSeconds) return null;
@@ -138,6 +149,23 @@ function parseBody(body) {
   }
 }
 
+function getHeaderValue(event, headerName) {
+  const headers = event?.headers || {};
+  const target = String(headerName || '').toLowerCase();
+  const matchedKey = Object.keys(headers).find(
+    (key) => String(key).toLowerCase() === target
+  );
+  if (!matchedKey) return undefined;
+  return headers[matchedKey];
+}
+
+function isAuthorized(event) {
+  const requiredAdminToken = process.env.ADMIN_API_TOKEN;
+  if (!requiredAdminToken) return true;
+  const providedToken = getHeaderValue(event, 'x-admin-token');
+  return providedToken === requiredAdminToken;
+}
+
 function getQueryParams(event) {
   if (event?.queryStringParameters && typeof event.queryStringParameters === 'object') {
     return event.queryStringParameters;
@@ -149,20 +177,64 @@ function getQueryParams(event) {
 function normalizeSeasonId(value) {
   if (!value) return null;
   const normalized = String(value).trim().toLowerCase();
-  if (normalized === '1' || normalized === 'season1') return 'season1';
-  if (normalized === '2' || normalized === 'season2') return 'season2';
+  const seasonMatch = normalized.match(/^season(\d+)$/);
+  if (seasonMatch) {
+    const seasonNumber = Number(seasonMatch[1]);
+    if (Number.isInteger(seasonNumber) && seasonNumber > 0) {
+      return `season${seasonNumber}`;
+    }
+    return null;
+  }
+  const seasonNumber = Number(normalized);
+  if (Number.isInteger(seasonNumber) && seasonNumber > 0) {
+    return `season${seasonNumber}`;
+  }
   return null;
+}
+
+function getSeasonNumber(seasonId) {
+  const seasonMatch = String(seasonId || '').match(/^season(\d+)$/);
+  if (!seasonMatch) return null;
+  const seasonNumber = Number(seasonMatch[1]);
+  return Number.isInteger(seasonNumber) && seasonNumber > 0
+    ? seasonNumber
+    : null;
+}
+
+function resolveSeasonTables(seasonId) {
+  const seasonNumber = getSeasonNumber(seasonId) || 2;
+  const playersTableOverride = process.env[`PLAYERS_TABLE_SEASON${seasonNumber}`];
+  const gameRecordsTableOverride =
+    process.env[`GAME_RECORDS_TABLE_SEASON${seasonNumber}`];
+
+  return {
+    players:
+      playersTableOverride ||
+      (seasonNumber === 2 ? PLAYERS_TABLE : `${PLAYERS_TABLE}-Season${seasonNumber}`),
+    gameRecords:
+      gameRecordsTableOverride ||
+      (seasonNumber === 2
+        ? GAME_RECORDS_TABLE
+        : `${GAME_RECORDS_TABLE}-Season${seasonNumber}`),
+  };
 }
 
 function getSeasonContext(event) {
   const query = getQueryParams(event);
-  const requestedSeason = normalizeSeasonId(query?.season);
+  const requestedSeasonRaw = query?.season;
+  const requestedSeason = normalizeSeasonId(requestedSeasonRaw);
+  const hasInvalidSeasonQuery =
+    requestedSeasonRaw !== undefined &&
+    requestedSeasonRaw !== null &&
+    requestedSeasonRaw !== '' &&
+    !requestedSeason;
   const defaultSeason = normalizeSeasonId(process.env.DEFAULT_SEASON) || 'season2';
   const seasonId = requestedSeason || defaultSeason;
-  const tableConfig = SEASON_TABLES[seasonId] || SEASON_TABLES.season2;
+  const tableConfig = resolveSeasonTables(seasonId);
 
   return {
     requestedSeason,
+    hasInvalidSeasonQuery,
     seasonId,
     playersTable: tableConfig.players,
     gameRecordsTable: tableConfig.gameRecords,
@@ -354,35 +426,48 @@ async function ensureDraftState() {
   const res = await dynamoDB
     .get({ TableName: GAME_OPTIONS_TABLE, Key: { id: DRAFT_STATE_ID } })
     .promise();
-  if (res.Item?.state) return res.Item.state;
+  if (res.Item?.state) {
+    const state = { ...res.Item.state };
+    const hadAvailableTeams = Array.isArray(state.availableTeams);
+    if (!Array.isArray(state.availableTeams)) {
+      state.availableTeams = [...NHL_TEAMS];
+    }
+    const rawVersion = state.version;
+    const parsedVersion = Number(state.version);
+    state.version =
+      Number.isInteger(parsedVersion) && parsedVersion >= 0 ? parsedVersion : 0;
+    state.updatedAt = state.updatedAt || res.Item.updatedAt || null;
+
+    const needsNormalization =
+      !hadAvailableTeams ||
+      rawVersion !== state.version ||
+      !state.updatedAt;
+    if (needsNormalization) {
+      const now = new Date().toISOString();
+      state.updatedAt = now;
+      await dynamoDB
+        .update({
+          TableName: GAME_OPTIONS_TABLE,
+          Key: { id: DRAFT_STATE_ID },
+          UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
+          ExpressionAttributeNames: {
+            '#state': 'state',
+            '#updatedAt': 'updatedAt',
+          },
+          ExpressionAttributeValues: {
+            ':state': state,
+            ':ts': now,
+          },
+        })
+        .promise();
+    }
+    return state;
+  }
 
   const state = {
-    draftStarted: false,
-    pickOrder: [],
-    currentPicker: null,
-    currentPickNumber: 0,
-    availableTeams: NHL_TEAMS,
-  };
-
-  await dynamoDB
-    .put({
-      TableName: GAME_OPTIONS_TABLE,
-      Item: {
-        id: DRAFT_STATE_ID,
-        state,
-        updatedAt: new Date().toISOString(),
-      },
-    })
-    .promise();
-
-  return state;
-}
-
-async function updateDraftState(patch = {}) {
-  const current = await ensureDraftState();
-  const next = {
-    ...current,
-    ...patch,
+    ...DEFAULT_DRAFT_STATE,
+    availableTeams: [...NHL_TEAMS],
+    version: 0,
     updatedAt: new Date().toISOString(),
   };
 
@@ -391,13 +476,137 @@ async function updateDraftState(patch = {}) {
       TableName: GAME_OPTIONS_TABLE,
       Item: {
         id: DRAFT_STATE_ID,
-        state: next,
-        updatedAt: next.updatedAt,
+        state,
+        updatedAt: state.updatedAt,
       },
     })
     .promise();
 
+  return state;
+}
+
+function parseDraftStateVersion(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+async function updateDraftState(patch = {}) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    throw new DraftStateValidationError('patch body must be an object');
+  }
+  if (patch.version === undefined) {
+    throw new DraftStateValidationError('version is required');
+  }
+  const expectedVersion = parseDraftStateVersion(patch.version);
+  if (expectedVersion === null) {
+    throw new DraftStateValidationError('version must be a non-negative integer');
+  }
+
+  const current = await ensureDraftState();
+  if (expectedVersion !== current.version) {
+    throw new DraftStateConflictError(
+      'Draft state version conflict',
+      current
+    );
+  }
+
+  const patchWithoutVersion = { ...patch };
+  delete patchWithoutVersion.version;
+  delete patchWithoutVersion.updatedAt;
+
+  const next = {
+    ...current,
+    ...patchWithoutVersion,
+    version: current.version + 1,
+    updatedAt: new Date().toISOString(),
+  };
+
+  try {
+    await dynamoDB
+      .update({
+        TableName: GAME_OPTIONS_TABLE,
+        Key: { id: DRAFT_STATE_ID },
+        UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
+        ConditionExpression:
+          '(attribute_not_exists(#state.#version) AND :expected = :zero) OR #state.#version = :expected',
+        ExpressionAttributeNames: {
+          '#state': 'state',
+          '#version': 'version',
+          '#updatedAt': 'updatedAt',
+        },
+        ExpressionAttributeValues: {
+          ':state': next,
+          ':ts': next.updatedAt,
+          ':expected': expectedVersion,
+          ':zero': 0,
+        },
+      })
+      .promise();
+  } catch (err) {
+    if (err?.code === 'ConditionalCheckFailedException') {
+      const latest = await ensureDraftState();
+      throw new DraftStateConflictError(
+        'Draft state version conflict',
+        latest
+      );
+    }
+    throw err;
+  }
+
   return next;
+}
+
+function parseHistoryLimit(limitRaw) {
+  if (limitRaw === undefined || limitRaw === null || limitRaw === '') {
+    return 25;
+  }
+  const parsed = Number(limitRaw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.min(parsed, 200);
+}
+
+function mapChampionHistoryRecord(record = {}) {
+  const winnerTeam = record.wTeam ?? null;
+  const loserTeam = record.lTeam ?? null;
+  const participants = [winnerTeam, loserTeam].filter(Boolean);
+  const recordedAt =
+    record.savedAt ||
+    record.finalizedAt ||
+    record.updatedAt ||
+    record.createdAt ||
+    null;
+  const idNumber = Number(record.id);
+  return {
+    gameId: Number.isFinite(idNumber) ? idNumber : record.id ?? null,
+    winnerTeam,
+    winnerScore: Number.isFinite(Number(record.wScore))
+      ? Number(record.wScore)
+      : null,
+    loserTeam,
+    loserScore: Number.isFinite(Number(record.lScore)) ? Number(record.lScore) : null,
+    participants,
+    recordedAt,
+  };
+}
+
+function historySortKey(entry = {}) {
+  const timestamp = Date.parse(entry.recordedAt || '');
+  if (Number.isFinite(timestamp)) return timestamp;
+  const gameIdNumber = Number(entry.gameId);
+  if (Number.isFinite(gameIdNumber)) return gameIdNumber;
+  return -1;
+}
+
+async function listChampionHistory(limit, tableName = GAME_RECORDS_TABLE) {
+  const records = await listGameRecords(tableName);
+  return records
+    .map(mapChampionHistoryRecord)
+    .sort((a, b) => historySortKey(b) - historySortKey(a))
+    .slice(0, limit);
 }
 
 export const handler = async (event) => {
@@ -408,6 +617,13 @@ export const handler = async (event) => {
   if (method === 'OPTIONS') return response(event, 204, {});
 
   try {
+    if (seasonContext.hasInvalidSeasonQuery) {
+      return response(event, 400, {
+        error:
+          'Invalid season query parameter. Use seasonN or N (for example season2 or 2).',
+      });
+    }
+
     // ---- Players ----
     if (path === '/players' && method === 'GET') {
       return response(
@@ -428,12 +644,18 @@ export const handler = async (event) => {
     }
 
     if (path === '/players/reset-teams' && method === 'POST') {
+      if (!isAuthorized(event)) {
+        return response(event, 401, { error: 'Unauthorized' });
+      }
       await resetTeams(seasonContext.playersTable);
       return response(event, 200, { ok: true });
     }
 
     const teamPatchMatch = path.match(/^\/players\/([^/]+)\/teams$/);
     if (teamPatchMatch && method === 'PATCH') {
+      if (!isAuthorized(event)) {
+        return response(event, 401, { error: 'Unauthorized' });
+      }
       const body = parseBody(event.body);
       const team = body?.team;
       const action = body?.action || 'add';
@@ -455,6 +677,35 @@ export const handler = async (event) => {
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
         staleIfError: CACHE_TTLS.staleIfError,
       });
+    }
+
+    if (path === '/champion/history' && method === 'GET') {
+      const query = getQueryParams(event);
+      const limit = parseHistoryLimit(query?.limit);
+      if (limit === null) {
+        return response(event, 400, {
+          error: 'limit must be a positive integer',
+        });
+      }
+
+      const history = await listChampionHistory(
+        limit,
+        seasonContext.gameRecordsTable
+      );
+      return response(
+        event,
+        200,
+        {
+          seasonId: seasonContext.seasonId,
+          limit,
+          history,
+        },
+        {
+          ttlSeconds: CACHE_TTLS.gameRecords,
+          staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+          staleIfError: CACHE_TTLS.staleIfError,
+        }
+      );
     }
 
     // ---- Champion + game id ----
@@ -555,12 +806,32 @@ export const handler = async (event) => {
     }
 
     if (path === '/draft/state' && method === 'PATCH') {
+      if (!isAuthorized(event)) {
+        return response(event, 401, { error: 'Unauthorized' });
+      }
       const patch = parseBody(event.body);
-      const state = await updateDraftState(patch);
-      return response(event, 200, state);
+      try {
+        const state = await updateDraftState(patch);
+        return response(event, 200, state);
+      } catch (error) {
+        if (error instanceof DraftStateValidationError) {
+          return response(event, 400, { error: error.message });
+        }
+        if (error instanceof DraftStateConflictError) {
+          return response(event, 409, {
+            error: error.message,
+            currentVersion: error.currentState?.version ?? null,
+            currentState: error.currentState ?? null,
+          });
+        }
+        throw error;
+      }
     }
 
     if (path === '/draft/select-team' && method === 'POST') {
+      if (!isAuthorized(event)) {
+        return response(event, 401, { error: 'Unauthorized' });
+      }
       const { playerId, team } = parseBody(event.body);
       if (!playerId || !team) {
         return response(event, 400, { error: 'playerId and team are required' });
