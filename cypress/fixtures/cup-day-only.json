@@ -2,6 +2,25 @@
   "championResponse": {
     "champion": "DAL"
   },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": false
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 6,
+    "history": [
+      {
+        "gameId": 2024020100,
+        "winnerTeam": "DAL",
+        "winnerScore": 5,
+        "loserTeam": "COL",
+        "loserScore": 3,
+        "participants": ["DAL", "COL"],
+        "recordedAt": "2026-02-10T02:00:00.000Z"
+      }
+    ]
+  },
   "gameIdResponse": {
     "gameID": 2024022201,
     "message": "Solo Cup defense vs COL"

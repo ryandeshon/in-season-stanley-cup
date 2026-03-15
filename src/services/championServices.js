@@ -33,3 +33,16 @@ export async function getSeasonMeta(options = {}) {
     retries: 1,
   });
 }
+
+export async function getChampionHistory(options = {}) {
+  const query = buildQuery(options) || {};
+  if (options.limit !== undefined && options.limit !== null) {
+    query.limit = options.limit;
+  }
+
+  return apiRequest('/champion/history', {
+    query: Object.keys(query).length ? query : undefined,
+    bustCache: options.bustCache,
+    retries: 1,
+  });
+}

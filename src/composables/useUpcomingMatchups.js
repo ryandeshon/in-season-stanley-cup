@@ -32,6 +32,7 @@ export function useUpcomingMatchups({
 
   const potentialLoading = ref(true);
   const possibleMatchUps = ref([]);
+  const possibleMatchupsError = ref('');
   const matchupOptions = ref([]);
   const matchupOptionsLoading = ref(false);
   const selectedWinnerRole = ref('');
@@ -213,6 +214,8 @@ export function useUpcomingMatchups({
   }
 
   async function getPossibleMatchUps(championTeam) {
+    potentialLoading.value = true;
+    possibleMatchupsError.value = '';
     const upcomingGames = [];
     const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
 
@@ -221,6 +224,8 @@ export function useUpcomingMatchups({
       const gameWeek = scheduleData?.data?.gameWeek;
       if (!Array.isArray(gameWeek)) {
         possibleMatchUps.value = [];
+        possibleMatchupsError.value =
+          'Unable to load next-defense outlook right now.';
         potentialLoading.value = false;
         return;
       }
@@ -246,6 +251,8 @@ export function useUpcomingMatchups({
     } catch (err) {
       console.error('Failed to load possible matchups', err);
       possibleMatchUps.value = [];
+      possibleMatchupsError.value =
+        'Unable to load next-defense outlook right now.';
     } finally {
       potentialLoading.value = false;
     }
@@ -254,6 +261,7 @@ export function useUpcomingMatchups({
   return {
     potentialLoading,
     possibleMatchUps,
+    possibleMatchupsError,
     matchupOptions,
     matchupOptionsLoading,
     selectedWinnerRole,

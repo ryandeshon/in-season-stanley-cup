@@ -1,0 +1,31 @@
+{
+  "championResponse": {
+    "champion": "BOS"
+  },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": true,
+    "regularSeasonEnd": "2026-04-17",
+    "playoffsStart": "2026-04-20"
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 6,
+    "history": []
+  },
+  "gameIdResponse": {
+    "gameID": null
+  },
+  "playersResponse": [
+    {
+      "id": 2,
+      "name": "Cooper",
+      "teams": ["BOS", "TOR", "VGK"]
+    }
+  ],
+  "gameRecordsResponse": [],
+  "gameInfoResponse": {},
+  "scheduleResponse": {
+    "gameWeek": []
+  }
+}

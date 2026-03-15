@@ -10,10 +10,21 @@ vi.mock('@/services/nhlApi', () => ({
 vi.mock('@/services/championServices', () => ({
   getCurrentChampion: vi.fn(),
   getGameId: vi.fn(),
+  getSeasonMeta: vi.fn(),
+}));
+
+vi.mock('@/store/seasonStore', () => ({
+  useSeasonStore: () => ({
+    currentSeason: 'season2',
+  }),
 }));
 
 import nhlApi from '@/services/nhlApi';
-import { getCurrentChampion, getGameId } from '@/services/championServices';
+import {
+  getCurrentChampion,
+  getGameId,
+  getSeasonMeta,
+} from '@/services/championServices';
 import { useCupGameState } from '@/composables/useCupGameState';
 
 describe('useCupGameState', () => {
@@ -21,6 +32,10 @@ describe('useCupGameState', () => {
     vi.clearAllMocks();
     getCurrentChampion.mockResolvedValue('TOR');
     getGameId.mockResolvedValue('2024021111');
+    getSeasonMeta.mockResolvedValue({
+      seasonId: 'season2',
+      seasonOver: false,
+    });
   });
 
   function findPlayerByTeam(teamAbbrev) {
@@ -41,6 +56,31 @@ describe('useCupGameState', () => {
     expect(state.cupGameId.value).toBe('2024021111');
     expect(state.selectedGameId.value).toBe('2024021111');
     expect(state.homeError.value).toBe('');
+  });
+
+  it('uses season metadata to drive season-over state', async () => {
+    getSeasonMeta.mockResolvedValueOnce({
+      seasonId: 'season2',
+      seasonOver: true,
+    });
+    const state = useCupGameState({ findPlayerByTeam });
+
+    await state.refreshSeasonMeta();
+
+    expect(state.isSeasonOver.value).toBe(true);
+    expect(state.seasonMetaWarning.value).toBe('');
+  });
+
+  it('falls back to live mode when season metadata fails', async () => {
+    getSeasonMeta.mockRejectedValueOnce(new Error('metadata unavailable'));
+    const state = useCupGameState({ findPlayerByTeam });
+
+    await state.refreshSeasonMeta();
+
+    expect(state.isSeasonOver.value).toBe(false);
+    expect(state.seasonMetaWarning.value).toContain(
+      'Season metadata is temporarily unavailable'
+    );
   });
 
   it('sets fallback error when champion/game refresh fails', async () => {
@@ -115,7 +155,10 @@ describe('useCupGameState', () => {
     expect(state.todaysLoser.value.abbrev).toBe('BOS');
     expect(onGameOver).toHaveBeenCalledTimes(1);
     expect(onGameOver.mock.calls[0][0].winnerTeamAbbrev).toBe('TOR');
-    expect(getCurrentChampion).toHaveBeenCalledWith({ bustCache: true });
+    expect(getCurrentChampion).toHaveBeenCalledWith({
+      bustCache: true,
+      season: 'season2',
+    });
   });
 
   it('handles in-progress updates and computed clock/period state', () => {

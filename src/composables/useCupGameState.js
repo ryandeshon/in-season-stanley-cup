@@ -1,7 +1,12 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '@/services/nhlApi';
-import { getCurrentChampion, getGameId } from '@/services/championServices';
+import {
+  getCurrentChampion,
+  getGameId,
+  getSeasonMeta,
+} from '@/services/championServices';
+import { useSeasonStore } from '@/store/seasonStore';
 import quotes from '@/utilities/quotes.json';
 
 /**
@@ -17,6 +22,7 @@ import quotes from '@/utilities/quotes.json';
  * - `setLifecycleHandlers` to react to champion-idle/game-over/live transitions
  */
 export function useCupGameState({ findPlayerByTeam } = {}) {
+  const seasonStore = useSeasonStore();
   const resolvePlayerByTeam = (teamAbbrev) =>
     typeof findPlayerByTeam === 'function'
       ? findPlayerByTeam(teamAbbrev)
@@ -45,6 +51,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   const previousAwayScore = ref(0);
   const recentGoalAgainst = ref({ home: false, away: false });
   const goalTimers = ref({ home: null, away: null });
+  const seasonMetaWarning = ref('');
 
   const lifecycleHandlers = {
     onChampionNotPlaying: null,
@@ -57,6 +64,14 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       handlers.onChampionNotPlaying || null;
     lifecycleHandlers.onGameOver = handlers.onGameOver || null;
     lifecycleHandlers.onGameInProgress = handlers.onGameInProgress || null;
+  }
+
+  function withSeasonOptions(options = {}) {
+    if (options.season) return options;
+    return {
+      ...options,
+      season: seasonStore.currentSeason,
+    };
   }
 
   const clockTime = computed(() => {
@@ -154,9 +169,10 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
 
   async function refreshChampionAndGameState(options = {}) {
     try {
+      const seasonOptions = withSeasonOptions(options);
       const [champion, activeGameId] = await Promise.all([
-        getCurrentChampion(options),
-        getGameId(options),
+        getCurrentChampion(seasonOptions),
+        getGameId(seasonOptions),
       ]);
       homeError.value = '';
       currentChampion.value = champion;
@@ -169,6 +185,21 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       homeError.value =
         'Unable to refresh champion/game status right now. Retrying automatically.';
       console.error('Error refreshing champion/game state:', error);
+    }
+  }
+
+  async function refreshSeasonMeta(options = {}) {
+    try {
+      const seasonMeta = await getSeasonMeta(withSeasonOptions(options));
+      isSeasonOver.value = Boolean(seasonMeta?.seasonOver);
+      seasonMetaWarning.value = '';
+      return seasonMeta;
+    } catch (error) {
+      isSeasonOver.value = false;
+      seasonMetaWarning.value =
+        'Season metadata is temporarily unavailable. Showing live mode by default.';
+      console.error('Error fetching season metadata:', error);
+      return null;
     }
   }
 
@@ -336,7 +367,9 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     challengerAvatarType,
     gameOverWinnerAvatarType,
     gameOverLoserAvatarType,
+    seasonMetaWarning,
     setLifecycleHandlers,
+    refreshSeasonMeta,
     refreshChampionAndGameState,
     getGameInfo,
     getQuote,
