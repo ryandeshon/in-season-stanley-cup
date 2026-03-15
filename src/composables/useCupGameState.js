@@ -5,9 +5,14 @@ import {
   getCurrentChampion,
   getGameId,
   getSeasonMeta,
+  shouldUseContractFallback,
 } from '@/services/championServices';
 import { useSeasonStore } from '@/store/seasonStore';
 import quotes from '@/utilities/quotes.json';
+import {
+  hasSessionWarning,
+  setSessionWarning,
+} from '@/utilities/sessionWarnings';
 
 /**
  * Home page game-state orchestration for champion/game identity, current matchup,
@@ -22,6 +27,8 @@ import quotes from '@/utilities/quotes.json';
  * - `setLifecycleHandlers` to react to champion-idle/game-over/live transitions
  */
 export function useCupGameState({ findPlayerByTeam } = {}) {
+  const SEASON_META_CONTRACT_WARNING_KEY = 'home-season-meta-contract-warning';
+
   const seasonStore = useSeasonStore();
   const resolvePlayerByTeam = (teamAbbrev) =>
     typeof findPlayerByTeam === 'function'
@@ -196,6 +203,19 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       return seasonMeta;
     } catch (error) {
       isSeasonOver.value = false;
+      if (shouldUseContractFallback(error)) {
+        if (!hasSessionWarning(SEASON_META_CONTRACT_WARNING_KEY)) {
+          setSessionWarning(SEASON_META_CONTRACT_WARNING_KEY);
+          seasonMetaWarning.value =
+            'Backend season endpoints from this branch are not deployed in this environment yet. Showing live mode by default.';
+          console.warn(
+            '[home] Using local fallback because /season/meta is unavailable in the current API deployment.'
+          );
+        } else {
+          seasonMetaWarning.value = '';
+        }
+        return null;
+      }
       seasonMetaWarning.value =
         'Season metadata is temporarily unavailable. Showing live mode by default.';
       console.error('Error fetching season metadata:', error);
