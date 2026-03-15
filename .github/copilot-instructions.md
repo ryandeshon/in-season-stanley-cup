@@ -93,6 +93,12 @@ initSocket({
 
 ## Development Workflow
 
+### Branch Policy
+
+- For every new task, create and switch to a new branch before making changes.
+- Use the existing branch naming format: `isc-<issue-number>` with optional range and short slug.
+- Examples: `isc-032`, `isc-018-020`, `isc-022-home-game-profile`
+
 ### Environment Setup
 
 1. Copy `.env.example` to `.env` and configure:
