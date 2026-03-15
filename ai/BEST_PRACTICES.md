@@ -10,6 +10,7 @@
 - Preserve existing app behavior unless explicitly changing it.
 - Keep cache/header behavior explicit in backend responses.
 - Avoid hardcoding environment-specific values in source.
+- Default all local/test/prod runs to production API/data unless a task explicitly requires mocks or alternate environments.
 
 ## Docs changes
 - Assume docs are public.

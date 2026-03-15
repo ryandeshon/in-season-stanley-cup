@@ -1,5 +1,9 @@
 // src/services/playersService.js
 import { apiRequest } from '@/services/apiClient';
+import {
+  hydratePlayerTeam,
+  hydratePlayerTeams,
+} from '@/utilities/playerTeamHydration';
 
 function withSeasonQuery(season) {
   if (!season) return undefined;
@@ -7,17 +11,19 @@ function withSeasonQuery(season) {
 }
 
 export async function getAllPlayers(options = {}) {
-  return apiRequest('/players', {
+  const players = await apiRequest('/players', {
     query: withSeasonQuery(options.season),
     retries: 1,
   });
+  return hydratePlayerTeams(players);
 }
 
 export async function getPlayerData(name, options = {}) {
-  return apiRequest(`/players/${encodeURIComponent(name)}`, {
+  const player = await apiRequest(`/players/${encodeURIComponent(name)}`, {
     query: withSeasonQuery(options.season),
     retries: 1,
   });
+  return hydratePlayerTeam(player);
 }
 
 export async function getGameRecords(options = {}) {

@@ -85,6 +85,7 @@ Create a `.env.local` file at the repo root with:
 VUE_APP_API_BASE=<your-api-gateway-base-url>
 VUE_APP_NHL_API_URL=<nhl-api-base-or-proxy>
 VUE_APP_WEB_SOCKET_URL=<websocket-url>
+VUE_APP_ENABLE_SEASON_CONTRACTS=<optional true|false for /season/meta and /champion/history calls>
 VUE_APP_ASSET_BASE_URL=<optional-cloudfront-asset-domain>
 VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
 ```
@@ -124,6 +125,10 @@ Notes:
   scores, standings, and boxscores.
 - `VUE_APP_WEB_SOCKET_URL` enables real-time updates (live games + draft).
   If unset, the app will fall back to polling for game updates.
+- `VUE_APP_ENABLE_SEASON_CONTRACTS` controls whether the homepage calls newer
+  season endpoints (`/season/meta`, `/champion/history`). If unset, local dev
+  defaults to disabled to avoid noisy CORS/404 when backend routes are not yet
+  deployed; production remains enabled.
 - `VUE_APP_ASSET_BASE_URL` enables remote-first loading for player avatars and
   Season 2 custom team logos, with local fallback if remote assets fail.
 - `VUE_APP_ASSET_VERSION` optionally prepends a path segment (e.g., `v1`) so

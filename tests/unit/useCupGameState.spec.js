@@ -1,5 +1,6 @@
 import { nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiClientError } from '@/services/apiClient';
 
 vi.mock('@/services/nhlApi', () => ({
   default: {
@@ -8,9 +9,11 @@ vi.mock('@/services/nhlApi', () => ({
 }));
 
 vi.mock('@/services/championServices', () => ({
+  areSeasonContractEndpointsEnabled: vi.fn(),
   getCurrentChampion: vi.fn(),
   getGameId: vi.fn(),
   getSeasonMeta: vi.fn(),
+  shouldUseContractFallback: vi.fn(),
 }));
 
 vi.mock('@/store/seasonStore', () => ({
@@ -21,21 +24,28 @@ vi.mock('@/store/seasonStore', () => ({
 
 import nhlApi from '@/services/nhlApi';
 import {
+  areSeasonContractEndpointsEnabled,
   getCurrentChampion,
   getGameId,
   getSeasonMeta,
+  shouldUseContractFallback,
 } from '@/services/championServices';
 import { useCupGameState } from '@/composables/useCupGameState';
 
 describe('useCupGameState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      window.sessionStorage.clear();
+    }
     getCurrentChampion.mockResolvedValue('TOR');
     getGameId.mockResolvedValue('2024021111');
     getSeasonMeta.mockResolvedValue({
       seasonId: 'season2',
       seasonOver: false,
     });
+    areSeasonContractEndpointsEnabled.mockReturnValue(true);
+    shouldUseContractFallback.mockReturnValue(false);
   });
 
   function findPlayerByTeam(teamAbbrev) {
@@ -80,6 +90,25 @@ describe('useCupGameState', () => {
     expect(state.isSeasonOver.value).toBe(false);
     expect(state.seasonMetaWarning.value).toContain(
       'Season metadata is temporarily unavailable'
+    );
+  });
+
+  it('uses contract-warning fallback when season meta endpoint is unavailable locally', async () => {
+    shouldUseContractFallback.mockReturnValueOnce(true);
+    getSeasonMeta.mockRejectedValueOnce(
+      new ApiClientError('Network request failed', {
+        status: 0,
+        method: 'GET',
+        url: 'https://example.com/season/meta?season=season2',
+      })
+    );
+    const state = useCupGameState({ findPlayerByTeam });
+
+    await state.refreshSeasonMeta();
+
+    expect(state.isSeasonOver.value).toBe(false);
+    expect(state.seasonMetaWarning.value).toContain(
+      'Backend season endpoints from this branch are not deployed'
     );
   });
 
