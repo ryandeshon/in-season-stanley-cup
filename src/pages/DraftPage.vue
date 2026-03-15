@@ -163,6 +163,7 @@
               outlined
               :elevation="pickedTeams.includes(team) ? 0 : 2"
               class="w-full p-4 flex items-center justify-center"
+              :data-test="`draft-team-card-${team}`"
               :class="{
                 picked: pickedTeams.includes(team),
                 'cursor-pointer':
@@ -188,8 +189,10 @@ import {
   selectTeamForPlayer,
   updateDraftState,
 } from '../services/dynamodbService';
+import { ApiClientError } from '@/services/apiClient';
 import { sendSocketMessage } from '@/services/socketClient';
 import { useDraftRealtime } from '@/composables/useDraftRealtime';
+import { useSeasonStore } from '@/store/seasonStore';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
@@ -225,6 +228,7 @@ function preloadAudio() {
 }
 
 const route = useRoute();
+const seasonStore = useSeasonStore();
 const playerName = route.params.name;
 const currentPlayer = ref(null);
 
@@ -275,9 +279,7 @@ const currentPicker = computed(() =>
 
 const { isDisconnected } = useDraftRealtime({
   onDraftUpdate(payload) {
-    draftState.value = payload || draftState.value;
-    availableTeams.value = payload?.availableTeams || [];
-    currentPickerId.value = payload?.currentPicker || '';
+    applyDraftStateToView(payload || draftState.value);
     syncCurrentPlayer();
     loadInitialData({ showLoading: false, skipDraftState: true });
   },
@@ -298,6 +300,46 @@ function syncCurrentPlayer() {
   return true;
 }
 
+function applyDraftStateToView(stateData) {
+  if (!stateData) return;
+  draftState.value = stateData;
+  availableTeams.value = stateData.availableTeams || [];
+  currentPickerId.value = stateData.currentPicker || '';
+}
+
+async function patchDraftStateWithVersion(patch) {
+  const currentVersion = Number(draftState.value?.version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+    throw new Error('Draft state version is unavailable. Refresh and retry.');
+  }
+
+  try {
+    const updatedState = await updateDraftState(
+      {
+        ...patch,
+        version: currentVersion,
+      },
+      {
+        season: seasonStore.currentSeason,
+      }
+    );
+    applyDraftStateToView(updatedState);
+    syncCurrentPlayer();
+    return updatedState;
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 409) {
+      applyDraftStateToView(error.details?.currentState || null);
+      syncCurrentPlayer();
+      showSnackbar(
+        'Draft changed in another session. Loaded the latest state.',
+        'warning'
+      );
+      return null;
+    }
+    throw error;
+  }
+}
+
 // Fetch initial data from backend
 async function loadInitialData(options = {}) {
   const { showLoading = true, skipDraftState = false } = options;
@@ -306,16 +348,13 @@ async function loadInitialData(options = {}) {
   }
   try {
     const [playersData, stateData] = await Promise.all([
-      getDraftPlayers(),
-      skipDraftState ? Promise.resolve(draftState.value) : getDraftState(),
+      getDraftPlayers({ season: seasonStore.currentSeason }),
+      skipDraftState
+        ? Promise.resolve(draftState.value)
+        : getDraftState({ season: seasonStore.currentSeason }),
     ]);
     allPlayersData.value = playersData || [];
-
-    if (stateData) {
-      draftState.value = stateData;
-      availableTeams.value = stateData.availableTeams || [];
-      currentPickerId.value = stateData.currentPicker || '';
-    }
+    applyDraftStateToView(stateData);
 
     syncCurrentPlayer();
   } catch (error) {
@@ -387,7 +426,9 @@ async function selectTeam(team) {
 
   try {
     // Step 1: Add selected team to the player's list
-    await selectTeamForPlayer(currentPlayer.value.id, team);
+    await selectTeamForPlayer(currentPlayer.value.id, team, {
+      season: seasonStore.currentSeason,
+    });
 
     // Step 2: Remove team from available list
     const updatedTeams = availableTeams.value.filter((t) => t !== team);
@@ -399,12 +440,14 @@ async function selectTeam(team) {
     const nextPicker = pickOrder[nextIndex];
 
     // Step 4: Update draft state
-    await updateDraftState({
+    const updatedState = await patchDraftStateWithVersion({
       availableTeams: updatedTeams,
       currentPicker: nextPicker,
       currentPickNumber: draftState.value.currentPickNumber + 1,
     });
-    const updatedState = await getDraftState(); // re-fetch full state
+    if (!updatedState) {
+      return;
+    }
     sendSocketMessage('default', updatedState); // broadcast
 
     await loadInitialData({ showLoading: false });

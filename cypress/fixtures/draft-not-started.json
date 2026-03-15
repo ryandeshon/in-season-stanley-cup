@@ -1,0 +1,28 @@
+{
+  "players": [
+    {
+      "id": 1,
+      "name": "Ryan",
+      "teams": []
+    },
+    {
+      "id": 2,
+      "name": "Cooper",
+      "teams": []
+    },
+    {
+      "id": 3,
+      "name": "Boz",
+      "teams": []
+    }
+  ],
+  "draftState": {
+    "draftStarted": false,
+    "pickOrder": [],
+    "currentPicker": null,
+    "currentPickNumber": 0,
+    "availableTeams": ["ANA", "BOS", "TOR"],
+    "version": 3
+  },
+  "resetAvailableTeams": ["ANA", "BOS", "TOR"]
+}
