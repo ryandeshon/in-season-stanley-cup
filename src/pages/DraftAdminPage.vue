@@ -53,13 +53,27 @@
               >
                 {{ draftState?.draftStarted ? 'In Progress' : 'Not Started' }}
               </v-chip>
+              <v-chip
+                :color="isDraftLocked ? 'warning' : 'success'"
+                class="mr-2"
+              >
+                {{ isDraftLocked ? 'Locked' : 'Unlocked' }}
+              </v-chip>
               <v-chip v-if="currentPicker" color="primary">
                 Current Pick: {{ currentPicker.name }}
+              </v-chip>
+              <v-chip
+                v-if="showAutoPickCountdown"
+                color="primary"
+                class="ml-2"
+                data-test="draft-admin-autopick-countdown"
+              >
+                Auto-pick in {{ autoPickCountdownLabel }}
               </v-chip>
             </div>
 
             <v-row class="mb-4" justify="center">
-              <v-col cols="12" sm="6" md="4" class="text-center">
+              <v-col cols="12" sm="6" md="3" class="text-center">
                 <v-btn
                   @click="startDraft"
                   color="success"
@@ -71,19 +85,47 @@
                   Start Draft
                 </v-btn>
               </v-col>
-              <v-col cols="12" sm="6" md="4" class="text-center">
+              <v-col cols="12" sm="6" md="3" class="text-center">
                 <v-btn
                   @click="advanceDraft"
                   color="primary"
                   size="large"
-                  :disabled="!draftState?.draftStarted || isDraftOver"
+                  :disabled="
+                    !draftState?.draftStarted || isDraftOver || isDraftLocked
+                  "
                   data-test="draft-admin-advance"
                   block
                 >
                   Advance Draft
                 </v-btn>
               </v-col>
-              <v-col cols="12" sm="6" md="4" class="text-center">
+              <v-col cols="12" sm="6" md="3" class="text-center">
+                <v-btn
+                  @click="undoLastPick"
+                  color="secondary"
+                  size="large"
+                  :disabled="!canUndoLastPick"
+                  data-test="draft-admin-undo"
+                  block
+                >
+                  Undo Last Pick
+                </v-btn>
+              </v-col>
+              <v-col cols="12" sm="6" md="3" class="text-center">
+                <v-btn
+                  @click="toggleDraftLock"
+                  :color="isDraftLocked ? 'warning' : 'info'"
+                  size="large"
+                  :disabled="!draftState?.draftStarted"
+                  data-test="draft-admin-lock-toggle"
+                  block
+                >
+                  {{ isDraftLocked ? 'Unlock Draft' : 'Lock Draft' }}
+                </v-btn>
+              </v-col>
+            </v-row>
+            <v-row class="mb-4" justify="center">
+              <v-col cols="12" sm="8" md="6" class="text-center">
                 <v-btn
                   @click="openResetDialog"
                   color="error"
@@ -92,6 +134,44 @@
                   block
                 >
                   Reset Draft
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-4" />
+            <h3 class="text-lg font-semibold mb-2">Auto-pick Countdown</h3>
+            <v-row align="center" class="mb-2">
+              <v-col cols="12" md="4">
+                <v-switch
+                  v-model="autoPickEnabledControl"
+                  color="primary"
+                  hide-details
+                  inset
+                  label="Enable Auto-pick"
+                  data-test="draft-admin-autopick-enabled"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model.number="autoPickSecondsControl"
+                  type="number"
+                  min="5"
+                  max="600"
+                  label="Countdown (seconds)"
+                  density="comfortable"
+                  :disabled="!autoPickEnabledControl"
+                  data-test="draft-admin-autopick-seconds"
+                />
+              </v-col>
+              <v-col cols="12" md="4" class="text-center">
+                <v-btn
+                  color="primary"
+                  :disabled="!draftState"
+                  data-test="draft-admin-autopick-save"
+                  @click="saveAutoPickConfig"
+                  block
+                >
+                  Save Countdown
                 </v-btn>
               </v-col>
             </v-row>
@@ -215,11 +295,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import {
   getDraftPlayers,
   getDraftState,
-  selectTeamForPlayer,
+  makeDraftPick,
+  undoLastDraftPick,
   updateDraftState,
   resetAllPlayerTeams,
 } from '../services/dynamodbService';
@@ -253,6 +334,12 @@ const currentPickerId = ref('');
 const draftState = ref(null);
 const availableTeams = ref([]);
 const isDraftOver = ref(false);
+const nowMs = ref(Date.now());
+let countdownIntervalId = null;
+const autoPickEnabledControl = ref(false);
+const autoPickSecondsControl = ref(60);
+const autoPickInFlight = ref(false);
+const lastAutoPickVersionAttempt = ref(null);
 const nhlTeams = ref([
   'ANA',
   'BOS',
@@ -292,6 +379,35 @@ const currentPicker = computed(() =>
   allPlayersData.value.find((player) => player.id === currentPickerId.value)
 );
 
+const isDraftLocked = computed(() => Boolean(draftState.value?.isLocked));
+const canUndoLastPick = computed(() =>
+  Boolean(draftState.value?.pickHistory?.length)
+);
+
+const autoPickSecondsRemaining = computed(() => {
+  if (!draftState.value?.autoPickEnabled) return null;
+  const deadlineAt = Date.parse(draftState.value.autoPickDeadlineAt || '');
+  if (!Number.isFinite(deadlineAt)) return null;
+  return Math.max(0, Math.ceil((deadlineAt - nowMs.value) / 1000));
+});
+
+const showAutoPickCountdown = computed(
+  () =>
+    Boolean(draftState.value?.draftStarted) &&
+    !isDraftOver.value &&
+    autoPickSecondsRemaining.value !== null
+);
+
+const autoPickCountdownLabel = computed(() => {
+  const remaining = autoPickSecondsRemaining.value;
+  if (remaining === null) return '--:--';
+  const minutes = Math.floor(remaining / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = (remaining % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+});
+
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
 
@@ -309,9 +425,20 @@ const { isDisconnected } = useDraftRealtime({
 
 function applyDraftStateToView(stateData) {
   if (!stateData) return;
+  const previousVersion = Number(draftState.value?.version);
+  const nextVersion = Number(stateData.version);
+  if (previousVersion !== nextVersion) {
+    lastAutoPickVersionAttempt.value = null;
+  }
   draftState.value = stateData;
   availableTeams.value = stateData.availableTeams || [];
   currentPickerId.value = stateData.currentPicker || '';
+  autoPickEnabledControl.value = Boolean(stateData.autoPickEnabled);
+  autoPickSecondsControl.value = Number.isInteger(
+    Number(stateData.autoPickSeconds)
+  )
+    ? Number(stateData.autoPickSeconds)
+    : 60;
 }
 
 async function patchDraftStateWithVersion(patch) {
@@ -343,6 +470,12 @@ async function patchDraftStateWithVersion(patch) {
     }
     throw error;
   }
+}
+
+function normalizeAutoPickSeconds(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 5) return 60;
+  return Math.min(parsed, 600);
 }
 
 async function loadInitialData(options = {}) {
@@ -377,8 +510,23 @@ watch(
   { immediate: true }
 );
 
+watch(autoPickSecondsRemaining, (remainingSeconds) => {
+  if (remainingSeconds !== 0) return;
+  triggerAutoPickIfNeeded();
+});
+
 onMounted(() => {
   loadInitialData();
+  countdownIntervalId = window.setInterval(() => {
+    nowMs.value = Date.now();
+  }, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (countdownIntervalId) {
+    window.clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
+  }
 });
 
 function getPlayerName(playerId) {
@@ -405,12 +553,21 @@ async function startDraft() {
       season: seasonStore.currentSeason,
     });
     const shuffled = shuffle(players.map((p) => p.id));
+    const autoPickSeconds = normalizeAutoPickSeconds(
+      autoPickSecondsControl.value
+    );
+    autoPickSecondsControl.value = autoPickSeconds;
 
     const newState = {
       pickOrder: shuffled,
       currentPicker: shuffled[0],
       currentPickNumber: 1,
       draftStarted: true,
+      isLocked: false,
+      availableTeams: [...nhlTeams.value],
+      pickHistory: [],
+      autoPickEnabled: autoPickEnabledControl.value,
+      autoPickSeconds,
     };
 
     const updatedState = await patchDraftStateWithVersion(newState);
@@ -427,48 +584,184 @@ async function startDraft() {
   }
 }
 
-async function advanceDraft() {
+async function advanceDraft(options = {}) {
+  const { isAutoPick = false } = options;
   try {
-    const pickOrder = draftState.value.pickOrder;
-    const currentIndex = pickOrder.indexOf(currentPickerId.value);
-    const nextIndex = (currentIndex + 1) % pickOrder.length;
-    const nextPicker = pickOrder[nextIndex];
-
-    if (availableTeams.value.length > 0) {
-      const randomTeamIndex = Math.floor(
-        Math.random() * availableTeams.value.length
-      );
-      const randomTeam = availableTeams.value[randomTeamIndex];
-
-      await selectTeamForPlayer(currentPickerId.value, randomTeam, {
-        season: seasonStore.currentSeason,
-      });
-
-      const updatedTeams = availableTeams.value.filter((t) => t !== randomTeam);
-
-      const updatedState = await patchDraftStateWithVersion({
-        availableTeams: updatedTeams,
-        currentPicker: nextPicker,
-        currentPickNumber: draftState.value.currentPickNumber + 1,
-      });
-      if (!updatedState) {
-        return;
+    if (!draftState.value?.draftStarted || isDraftOver.value) {
+      return;
+    }
+    if (isDraftLocked.value) {
+      if (!isAutoPick) {
+        showSnackbar('Draft is locked. Unlock to advance picks.', 'warning');
       }
-    } else {
-      const updatedState = await patchDraftStateWithVersion({
-        currentPicker: nextPicker,
-        currentPickNumber: draftState.value.currentPickNumber + 1,
-      });
-      if (!updatedState) {
-        return;
-      }
+      return;
+    }
+    if (!availableTeams.value.length) {
+      return;
     }
 
-    sendSocketMessage('default', draftState.value);
+    const currentVersion = Number(draftState.value?.version);
+    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+      throw new Error('Draft state version is unavailable. Refresh and retry.');
+    }
+
+    const randomTeamIndex = Math.floor(
+      Math.random() * availableTeams.value.length
+    );
+    const randomTeam = availableTeams.value[randomTeamIndex];
+    const result = await makeDraftPick(
+      currentPickerId.value,
+      randomTeam,
+      currentVersion,
+      {
+        season: seasonStore.currentSeason,
+      }
+    );
+    const updatedState = result?.state || null;
+    if (!updatedState) {
+      showSnackbar(
+        'Auto-pick completed but no state payload was returned.',
+        'warning'
+      );
+      await loadInitialData({ showLoading: false });
+      return;
+    }
+    applyDraftStateToView(updatedState);
+
+    sendSocketMessage('default', updatedState);
     await loadInitialData({ showLoading: false });
+    if (!isAutoPick) {
+      showSnackbar('Advanced to the next draft pick.', 'success');
+    }
   } catch (error) {
+    if (error instanceof ApiClientError && error.status === 409) {
+      applyDraftStateToView(error.details?.currentState || null);
+      showSnackbar(
+        'Draft changed in another session. Loaded the latest state.',
+        'warning'
+      );
+      return;
+    }
+    if (error instanceof ApiClientError && error.status === 400) {
+      showSnackbar(
+        error.details?.error || 'Could not advance the draft.',
+        'warning'
+      );
+      await loadInitialData({ showLoading: false });
+      return;
+    }
     console.error('Failed to advance draft:', error);
-    showSnackbar('Could not advance the draft.', 'error');
+    showSnackbar(
+      isAutoPick
+        ? 'Auto-pick failed to advance.'
+        : 'Could not advance the draft.',
+      'error'
+    );
+  }
+}
+
+async function triggerAutoPickIfNeeded() {
+  if (autoPickInFlight.value) return;
+  if (!draftState.value?.draftStarted || isDraftOver.value) return;
+  if (isDraftLocked.value || !draftState.value?.autoPickEnabled) return;
+
+  const currentVersion = Number(draftState.value?.version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) return;
+  if (lastAutoPickVersionAttempt.value === currentVersion) return;
+
+  autoPickInFlight.value = true;
+  lastAutoPickVersionAttempt.value = currentVersion;
+  try {
+    await advanceDraft({ isAutoPick: true });
+  } finally {
+    autoPickInFlight.value = false;
+  }
+}
+
+async function toggleDraftLock() {
+  try {
+    const updatedState = await patchDraftStateWithVersion({
+      isLocked: !isDraftLocked.value,
+    });
+    if (!updatedState) return;
+    sendSocketMessage('default', updatedState);
+    showSnackbar(
+      updatedState.isLocked ? 'Draft locked.' : 'Draft unlocked.',
+      'success'
+    );
+  } catch (error) {
+    console.error('Failed to toggle draft lock:', error);
+    showSnackbar('Could not update draft lock.', 'error');
+  }
+}
+
+async function undoLastPick() {
+  const currentVersion = Number(draftState.value?.version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+    showSnackbar('Draft version is unavailable. Refresh and retry.', 'error');
+    return;
+  }
+
+  try {
+    const result = await undoLastDraftPick(currentVersion, {
+      season: seasonStore.currentSeason,
+    });
+    const updatedState = result?.state || null;
+    if (!updatedState) {
+      showSnackbar(
+        'Undo completed but no draft state was returned.',
+        'warning'
+      );
+      await loadInitialData({ showLoading: false });
+      return;
+    }
+
+    applyDraftStateToView(updatedState);
+    sendSocketMessage('default', updatedState);
+    await loadInitialData({ showLoading: false });
+    showSnackbar(
+      `Undid pick: ${result?.undonePick?.team || 'last pick'}.`,
+      'success'
+    );
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 409) {
+      applyDraftStateToView(error.details?.currentState || null);
+      showSnackbar(
+        'Draft changed in another session. Loaded the latest state.',
+        'warning'
+      );
+      return;
+    }
+    if (error instanceof ApiClientError && error.status === 400) {
+      showSnackbar(
+        error.details?.error || 'Could not undo the last pick.',
+        'warning'
+      );
+      return;
+    }
+    console.error('Failed to undo draft pick:', error);
+    showSnackbar('Could not undo the last pick.', 'error');
+  }
+}
+
+async function saveAutoPickConfig() {
+  try {
+    const autoPickSeconds = normalizeAutoPickSeconds(
+      autoPickSecondsControl.value
+    );
+    autoPickSecondsControl.value = autoPickSeconds;
+    const updatedState = await patchDraftStateWithVersion({
+      autoPickEnabled: autoPickEnabledControl.value,
+      autoPickSeconds,
+    });
+    if (!updatedState) {
+      return;
+    }
+    sendSocketMessage('default', updatedState);
+    showSnackbar('Auto-pick countdown settings saved.', 'success');
+  } catch (error) {
+    console.error('Failed to save auto-pick settings:', error);
+    showSnackbar('Could not save auto-pick settings.', 'error');
   }
 }
 
@@ -485,6 +778,8 @@ async function confirmResetTeams() {
       currentPicker: null,
       currentPickNumber: 0,
       availableTeams: [...nhlTeams.value],
+      pickHistory: [],
+      isLocked: false,
     });
     if (!updatedState) {
       return;

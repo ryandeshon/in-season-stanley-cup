@@ -28,6 +28,16 @@
       It's not your turn!
     </v-alert>
   </transition>
+  <transition name="fade">
+    <v-alert
+      v-if="draftState?.isLocked && draftState?.draftStarted"
+      type="warning"
+      class="fixed m-auto w-full text-center mb-4 z-50"
+      data-test="draft-player-locked-banner"
+    >
+      Draft is locked by an admin.
+    </v-alert>
+  </transition>
   <v-snackbar
     v-model="snackbar.visible"
     :color="snackbar.color"
@@ -96,6 +106,23 @@
               Current Pick:
               <strong>{{ currentPicker.name }}</strong>
             </span>
+          </div>
+          <div class="mt-2">
+            <v-chip
+              :color="draftState?.isLocked ? 'warning' : 'success'"
+              size="small"
+              class="mr-2"
+            >
+              {{ draftState?.isLocked ? 'Locked' : 'Unlocked' }}
+            </v-chip>
+            <v-chip
+              v-if="showAutoPickCountdown"
+              color="primary"
+              size="small"
+              data-test="draft-player-autopick-countdown"
+            >
+              Auto-pick in {{ autoPickCountdownLabel }}
+            </v-chip>
           </div>
         </v-col>
 
@@ -167,7 +194,8 @@
               :class="{
                 picked: pickedTeams.includes(team),
                 'cursor-pointer':
-                  currentPickerId === playerName && !pickedTeams.includes(team),
+                  isYourTurn && !pickedTeams.includes(team) && !isDraftLocked,
+                'locked-card': isDraftLocked,
               }"
               @click="selectTeam(team)"
             >
@@ -181,13 +209,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   getDraftPlayers,
   getDraftState,
-  selectTeamForPlayer,
-  updateDraftState,
+  makeDraftPick,
 } from '../services/dynamodbService';
 import { ApiClientError } from '@/services/apiClient';
 import { sendSocketMessage } from '@/services/socketClient';
@@ -238,6 +265,8 @@ const draftState = ref(null);
 const availableTeams = ref([]);
 const isYourTurn = ref(false);
 const isDraftOver = ref(false);
+const nowMs = ref(Date.now());
+let countdownIntervalId = null;
 const nhlTeams = ref([
   'ANA',
   'BOS',
@@ -277,6 +306,32 @@ const currentPicker = computed(() =>
   allPlayersData.value.find((player) => player.id === currentPickerId.value)
 );
 
+const isDraftLocked = computed(() => Boolean(draftState.value?.isLocked));
+
+const autoPickSecondsRemaining = computed(() => {
+  if (!draftState.value?.autoPickEnabled) return null;
+  const deadlineAt = Date.parse(draftState.value.autoPickDeadlineAt || '');
+  if (!Number.isFinite(deadlineAt)) return null;
+  return Math.max(0, Math.ceil((deadlineAt - nowMs.value) / 1000));
+});
+
+const showAutoPickCountdown = computed(
+  () =>
+    Boolean(draftState.value?.draftStarted) &&
+    !isDraftOver.value &&
+    autoPickSecondsRemaining.value !== null
+);
+
+const autoPickCountdownLabel = computed(() => {
+  const remaining = autoPickSecondsRemaining.value;
+  if (remaining === null) return '--:--';
+  const minutes = Math.floor(remaining / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = (remaining % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+});
+
 const { isDisconnected } = useDraftRealtime({
   onDraftUpdate(payload) {
     applyDraftStateToView(payload || draftState.value);
@@ -305,39 +360,6 @@ function applyDraftStateToView(stateData) {
   draftState.value = stateData;
   availableTeams.value = stateData.availableTeams || [];
   currentPickerId.value = stateData.currentPicker || '';
-}
-
-async function patchDraftStateWithVersion(patch) {
-  const currentVersion = Number(draftState.value?.version);
-  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-    throw new Error('Draft state version is unavailable. Refresh and retry.');
-  }
-
-  try {
-    const updatedState = await updateDraftState(
-      {
-        ...patch,
-        version: currentVersion,
-      },
-      {
-        season: seasonStore.currentSeason,
-      }
-    );
-    applyDraftStateToView(updatedState);
-    syncCurrentPlayer();
-    return updatedState;
-  } catch (error) {
-    if (error instanceof ApiClientError && error.status === 409) {
-      applyDraftStateToView(error.details?.currentState || null);
-      syncCurrentPlayer();
-      showSnackbar(
-        'Draft changed in another session. Loaded the latest state.',
-        'warning'
-      );
-      return null;
-    }
-    throw error;
-  }
 }
 
 // Fetch initial data from backend
@@ -403,12 +425,26 @@ watch(
 
 onMounted(() => {
   loadInitialData();
+  countdownIntervalId = window.setInterval(() => {
+    nowMs.value = Date.now();
+  }, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (countdownIntervalId) {
+    window.clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
+  }
 });
 
 // Team selection logic (only when it's player's turn)
 async function selectTeam(team) {
   if (!audioReady.value) {
     preloadAudio(); // preload audio on user interaction
+  }
+  if (isDraftLocked.value) {
+    showSnackbar('Draft is locked right now.', 'warning');
+    return;
   }
   if (
     !currentPlayer.value ||
@@ -425,33 +461,49 @@ async function selectTeam(team) {
   }
 
   try {
-    // Step 1: Add selected team to the player's list
-    await selectTeamForPlayer(currentPlayer.value.id, team, {
-      season: seasonStore.currentSeason,
-    });
+    const currentVersion = Number(draftState.value?.version);
+    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+      throw new Error('Draft state version is unavailable. Refresh and retry.');
+    }
 
-    // Step 2: Remove team from available list
-    const updatedTeams = availableTeams.value.filter((t) => t !== team);
+    const result = await makeDraftPick(
+      currentPlayer.value.id,
+      team,
+      currentVersion,
+      {
+        season: seasonStore.currentSeason,
+      }
+    );
 
-    // Step 3: Rotate to the next player
-    const pickOrder = draftState.value.pickOrder;
-    const currentIndex = pickOrder.indexOf(currentPickerId.value);
-    const nextIndex = (currentIndex + 1) % pickOrder.length;
-    const nextPicker = pickOrder[nextIndex];
-
-    // Step 4: Update draft state
-    const updatedState = await patchDraftStateWithVersion({
-      availableTeams: updatedTeams,
-      currentPicker: nextPicker,
-      currentPickNumber: draftState.value.currentPickNumber + 1,
-    });
+    const updatedState = result?.state || null;
     if (!updatedState) {
+      showSnackbar(
+        'Pick completed but no draft state was returned.',
+        'warning'
+      );
+      await loadInitialData({ showLoading: false });
       return;
     }
-    sendSocketMessage('default', updatedState); // broadcast
 
+    applyDraftStateToView(updatedState);
+    syncCurrentPlayer();
+    sendSocketMessage('default', updatedState); // broadcast
     await loadInitialData({ showLoading: false });
   } catch (error) {
+    if (error instanceof ApiClientError && error.status === 409) {
+      applyDraftStateToView(error.details?.currentState || null);
+      syncCurrentPlayer();
+      showSnackbar(
+        'Draft changed in another session. Loaded the latest state.',
+        'warning'
+      );
+      return;
+    }
+    if (error instanceof ApiClientError && error.status === 400) {
+      showSnackbar(error.details?.error || 'Pick was rejected.', 'warning');
+      await loadInitialData({ showLoading: false });
+      return;
+    }
     console.error('Error selecting team:', error);
     showSnackbar('Something went wrong while picking a team.', 'error');
   }
@@ -484,6 +536,10 @@ watch(isYourTurn, (newVal) => {
 .picked {
   filter: grayscale(100%);
   opacity: 0.5;
+  pointer-events: none;
+}
+.locked-card {
+  opacity: 0.7;
   pointer-events: none;
 }
 .border-success {
