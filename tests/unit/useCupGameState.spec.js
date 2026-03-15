@@ -9,6 +9,7 @@ vi.mock('@/services/nhlApi', () => ({
 }));
 
 vi.mock('@/services/championServices', () => ({
+  areSeasonContractEndpointsEnabled: vi.fn(),
   getCurrentChampion: vi.fn(),
   getGameId: vi.fn(),
   getSeasonMeta: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('@/store/seasonStore', () => ({
 
 import nhlApi from '@/services/nhlApi';
 import {
+  areSeasonContractEndpointsEnabled,
   getCurrentChampion,
   getGameId,
   getSeasonMeta,
@@ -42,6 +44,7 @@ describe('useCupGameState', () => {
       seasonId: 'season2',
       seasonOver: false,
     });
+    areSeasonContractEndpointsEnabled.mockReturnValue(true);
     shouldUseContractFallback.mockReturnValue(false);
   });
 

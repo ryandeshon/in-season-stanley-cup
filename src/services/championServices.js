@@ -55,6 +55,27 @@ export function isLocalDevelopmentRuntime() {
   return process.env.NODE_ENV !== 'production';
 }
 
+function parseBooleanEnv(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return null;
+}
+
+export function areSeasonContractEndpointsEnabled() {
+  const explicit = parseBooleanEnv(process.env.VUE_APP_ENABLE_SEASON_CONTRACTS);
+  if (explicit !== null) {
+    return explicit;
+  }
+  if (process.env.NODE_ENV === 'test') {
+    return true;
+  }
+  // In local dev we default to disabled because API stage drift commonly
+  // causes noisy CORS+404 for these newer endpoints.
+  return !isLocalDevelopmentRuntime();
+}
+
 export function isContractEndpointUnavailableError(error) {
   if (!(error instanceof ApiClientError)) return false;
   if (error.status === 0 || error.status === 404) return true;

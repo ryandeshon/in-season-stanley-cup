@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ApiClientError } from '@/services/apiClient';
 import {
+  areSeasonContractEndpointsEnabled,
   isContractEndpointUnavailableError,
   shouldUseContractFallback,
 } from '@/services/championServices';
@@ -57,5 +58,9 @@ describe('championServices endpoint fallback classification', () => {
 
     expect(isContractEndpointUnavailableError(error)).toBe(false);
     expect(shouldUseContractFallback(error)).toBe(false);
+  });
+
+  it('enables season contracts in test runtime by default', () => {
+    expect(areSeasonContractEndpointsEnabled()).toBe(true);
   });
 });

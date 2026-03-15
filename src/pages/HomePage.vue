@@ -234,7 +234,11 @@
             subtitle="is not Defending the Championship Today"
             image-type="Happy"
           />
-          <p v-else class="text-sm mb-0">Loading champion owner...</p>
+          <p v-else class="text-sm mb-0" data-test="champion-team-fallback">
+            Current champion team:
+            <strong>{{ currentChampion || 'Unknown' }}</strong>
+            (owner unavailable)
+          </p>
         </div>
 
         <div class="text-center mb-4" data-test="whats-next-panel">
@@ -358,6 +362,7 @@ import { useCupGameState } from '@/composables/useCupGameState';
 import { useLiveGameFeed } from '@/composables/useLiveGameFeed';
 import { useUpcomingMatchups } from '@/composables/useUpcomingMatchups';
 import {
+  areSeasonContractEndpointsEnabled,
   getChampionHistory,
   shouldUseContractFallback,
 } from '@/services/championServices';
@@ -490,6 +495,18 @@ const CHAMPION_HISTORY_CONTRACT_WARNING_KEY =
   'home-champion-history-contract-warning';
 
 async function loadChampionHistory() {
+  if (!areSeasonContractEndpointsEnabled()) {
+    championHistory.value = [];
+    championHistoryLoading.value = false;
+    championHistoryError.value = '';
+    if (!hasSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY)) {
+      setSessionWarning(CHAMPION_HISTORY_CONTRACT_WARNING_KEY);
+      contractWarning.value =
+        'Champion timeline checks are disabled in local development. Set VUE_APP_ENABLE_SEASON_CONTRACTS=true to test deployed timeline endpoints.';
+    }
+    return;
+  }
+
   championHistoryLoading.value = true;
   championHistoryError.value = '';
   try {

@@ -2,6 +2,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { DateTime } from 'luxon';
 import nhlApi from '@/services/nhlApi';
 import {
+  areSeasonContractEndpointsEnabled,
   getCurrentChampion,
   getGameId,
   getSeasonMeta,
@@ -196,6 +197,18 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   }
 
   async function refreshSeasonMeta(options = {}) {
+    if (!areSeasonContractEndpointsEnabled()) {
+      if (!hasSessionWarning(SEASON_META_CONTRACT_WARNING_KEY)) {
+        setSessionWarning(SEASON_META_CONTRACT_WARNING_KEY);
+        seasonMetaWarning.value =
+          'Season metadata checks are disabled in local development. Set VUE_APP_ENABLE_SEASON_CONTRACTS=true to test deployed season endpoints.';
+      } else {
+        seasonMetaWarning.value = '';
+      }
+      isSeasonOver.value = false;
+      return null;
+    }
+
     try {
       const seasonMeta = await getSeasonMeta(withSeasonOptions(options));
       isSeasonOver.value = Boolean(seasonMeta?.seasonOver);
