@@ -22,7 +22,12 @@
     "currentPicker": 1,
     "currentPickNumber": 1,
     "availableTeams": ["ANA", "BOS", "TOR"],
-    "version": 7
+    "version": 7,
+    "isLocked": false,
+    "autoPickEnabled": true,
+    "autoPickSeconds": 45,
+    "autoPickDeadlineAt": "2099-01-01T00:00:30.000Z",
+    "pickHistory": []
   },
   "resetAvailableTeams": ["ANA", "BOS", "TOR"]
 }

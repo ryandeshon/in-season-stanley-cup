@@ -104,7 +104,25 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       currentPickNumber: 0,
       availableTeams: [],
       version: 0,
+      isLocked: false,
+      autoPickEnabled: false,
+      autoPickSeconds: 60,
+      autoPickDeadlineAt: null,
+      pickHistory: [],
     };
+
+    function nextAutoPickDeadline(nextState) {
+      const isDisabled =
+        !nextState.autoPickEnabled ||
+        nextState.isLocked ||
+        !nextState.draftStarted ||
+        !nextState.currentPicker ||
+        !Array.isArray(nextState.availableTeams) ||
+        nextState.availableTeams.length === 0;
+      if (isDisabled) return null;
+      const seconds = Number(nextState.autoPickSeconds || 60);
+      return new Date(Date.now() + seconds * 1000).toISOString();
+    }
 
     cy.intercept('GET', '**/players*', {
       statusCode: 200,
@@ -152,6 +170,181 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
         body: state,
       });
     }).as('patchDraftState');
+
+    cy.intercept('POST', '**/draft/pick*', (req) => {
+      const expectedVersion = Number(req.body?.version);
+      const playerId = Number(req.body?.playerId);
+      const team = String(req.body?.team || '')
+        .trim()
+        .toUpperCase();
+
+      if (!Number.isInteger(expectedVersion)) {
+        req.reply({
+          statusCode: 400,
+          body: { error: 'version is required' },
+        });
+        return;
+      }
+
+      if (expectedVersion !== state.version) {
+        req.reply({
+          statusCode: 409,
+          body: {
+            error: 'Draft state version conflict',
+            currentVersion: state.version,
+            currentState: state,
+          },
+        });
+        return;
+      }
+
+      if (state.isLocked) {
+        req.reply({
+          statusCode: 400,
+          body: { error: 'Draft is locked' },
+        });
+        return;
+      }
+
+      const pickerId = Number(state.currentPicker);
+      if (pickerId !== playerId) {
+        req.reply({
+          statusCode: 400,
+          body: { error: "It is not this player's turn" },
+        });
+        return;
+      }
+
+      if (!state.availableTeams.includes(team)) {
+        req.reply({
+          statusCode: 400,
+          body: { error: 'Team is no longer available' },
+        });
+        return;
+      }
+
+      players = players.map((player) => {
+        if (Number(player.id) !== playerId) return player;
+        const nextTeams = Array.isArray(player.teams) ? [...player.teams] : [];
+        if (!nextTeams.includes(team)) {
+          nextTeams.push(team);
+        }
+        return {
+          ...player,
+          teams: nextTeams,
+        };
+      });
+
+      const pickOrder = Array.isArray(state.pickOrder) ? state.pickOrder : [];
+      const currentIndex = pickOrder.findIndex(
+        (entry) => Number(entry) === pickerId
+      );
+      const nextPicker =
+        currentIndex >= 0 ? pickOrder[(currentIndex + 1) % pickOrder.length] : null;
+      const pickNumber = Number(state.currentPickNumber || 1);
+
+      state = {
+        ...state,
+        availableTeams: state.availableTeams.filter((entry) => entry !== team),
+        currentPicker: nextPicker,
+        currentPickNumber: pickNumber + 1,
+        pickHistory: [
+          ...(Array.isArray(state.pickHistory) ? state.pickHistory : []),
+          {
+            playerId,
+            team,
+            pickNumber,
+            pickedAt: new Date().toISOString(),
+          },
+        ],
+        version: state.version + 1,
+      };
+      state.autoPickDeadlineAt = nextAutoPickDeadline(state);
+
+      const player = players.find((entry) => Number(entry.id) === playerId) || null;
+      req.reply({
+        statusCode: 200,
+        body: {
+          team,
+          player,
+          state,
+        },
+      });
+    }).as('pickDraftTeam');
+
+    cy.intercept('POST', '**/draft/undo-last-pick*', (req) => {
+      const expectedVersion = Number(req.body?.version);
+      if (!Number.isInteger(expectedVersion)) {
+        req.reply({
+          statusCode: 400,
+          body: { error: 'version is required' },
+        });
+        return;
+      }
+
+      if (expectedVersion !== state.version) {
+        req.reply({
+          statusCode: 409,
+          body: {
+            error: 'Draft state version conflict',
+            currentVersion: state.version,
+            currentState: state,
+          },
+        });
+        return;
+      }
+
+      const history = Array.isArray(state.pickHistory) ? [...state.pickHistory] : [];
+      if (!history.length) {
+        req.reply({
+          statusCode: 400,
+          body: { error: 'No picks are available to undo' },
+        });
+        return;
+      }
+
+      const undonePick = history.pop();
+      const playerId = Number(undonePick.playerId);
+      const team = String(undonePick.team || '')
+        .trim()
+        .toUpperCase();
+
+      players = players.map((player) => {
+        if (Number(player.id) !== playerId) return player;
+        return {
+          ...player,
+          teams: (player.teams || []).filter((entry) => entry !== team),
+        };
+      });
+
+      const nextAvailableTeams = state.availableTeams.includes(team)
+        ? [...state.availableTeams]
+        : [...state.availableTeams, team];
+      const currentPickNumber = Number(state.currentPickNumber || 1);
+
+      state = {
+        ...state,
+        availableTeams: nextAvailableTeams,
+        currentPicker: playerId,
+        currentPickNumber:
+          Number(undonePick.pickNumber) > 0
+            ? Number(undonePick.pickNumber)
+            : Math.max(1, currentPickNumber - 1),
+        pickHistory: history,
+        version: state.version + 1,
+      };
+      state.autoPickDeadlineAt = nextAutoPickDeadline(state);
+
+      const player = players.find((entry) => Number(entry.id) === playerId) || null;
+      req.reply({
+        statusCode: 200,
+        body: {
+          undonePick,
+          player,
+          state,
+        },
+      });
+    }).as('undoDraftPick');
 
     cy.intercept('POST', '**/draft/select-team*', (req) => {
       const playerId = Number(req.body?.playerId);

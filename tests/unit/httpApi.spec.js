@@ -57,54 +57,25 @@ global.__awsDocumentClientMock = {
   },
   update(params) {
     return {
+      promise: async () => applyUpdateOperation(params),
+    };
+  },
+  transactWrite(params) {
+    return {
       promise: async () => {
-        const table = getTable(params.TableName);
-        const keyId = params.Key.id;
-        const current = table[keyId] ? clone(table[keyId]) : { id: keyId };
-        const names = params.ExpressionAttributeNames || {};
-        const values = params.ExpressionAttributeValues || {};
-
-        if (params.ConditionExpression?.includes('#state.#version')) {
-          const currentVersion = current?.state?.version;
-          const expected = values[':expected'];
-          const zero = values[':zero'];
-          const conditionMet =
-            (currentVersion === undefined && expected === zero) ||
-            currentVersion === expected;
-          if (!conditionMet) {
-            throw createConditionalError();
+        const snapshot = clone(db.tables);
+        try {
+          for (const item of params.TransactItems || []) {
+            if (!item?.Update) {
+              throw new Error('Unsupported transact item in test mock');
+            }
+            applyUpdateOperation(item.Update);
           }
+          return {};
+        } catch (error) {
+          db.tables = snapshot;
+          throw error;
         }
-
-        if (params.UpdateExpression?.includes('REMOVE gameID')) {
-          delete current.gameID;
-        }
-
-        if (params.UpdateExpression?.includes('#state = :state')) {
-          current[names['#state']] = clone(values[':state']);
-        }
-        if (params.UpdateExpression?.includes('#updatedAt = :ts')) {
-          current[names['#updatedAt']] = values[':ts'];
-        }
-        if (params.UpdateExpression?.includes('SET gameID = :g')) {
-          current.gameID = values[':g'];
-          current.updatedAt = values[':ts'];
-        }
-        if (params.UpdateExpression?.includes('SET teams = :teams')) {
-          current.teams = clone(values[':teams']);
-          current.updatedAt = values[':ts'];
-        }
-
-        table[keyId] = current;
-
-        if (params.ReturnValues === 'UPDATED_NEW') {
-          return { Attributes: { gameID: current.gameID } };
-        }
-        if (params.ReturnValues === 'ALL_NEW') {
-          return { Attributes: clone(current) };
-        }
-
-        return {};
       },
     };
   },
@@ -122,6 +93,83 @@ global.__awsDocumentClientMock = {
     };
   },
 };
+
+function applyUpdateOperation(params) {
+  const table = getTable(params.TableName);
+  const keyId = params.Key.id;
+  const itemExists = Object.prototype.hasOwnProperty.call(table, keyId);
+  const current = itemExists ? clone(table[keyId]) : { id: keyId };
+  const names = params.ExpressionAttributeNames || {};
+  const values = params.ExpressionAttributeValues || {};
+  const condition = params.ConditionExpression || '';
+
+  if (condition.includes('attribute_exists(id)') && !itemExists) {
+    throw createConditionalError();
+  }
+
+  if (condition.includes('#state.#version')) {
+    const currentVersion = current?.state?.version;
+    const expected = values[':expected'];
+    const zero = values[':zero'];
+    const conditionMet =
+      (currentVersion === undefined && expected === zero) ||
+      currentVersion === expected;
+    if (!conditionMet) {
+      throw createConditionalError();
+    }
+  }
+
+  if (condition.includes('NOT contains(teams, :team)')) {
+    const team = values[':team'];
+    const teamExists =
+      Array.isArray(current.teams) && current.teams.includes(team);
+    if (teamExists) {
+      throw createConditionalError();
+    }
+  }
+
+  if (
+    condition.includes('contains(teams, :team)') &&
+    !condition.includes('NOT contains(teams, :team)')
+  ) {
+    const team = values[':team'];
+    const teamExists =
+      Array.isArray(current.teams) && current.teams.includes(team);
+    if (!teamExists) {
+      throw createConditionalError();
+    }
+  }
+
+  if (params.UpdateExpression?.includes('REMOVE gameID')) {
+    delete current.gameID;
+  }
+
+  if (params.UpdateExpression?.includes('#state = :state')) {
+    current[names['#state']] = clone(values[':state']);
+  }
+  if (params.UpdateExpression?.includes('#updatedAt = :ts')) {
+    current[names['#updatedAt']] = values[':ts'];
+  }
+  if (params.UpdateExpression?.includes('SET gameID = :g')) {
+    current.gameID = values[':g'];
+    current.updatedAt = values[':ts'];
+  }
+  if (params.UpdateExpression?.includes('SET teams = :teams')) {
+    current.teams = clone(values[':teams']);
+    current.updatedAt = values[':ts'];
+  }
+
+  table[keyId] = current;
+
+  if (params.ReturnValues === 'UPDATED_NEW') {
+    return { Attributes: { gameID: current.gameID } };
+  }
+  if (params.ReturnValues === 'ALL_NEW') {
+    return { Attributes: clone(current) };
+  }
+
+  return {};
+}
 
 let handler;
 
@@ -303,6 +351,124 @@ describe('http-api contract behavior', () => {
     expect(result.statusCode).toBe(409);
     expect(result.json.currentVersion).toBe(4);
     expect(result.json.currentState.currentPicker).toBe(1);
+  });
+
+  it('applies /draft/pick with server-side validation and history tracking', async () => {
+    const optionsTable = getTable('GameOptions');
+    const playersTable = getTable('Players');
+    playersTable[1] = { id: 1, name: 'Ryan', teams: [] };
+    playersTable[2] = { id: 2, name: 'Boz', teams: [] };
+
+    optionsTable.draftState = {
+      id: 'draftState',
+      state: {
+        draftStarted: true,
+        pickOrder: [1, 2],
+        currentPicker: 1,
+        currentPickNumber: 1,
+        availableTeams: ['BOS', 'TOR'],
+        version: 2,
+        isLocked: false,
+        pickHistory: [],
+      },
+      updatedAt: '2026-03-01T00:00:00.000Z',
+    };
+
+    const result = await invoke('/draft/pick', 'POST', {
+      body: {
+        playerId: 1,
+        team: 'BOS',
+        version: 2,
+      },
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(result.json.team).toBe('BOS');
+    expect(result.json.state.currentPicker).toBe(2);
+    expect(result.json.state.currentPickNumber).toBe(2);
+    expect(result.json.state.availableTeams).toEqual(['TOR']);
+    expect(result.json.state.version).toBe(3);
+    expect(result.json.state.pickHistory).toHaveLength(1);
+    expect(result.json.state.pickHistory[0].playerId).toBe(1);
+    expect(result.json.state.pickHistory[0].team).toBe('BOS');
+    expect(getTable('Players')[1].teams).toEqual(['BOS']);
+  });
+
+  it('rejects /draft/pick while draft is locked', async () => {
+    const optionsTable = getTable('GameOptions');
+    const playersTable = getTable('Players');
+    playersTable[1] = { id: 1, name: 'Ryan', teams: [] };
+
+    optionsTable.draftState = {
+      id: 'draftState',
+      state: {
+        draftStarted: true,
+        pickOrder: [1, 2],
+        currentPicker: 1,
+        currentPickNumber: 1,
+        availableTeams: ['BOS', 'TOR'],
+        version: 4,
+        isLocked: true,
+        pickHistory: [],
+      },
+      updatedAt: '2026-03-01T00:00:00.000Z',
+    };
+
+    const result = await invoke('/draft/pick', 'POST', {
+      body: {
+        playerId: 1,
+        team: 'BOS',
+        version: 4,
+      },
+    });
+
+    expect(result.statusCode).toBe(400);
+    expect(result.json.error).toContain('locked');
+  });
+
+  it('undoes the last pick and restores player/draft state', async () => {
+    const optionsTable = getTable('GameOptions');
+    const playersTable = getTable('Players');
+    playersTable[1] = { id: 1, name: 'Ryan', teams: ['BOS'] };
+    playersTable[2] = { id: 2, name: 'Boz', teams: [] };
+
+    optionsTable.draftState = {
+      id: 'draftState',
+      state: {
+        draftStarted: true,
+        pickOrder: [1, 2],
+        currentPicker: 2,
+        currentPickNumber: 2,
+        availableTeams: ['TOR'],
+        version: 5,
+        isLocked: false,
+        pickHistory: [
+          {
+            playerId: 1,
+            team: 'BOS',
+            pickNumber: 1,
+            pickedAt: '2026-03-01T01:00:00.000Z',
+          },
+        ],
+      },
+      updatedAt: '2026-03-01T01:00:00.000Z',
+    };
+
+    const result = await invoke('/draft/undo-last-pick', 'POST', {
+      body: {
+        version: 5,
+      },
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(result.json.state.currentPicker).toBe(1);
+    expect(result.json.state.currentPickNumber).toBe(1);
+    expect(result.json.state.version).toBe(6);
+    expect(result.json.state.pickHistory).toHaveLength(0);
+    expect(result.json.state.availableTeams).toEqual(
+      expect.arrayContaining(['TOR', 'BOS'])
+    );
+    expect(getTable('Players')[1].teams).toEqual([]);
   });
 
   it('accepts in-order draft updates and increments version', async () => {
