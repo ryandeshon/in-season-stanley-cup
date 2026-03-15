@@ -9,6 +9,8 @@
 - `npm run test:e2e` (or `yarn test:e2e`) — headless CI run (spins up the dev server, stubs APIs, exits non-zero on failures).
 - `npm run test:e2e:open` (or `yarn test:e2e:open`) — interactive Cypress runner (starts the dev server first).
 - `npm run cy:serve` (or `yarn cy:serve`) — run the app with the cypress env/profile if you want to point Cypress at an already running server.
+- `npm run test:unit` — composable unit test run with Vitest (no network dependencies).
+- `npm run test:unit:watch` — watch mode for local unit test development.
 
 ## Fixtures & stubbing
 - Fixtures live in `cypress/fixtures`:
@@ -63,3 +65,8 @@ aws amplify update-app --app-id <APP_ID> --build-spec file://amplify.yml
 aws amplify update-branch --app-id <APP_ID> --branch-name test --stage TEST
 ```
 If you change `amplify.yml`, re-run the `update-app` command so the console picks up the new Cypress step.
+
+## Unit tests in GitHub Actions
+- Workflow: `.github/workflows/unit-tests.yml`
+- Runs on pull requests and pushes to `main`.
+- Uses `npm ci` and executes `npm run test:unit`.
