@@ -541,16 +541,20 @@ async function loadChampionHistory() {
 
 function formatHistoryEntry(entry) {
   const winner = entry?.winnerTeam || 'Unknown';
+  const winnerOwner = getTeamOwnerName(winner);
   const loser = entry?.loserTeam || 'Unknown';
   const hasScore =
     Number.isFinite(entry?.winnerScore) && Number.isFinite(entry?.loserScore);
   const scoreText = hasScore
     ? ` (${entry.winnerScore}-${entry.loserScore})`
     : '';
-  const recordedAt = entry?.recordedAt
-    ? new Date(entry.recordedAt).toLocaleString()
-    : 'Unknown time';
-  return `${winner} def. ${loser}${scoreText} \u2022 ${recordedAt}`;
+  const recordedDate = entry?.recordedAt
+    ? new Date(entry.recordedAt).toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+      })
+    : 'Unknown date';
+  return `${winnerOwner} \u2022 ${winner} def. ${loser}${scoreText} \u2022 ${recordedDate}`;
 }
 
 const homeErrorMessage = computed(() => {

@@ -135,7 +135,7 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('Terry');
       cy.contains('Boz');
       cy.get('[data-test="champion-history-item"]').should('have.length', 2);
-      cy.contains('[data-test="champion-history-item"]', 'VAN def. PHI');
+      cy.contains('[data-test="champion-history-item"]', 'Terry • VAN def. PHI');
     });
   });
 
