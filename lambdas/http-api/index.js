@@ -29,6 +29,17 @@ const NHL_TEAMS = (process.env.NHL_TEAMS ||
   .map((t) => t.trim())
   .filter(Boolean);
 
+const SEASON_TABLES = {
+  season1: {
+    players: process.env.PLAYERS_TABLE_SEASON1 || PLAYERS_TABLE,
+    gameRecords: process.env.GAME_RECORDS_TABLE_SEASON1 || GAME_RECORDS_TABLE,
+  },
+  season2: {
+    players: PLAYERS_TABLE,
+    gameRecords: GAME_RECORDS_TABLE,
+  },
+};
+
 function buildCacheControl(ttlSeconds, options = {}) {
   if (!ttlSeconds) return null;
   const scope = options.scope === 'private' ? 'private' : 'public';
@@ -127,6 +138,63 @@ function parseBody(body) {
   }
 }
 
+function getQueryParams(event) {
+  if (event?.queryStringParameters && typeof event.queryStringParameters === 'object') {
+    return event.queryStringParameters;
+  }
+  if (!event?.rawQueryString) return {};
+  return Object.fromEntries(new URLSearchParams(event.rawQueryString));
+}
+
+function normalizeSeasonId(value) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === '1' || normalized === 'season1') return 'season1';
+  if (normalized === '2' || normalized === 'season2') return 'season2';
+  return null;
+}
+
+function getSeasonContext(event) {
+  const query = getQueryParams(event);
+  const requestedSeason = normalizeSeasonId(query?.season);
+  const defaultSeason = normalizeSeasonId(process.env.DEFAULT_SEASON) || 'season2';
+  const seasonId = requestedSeason || defaultSeason;
+  const tableConfig = SEASON_TABLES[seasonId] || SEASON_TABLES.season2;
+
+  return {
+    requestedSeason,
+    seasonId,
+    playersTable: tableConfig.players,
+    gameRecordsTable: tableConfig.gameRecords,
+  };
+}
+
+function parseBool(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+}
+
+function getSeasonMeta(seasonId) {
+  const envPrefix = seasonId.toUpperCase(); // e.g. SEASON2
+  const regularSeasonEnd = process.env[`${envPrefix}_REGULAR_SEASON_END`] || null;
+  const playoffsStart = process.env[`${envPrefix}_PLAYOFFS_START`] || null;
+  const explicitSeasonOver = process.env[`${envPrefix}_SEASON_OVER`];
+
+  const seasonOver =
+    explicitSeasonOver !== undefined
+      ? parseBool(explicitSeasonOver, false)
+      : regularSeasonEnd
+      ? Date.now() > new Date(`${regularSeasonEnd}T23:59:59Z`).getTime()
+      : false;
+
+  return {
+    seasonId,
+    seasonOver,
+    regularSeasonEnd,
+    playoffsStart,
+  };
+}
+
 function coerceId(value) {
   const asNumber = Number(value);
   return Number.isNaN(asNumber) ? value : asNumber;
@@ -141,15 +209,15 @@ function getToday(tz = 'America/New_York') {
   }).format(new Date());
 }
 
-async function listPlayers() {
-  const result = await dynamoDB.scan({ TableName: PLAYERS_TABLE }).promise();
+async function listPlayers(tableName = PLAYERS_TABLE) {
+  const result = await dynamoDB.scan({ TableName: tableName }).promise();
   return result.Items || [];
 }
 
-async function getPlayerByName(name) {
+async function getPlayerByName(name, tableName = PLAYERS_TABLE) {
   const res = await dynamoDB
     .query({
-      TableName: PLAYERS_TABLE,
+      TableName: tableName,
       IndexName: 'NameIndex',
       KeyConditionExpression: '#n = :name',
       ExpressionAttributeNames: { '#n': 'name' },
@@ -160,15 +228,15 @@ async function getPlayerByName(name) {
   return res.Items?.[0] || null;
 }
 
-async function getPlayerById(id) {
+async function getPlayerById(id, tableName = PLAYERS_TABLE) {
   const res = await dynamoDB
-    .get({ TableName: PLAYERS_TABLE, Key: { id } })
+    .get({ TableName: tableName, Key: { id } })
     .promise();
   return res.Item || null;
 }
 
-async function updatePlayerTeams(id, team, action = 'add') {
-  const player = await getPlayerById(id);
+async function updatePlayerTeams(id, team, action = 'add', tableName = PLAYERS_TABLE) {
+  const player = await getPlayerById(id, tableName);
   if (!player) throw new Error(`Player ${id} not found`);
 
   const currentTeams = Array.isArray(player.teams) ? [...player.teams] : [];
@@ -181,7 +249,7 @@ async function updatePlayerTeams(id, team, action = 'add') {
 
   const res = await dynamoDB
     .update({
-      TableName: PLAYERS_TABLE,
+      TableName: tableName,
       Key: { id },
       UpdateExpression: 'SET teams = :teams, updatedAt = :ts',
       ExpressionAttributeValues: {
@@ -195,12 +263,12 @@ async function updatePlayerTeams(id, team, action = 'add') {
   return res.Attributes;
 }
 
-async function resetTeams() {
-  const allPlayers = await listPlayers();
+async function resetTeams(tableName = PLAYERS_TABLE) {
+  const allPlayers = await listPlayers(tableName);
   const promises = allPlayers.map((p) =>
     dynamoDB
       .update({
-        TableName: PLAYERS_TABLE,
+        TableName: tableName,
         Key: { id: p.id },
         UpdateExpression: 'REMOVE teams',
       })
@@ -209,8 +277,8 @@ async function resetTeams() {
   await Promise.all(promises);
 }
 
-async function listGameRecords() {
-  const result = await dynamoDB.scan({ TableName: GAME_RECORDS_TABLE }).promise();
+async function listGameRecords(tableName = GAME_RECORDS_TABLE) {
+  const result = await dynamoDB.scan({ TableName: tableName }).promise();
   return result.Items || [];
 }
 
@@ -335,26 +403,32 @@ async function updateDraftState(patch = {}) {
 export const handler = async (event) => {
   const path = normalizePath(event);
   const method = getMethod(event);
+  const seasonContext = getSeasonContext(event);
 
   if (method === 'OPTIONS') return response(event, 204, {});
 
   try {
     // ---- Players ----
     if (path === '/players' && method === 'GET') {
-      return response(event, 200, await listPlayers(), {
+      return response(
+        event,
+        200,
+        await listPlayers(seasonContext.playersTable),
+        {
         ttlSeconds: CACHE_TTLS.roster,
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
         staleIfError: CACHE_TTLS.staleIfError,
-      });
+        }
+      );
     }
 
     if (path.startsWith('/players/') && method === 'GET') {
       const name = decodeURIComponent(path.split('/').pop());
-      return response(event, 200, await getPlayerByName(name));
+      return response(event, 200, await getPlayerByName(name, seasonContext.playersTable));
     }
 
     if (path === '/players/reset-teams' && method === 'POST') {
-      await resetTeams();
+      await resetTeams(seasonContext.playersTable);
       return response(event, 200, { ok: true });
     }
 
@@ -365,13 +439,18 @@ export const handler = async (event) => {
       const action = body?.action || 'add';
       if (!team) return response(event, 400, { error: 'team is required' });
       const playerId = coerceId(teamPatchMatch[1]);
-      const updated = await updatePlayerTeams(playerId, team, action);
+      const updated = await updatePlayerTeams(
+        playerId,
+        team,
+        action,
+        seasonContext.playersTable
+      );
       return response(event, 200, updated);
     }
 
     // ---- Game records ----
     if (path === '/game-records' && method === 'GET') {
-      return response(event, 200, await listGameRecords(), {
+      return response(event, 200, await listGameRecords(seasonContext.gameRecordsTable), {
         ttlSeconds: CACHE_TTLS.gameRecords,
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
         staleIfError: CACHE_TTLS.staleIfError,
@@ -419,7 +498,7 @@ export const handler = async (event) => {
       return response(
         event,
         200,
-        { champion, gameID, activeGameId: gameID },
+        { champion, gameID, activeGameId: gameID, seasonId: seasonContext.seasonId },
         cacheOptions
       );
     }
@@ -431,7 +510,7 @@ export const handler = async (event) => {
       return response(
         event,
         200,
-        { gameID: activeGameId, activeGameId },
+        { gameID: activeGameId, activeGameId, seasonId: seasonContext.seasonId },
         hasActiveGame
           ? {
               ttlSeconds: CACHE_TTLS.playingDay,
@@ -449,6 +528,7 @@ export const handler = async (event) => {
     if (path === '/check-status' && method === 'GET') {
       const opts = await getGameOptions();
       return response(event, 200, {
+        seasonId: seasonContext.seasonId,
         champion: opts.champion ?? null,
         gameID: opts.activeGameId ?? opts.gameID ?? null,
         activeGameId: opts.activeGameId ?? null,
@@ -457,6 +537,14 @@ export const handler = async (event) => {
         lastCheckedAt: opts.lastCheckedAt ?? null,
         finalizedAt: opts.finalizedAt ?? null,
         processedGameId: opts.processedGameId ?? null,
+      });
+    }
+
+    if (path === '/season/meta' && method === 'GET') {
+      return response(event, 200, getSeasonMeta(seasonContext.seasonId), {
+        ttlSeconds: CACHE_TTLS.nonPlayingDay,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+        staleIfError: CACHE_TTLS.staleIfError,
       });
     }
 
@@ -477,7 +565,12 @@ export const handler = async (event) => {
       if (!playerId || !team) {
         return response(event, 400, { error: 'playerId and team are required' });
       }
-      const updated = await updatePlayerTeams(coerceId(playerId), team, 'add');
+      const updated = await updatePlayerTeams(
+        coerceId(playerId),
+        team,
+        'add',
+        seasonContext.playersTable
+      );
       return response(event, 200, { player: updated, team });
     }
 

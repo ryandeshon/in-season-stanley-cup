@@ -25,3 +25,11 @@ export async function getGameId(options = {}) {
   });
   return data?.gameID ?? null;
 }
+
+export async function getSeasonMeta(options = {}) {
+  return apiRequest('/season/meta', {
+    query: buildQuery(options),
+    bustCache: options.bustCache,
+    retries: 1,
+  });
+}
