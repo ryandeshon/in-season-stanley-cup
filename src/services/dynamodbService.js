@@ -42,14 +42,30 @@ export async function updateDraftState(patch, options = {}) {
   });
 }
 
-export async function getDraftPlayers() {
-  return getAllPlayers();
+export async function getDraftPlayers(options = {}) {
+  return getAllPlayers(options);
 }
 
 export async function selectTeamForPlayer(playerId, team, options = {}) {
   return apiRequest('/draft/select-team', {
     method: 'POST',
     body: { playerId, team },
+    query: withSeasonQuery(options.season),
+  });
+}
+
+export async function makeDraftPick(playerId, team, version, options = {}) {
+  return apiRequest('/draft/pick', {
+    method: 'POST',
+    body: { playerId, team, version },
+    query: withSeasonQuery(options.season),
+  });
+}
+
+export async function undoLastDraftPick(version, options = {}) {
+  return apiRequest('/draft/undo-last-pick', {
+    method: 'POST',
+    body: { version },
     query: withSeasonQuery(options.season),
   });
 }
