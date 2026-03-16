@@ -16,7 +16,7 @@
 | 5 | DONE | Add offseason one-time migration script | AI | `scripts/aws/offseason-migrate-season-data.sh` |
 | 6 | DONE | Update runbook + README for migration/cutover model | AI | `docs/season-data-runbook.md`, `README.md` |
 | 7 | DONE | Update unit tests for new API table model and run verification | AI | `tests/unit/httpApi.spec.js`, `npm run test:unit`, `npm run lint` |
-| 8 | TODO | Open Draft MR with `[OFFSEASON]` prefix + `offseason` label + merge gate checklist | AI | GitHub MR link |
+| 8 | DONE | Open Draft MR with `[OFFSEASON]` prefix + `offseason` label + merge gate checklist | AI | https://github.com/ryandeshon/in-season-stanley-cup/pull/51 |
 
 ## Notes
 - Merge gate:
