@@ -32,9 +32,11 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
+    "@vitejs/plugin-vue": "6.0.5",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "@vue/test-utils": "2.4.6",
     "autoprefixer": "^10.4.20",
     "cypress": "^15.7.0",
     "eslint": "^8.50.0",
