@@ -13,6 +13,14 @@ Cypress.Commands.add('mockApiScenario', (fixtureName = 'cup-day-multiple-games')
         playoffsStart: null,
       },
       seasonMetaStatus = 200,
+      seasonOptionsResponse = {
+        defaultSeason: 'season2',
+        seasons: [
+          { id: 'season1', label: '1' },
+          { id: 'season2', label: '2' },
+        ],
+      },
+      seasonOptionsStatus = 200,
       championHistoryResponse = {
         seasonId: 'season2',
         limit: 6,
@@ -26,6 +34,11 @@ Cypress.Commands.add('mockApiScenario', (fixtureName = 'cup-day-multiple-games')
       scheduleResponse = { gameWeek: [] },
       scheduleStatus = 200,
     } = data;
+
+    cy.intercept('GET', '**/season/options*', {
+      statusCode: seasonOptionsStatus,
+      body: seasonOptionsResponse,
+    }).as('getSeasonOptions');
 
     cy.intercept('GET', '**/champion*', {
       statusCode: championStatus,
@@ -105,6 +118,32 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       availableTeams: [],
       version: 0,
     };
+
+    const seasonMetaResponse = data.seasonMetaResponse || {
+      seasonId: 'season2',
+      seasonOver: true,
+      regularSeasonEnd: null,
+      playoffsStart: null,
+    };
+    const seasonMetaStatus = data.seasonMetaStatus || 200;
+    const seasonOptionsResponse = data.seasonOptionsResponse || {
+      defaultSeason: 'season2',
+      seasons: [
+        { id: 'season1', label: '1' },
+        { id: 'season2', label: '2' },
+      ],
+    };
+    const seasonOptionsStatus = data.seasonOptionsStatus || 200;
+
+    cy.intercept('GET', '**/season/options*', {
+      statusCode: seasonOptionsStatus,
+      body: seasonOptionsResponse,
+    }).as('getSeasonOptions');
+
+    cy.intercept('GET', '**/season/meta*', {
+      statusCode: seasonMetaStatus,
+      body: seasonMetaResponse,
+    }).as('getSeasonMeta');
 
     cy.intercept('GET', '**/players*', {
       statusCode: 200,

@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useSeasonStore } from '@/store/seasonStore';
 import season1Logo from '@/assets/in-season-logo-season1.png';
@@ -87,10 +87,7 @@ const currentLogo = computed(() => {
   return seasonStore.currentSeason === 'season1' ? season1Logo : season2Logo;
 });
 
-const seasonOptions = [
-  { label: '1', value: 'season1' },
-  { label: '2', value: 'season2' },
-];
+const seasonOptions = computed(() => seasonStore.seasonOptions);
 
 const handleSeasonChange = (newSeason) => {
   seasonStore.setSeason(newSeason);
@@ -119,13 +116,7 @@ watch(
   }
 );
 
-onMounted(() => {
-  // Load season from localStorage on mount
-  seasonStore.loadSeasonFromStorage();
-  selectedSeason.value = seasonStore.currentSeason;
-  // Set initial font based on current season
-  updateFontForSeason(seasonStore.currentSeason);
-});
+updateFontForSeason(seasonStore.currentSeason);
 </script>
 
 <style scoped>

@@ -3,8 +3,8 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 import vuetify from './plugins/vuetify';
-import { useThemeStore } from '@/store/themeStore'; // Import the theme store
-import { useSeasonStore } from '@/store/seasonStore'; // Import the season store
+import { useThemeStore } from '@/store/themeStore';
+import { useSeasonStore } from '@/store/seasonStore';
 
 // Import Tailwind CSS
 import './assets/tailwind.css';
@@ -13,26 +13,30 @@ import '@/assets/_variables.css';
 import '@/assets/style.css';
 
 const app = createApp(App);
+const pinia = createPinia();
 app.use(router);
 app.use(vuetify);
-app.use(createPinia());
-app.mount('#app');
+app.use(pinia);
 
 // Detect system theme
 const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-// Access the theme store
-const themeStore = useThemeStore();
-// Access the season store and load from localStorage
-const seasonStore = useSeasonStore();
-seasonStore.loadSeasonFromStorage();
+const themeStore = useThemeStore(pinia);
+const seasonStore = useSeasonStore(pinia);
 
-if (prefersDarkScheme.matches) {
-  themeStore.isDarkTheme = true; // Update the store state
-} else {
-  themeStore.isDarkTheme = false; // Update the store state
+async function bootstrap() {
+  await seasonStore.initializeSeasonOptions();
+
+  if (prefersDarkScheme.matches) {
+    themeStore.isDarkTheme = true;
+  } else {
+    themeStore.isDarkTheme = false;
+  }
+
+  prefersDarkScheme.addEventListener('change', (event) => {
+    themeStore.isDarkTheme = event.matches;
+  });
+
+  app.mount('#app');
 }
 
-// Listen for changes in theme preference
-prefersDarkScheme.addEventListener('change', (event) => {
-  themeStore.isDarkTheme = event.matches; // Update the store state
-});
+bootstrap();

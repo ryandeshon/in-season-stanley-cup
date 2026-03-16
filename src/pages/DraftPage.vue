@@ -10,7 +10,7 @@
   </transition>
   <transition name="fade">
     <v-alert
-      v-if="isYourTurn && !isDraftOver"
+      v-if="isYourTurn && !isDraftOver && !isReadOnlyDraft"
       type="success"
       class="fixed m-auto w-full text-center mb-4 z-50"
       closable
@@ -38,6 +38,9 @@
     {{ snackbar.message }}
   </v-snackbar>
   <v-container class="max-w-screen-lg">
+    <v-alert v-if="isReadOnlyDraft" type="info" class="mb-4">
+      Draft is read-only during active season.
+    </v-alert>
     <v-alert
       v-if="loadError && !isLoading"
       type="error"
@@ -167,7 +170,10 @@
               :class="{
                 picked: pickedTeams.includes(team),
                 'cursor-pointer':
-                  currentPickerId === playerName && !pickedTeams.includes(team),
+                  !isReadOnlyDraft &&
+                  currentPickerId === playerName &&
+                  !pickedTeams.includes(team),
+                'read-only': isReadOnlyDraft,
               }"
               @click="selectTeam(team)"
             >
@@ -231,6 +237,7 @@ const route = useRoute();
 const seasonStore = useSeasonStore();
 const playerName = route.params.name;
 const currentPlayer = ref(null);
+const isReadOnlyDraft = computed(() => route.query.mode === 'readonly');
 
 const allPlayersData = ref([]);
 const currentPickerId = ref('');
@@ -410,6 +417,10 @@ async function selectTeam(team) {
   if (!audioReady.value) {
     preloadAudio(); // preload audio on user interaction
   }
+  if (isReadOnlyDraft.value) {
+    showSnackbar('Draft is locked during active season.', 'warning');
+    return;
+  }
   if (
     !currentPlayer.value ||
     currentPlayer.value.id !== currentPickerId.value
@@ -485,6 +496,10 @@ watch(isYourTurn, (newVal) => {
   filter: grayscale(100%);
   opacity: 0.5;
   pointer-events: none;
+}
+.read-only {
+  pointer-events: none;
+  opacity: 0.8;
 }
 .border-success {
   border-color: #4caf50 !important;

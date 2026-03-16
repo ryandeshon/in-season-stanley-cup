@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { watch, computed, onMounted } from 'vue';
+import { watch, computed } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useTheme as useVuetifyTheme } from 'vuetify';
 import { useSeasonStore } from '@/store/seasonStore';
@@ -27,11 +27,6 @@ import NavigationBar from '@/components/NavigationBar.vue';
 const { isDarkTheme } = useTheme();
 const seasonStore = useSeasonStore();
 const theme = useVuetifyTheme();
-
-// Initialize season store early
-onMounted(() => {
-  seasonStore.loadSeasonFromStorage();
-});
 
 // Computed theme name based on season and dark/light mode
 const currentThemeName = computed(() => {

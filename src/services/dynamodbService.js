@@ -48,8 +48,8 @@ export async function updateDraftState(patch, options = {}) {
   });
 }
 
-export async function getDraftPlayers() {
-  return getAllPlayers();
+export async function getDraftPlayers(options = {}) {
+  return getAllPlayers(options);
 }
 
 export async function selectTeamForPlayer(playerId, team, options = {}) {
