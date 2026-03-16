@@ -22,6 +22,30 @@ const { db, resetDb, createConditionalError, clone } = vi.hoisted(() => {
   };
 });
 
+function keyFor(key = {}) {
+  const normalized = Object.keys(key)
+    .sort()
+    .reduce((acc, currentKey) => {
+      acc[currentKey] = key[currentKey];
+      return acc;
+    }, {});
+  return JSON.stringify(normalized);
+}
+
+function getKeySchema(tableName, sample = {}) {
+  if (tableName === 'DraftState') return ['draftId'];
+  if (tableName === 'PlayerSeason') return ['seasonId', 'playerId'];
+  if (tableName === 'PlayerLifetime') return ['playerId'];
+  if (tableName === 'GameRecordsV2') return ['seasonId', 'gameId'];
+  if (tableName === 'GameOptions') return ['id'];
+  if ('seasonId' in sample && 'playerId' in sample)
+    return ['seasonId', 'playerId'];
+  if ('seasonId' in sample && 'gameId' in sample) return ['seasonId', 'gameId'];
+  if ('draftId' in sample) return ['draftId'];
+  if ('playerId' in sample) return ['playerId'];
+  return ['id'];
+}
+
 function getTable(tableName) {
   if (!db.tables[tableName]) {
     db.tables[tableName] = {};
@@ -29,13 +53,31 @@ function getTable(tableName) {
   return db.tables[tableName];
 }
 
+function putItem(tableName, item) {
+  const keySchema = getKeySchema(tableName, item);
+  const key = keySchema.reduce((acc, field) => {
+    acc[field] = item[field];
+    return acc;
+  }, {});
+  getTable(tableName)[keyFor(key)] = clone(item);
+}
+
+function getItem(tableName, key) {
+  const keySchema = getKeySchema(tableName, key);
+  const normalizedKey = keySchema.reduce((acc, field) => {
+    acc[field] = key[field];
+    return acc;
+  }, {});
+  return getTable(tableName)[keyFor(normalizedKey)] || null;
+}
+
 global.__awsDocumentClientMock = {
   get(params) {
     return {
       promise: async () => {
-        const table = getTable(params.TableName);
+        const item = getItem(params.TableName, params.Key);
         return {
-          Item: table[params.Key.id] ? clone(table[params.Key.id]) : undefined,
+          Item: item ? clone(item) : undefined,
         };
       },
     };
@@ -43,14 +85,25 @@ global.__awsDocumentClientMock = {
   put(params) {
     return {
       promise: async () => {
-        const table = getTable(params.TableName);
-        if (
-          params.ConditionExpression === 'attribute_not_exists(id)' &&
-          table[params.Item.id]
-        ) {
+        const existing = getItem(params.TableName, params.Item);
+        const condition = params.ConditionExpression || '';
+
+        if (condition.includes('attribute_not_exists') && existing) {
           throw createConditionalError();
         }
-        table[params.Item.id] = clone(params.Item);
+
+        if (condition.includes('attribute_exists(draftId)')) {
+          if (!existing) {
+            throw createConditionalError();
+          }
+          const expectedVersion =
+            params.ExpressionAttributeValues?.[':expectedVersion'];
+          if (Number(existing.version) !== Number(expectedVersion)) {
+            throw createConditionalError();
+          }
+        }
+
+        putItem(params.TableName, params.Item);
         return {};
       },
     };
@@ -58,50 +111,37 @@ global.__awsDocumentClientMock = {
   update(params) {
     return {
       promise: async () => {
-        const table = getTable(params.TableName);
-        const keyId = params.Key.id;
-        const current = table[keyId] ? clone(table[keyId]) : { id: keyId };
-        const names = params.ExpressionAttributeNames || {};
+        const existing = getItem(params.TableName, params.Key);
+        const keySchema = getKeySchema(params.TableName, params.Key);
+        const seeded = keySchema.reduce((acc, field) => {
+          acc[field] = params.Key[field];
+          return acc;
+        }, {});
+        const current = existing ? clone(existing) : seeded;
         const values = params.ExpressionAttributeValues || {};
-
-        if (params.ConditionExpression?.includes('#state.#version')) {
-          const currentVersion = current?.state?.version;
-          const expected = values[':expected'];
-          const zero = values[':zero'];
-          const conditionMet =
-            (currentVersion === undefined && expected === zero) ||
-            currentVersion === expected;
-          if (!conditionMet) {
-            throw createConditionalError();
-          }
-        }
 
         if (params.UpdateExpression?.includes('REMOVE gameID')) {
           delete current.gameID;
         }
 
-        if (params.UpdateExpression?.includes('#state = :state')) {
-          current[names['#state']] = clone(values[':state']);
+        if (params.UpdateExpression?.includes('SET gameID = :gameID')) {
+          current.gameID = values[':gameID'];
+          current.updatedAt = values[':updatedAt'];
         }
-        if (params.UpdateExpression?.includes('#updatedAt = :ts')) {
-          current[names['#updatedAt']] = values[':ts'];
-        }
-        if (params.UpdateExpression?.includes('SET gameID = :g')) {
-          current.gameID = values[':g'];
-          current.updatedAt = values[':ts'];
-        }
+
         if (params.UpdateExpression?.includes('SET teams = :teams')) {
           current.teams = clone(values[':teams']);
-          current.updatedAt = values[':ts'];
+          current.updatedAt = values[':updatedAt'];
         }
 
-        table[keyId] = current;
+        putItem(params.TableName, current);
 
         if (params.ReturnValues === 'UPDATED_NEW') {
-          return { Attributes: { gameID: current.gameID } };
-        }
-        if (params.ReturnValues === 'ALL_NEW') {
-          return { Attributes: clone(current) };
+          return {
+            Attributes: {
+              gameID: current.gameID,
+            },
+          };
         }
 
         return {};
@@ -111,14 +151,28 @@ global.__awsDocumentClientMock = {
   scan(params) {
     return {
       promise: async () => {
-        const table = getTable(params.TableName);
-        return { Items: Object.values(table).map((item) => clone(item)) };
+        const items = Object.values(getTable(params.TableName)).map((item) =>
+          clone(item)
+        );
+        return { Items: items };
       },
     };
   },
-  query() {
+  query(params) {
     return {
-      promise: async () => ({ Items: [] }),
+      promise: async () => {
+        const items = Object.values(getTable(params.TableName)).map((item) =>
+          clone(item)
+        );
+        const seasonId = params.ExpressionAttributeValues?.[':seasonId'];
+        if (seasonId === undefined) {
+          return { Items: items };
+        }
+
+        return {
+          Items: items.filter((item) => item.seasonId === seasonId),
+        };
+      },
     };
   },
 };
@@ -169,31 +223,36 @@ describe('http-api contract behavior', () => {
   });
 
   it('returns champion history sorted and respects limit', async () => {
-    const table = getTable('GameRecords');
-    table[1] = {
-      id: 1,
+    putItem('GameRecordsV2', {
+      seasonId: 'season2',
+      gameId: '1',
+      id: '1',
       wTeam: 'BOS',
       wScore: 4,
       lTeam: 'TOR',
       lScore: 2,
       savedAt: '2026-01-01T00:00:00.000Z',
-    };
-    table[2] = {
-      id: 2,
+    });
+    putItem('GameRecordsV2', {
+      seasonId: 'season2',
+      gameId: '2',
+      id: '2',
       wTeam: 'DAL',
       wScore: 3,
       lTeam: 'COL',
       lScore: 1,
       savedAt: '2026-02-01T00:00:00.000Z',
-    };
-    table[3] = {
-      id: 3,
+    });
+    putItem('GameRecordsV2', {
+      seasonId: 'season2',
+      gameId: '3',
+      id: '3',
       wTeam: 'VAN',
       wScore: 5,
       lTeam: 'SEA',
       lScore: 4,
       savedAt: '2026-03-01T00:00:00.000Z',
-    };
+    });
 
     const result = await invoke('/champion/history', 'GET', {
       queryStringParameters: { limit: '2' },
@@ -216,19 +275,16 @@ describe('http-api contract behavior', () => {
   });
 
   it('rejects draft patch when version is missing', async () => {
-    const table = getTable('GameOptions');
-    table.draftState = {
-      id: 'draftState',
-      state: {
-        draftStarted: true,
-        pickOrder: [1, 2],
-        currentPicker: 1,
-        currentPickNumber: 1,
-        availableTeams: ['BOS', 'TOR'],
-        version: 2,
-      },
+    putItem('DraftState', {
+      draftId: 'season2',
+      draftStarted: true,
+      pickOrder: ['1', '2'],
+      currentPicker: '1',
+      currentPickNumber: 1,
+      availableTeams: ['BOS', 'TOR'],
+      version: 2,
       updatedAt: '2026-03-01T00:00:00.000Z',
-    };
+    });
 
     const result = await invoke('/draft/state', 'PATCH', {
       body: {
@@ -242,19 +298,16 @@ describe('http-api contract behavior', () => {
 
   it('enforces auth on protected routes when admin token is configured', async () => {
     process.env.ADMIN_API_TOKEN = 'super-secret';
-    const table = getTable('GameOptions');
-    table.draftState = {
-      id: 'draftState',
-      state: {
-        draftStarted: true,
-        pickOrder: [1, 2],
-        currentPicker: 1,
-        currentPickNumber: 1,
-        availableTeams: ['BOS', 'TOR'],
-        version: 0,
-      },
+    putItem('DraftState', {
+      draftId: 'season2',
+      draftStarted: true,
+      pickOrder: ['1', '2'],
+      currentPicker: '1',
+      currentPickNumber: 1,
+      availableTeams: ['BOS', 'TOR'],
+      version: 0,
       updatedAt: '2026-03-01T00:00:00.000Z',
-    };
+    });
 
     const unauthorized = await invoke('/draft/state', 'PATCH', {
       body: {
@@ -275,23 +328,20 @@ describe('http-api contract behavior', () => {
       },
     });
     expect(authorized.statusCode).toBe(200);
-    expect(authorized.json.currentPicker).toBe(2);
+    expect(authorized.json.currentPicker).toBe('2');
   });
 
   it('returns 409 with current state for stale draft updates', async () => {
-    const table = getTable('GameOptions');
-    table.draftState = {
-      id: 'draftState',
-      state: {
-        draftStarted: true,
-        pickOrder: [1, 2],
-        currentPicker: 1,
-        currentPickNumber: 1,
-        availableTeams: ['BOS', 'TOR'],
-        version: 4,
-      },
+    putItem('DraftState', {
+      draftId: 'season2',
+      draftStarted: true,
+      pickOrder: ['1', '2'],
+      currentPicker: '1',
+      currentPickNumber: 1,
+      availableTeams: ['BOS', 'TOR'],
+      version: 4,
       updatedAt: '2026-03-01T00:00:00.000Z',
-    };
+    });
 
     const result = await invoke('/draft/state', 'PATCH', {
       body: {
@@ -302,23 +352,20 @@ describe('http-api contract behavior', () => {
 
     expect(result.statusCode).toBe(409);
     expect(result.json.currentVersion).toBe(4);
-    expect(result.json.currentState.currentPicker).toBe(1);
+    expect(result.json.currentState.currentPicker).toBe('1');
   });
 
   it('accepts in-order draft updates and increments version', async () => {
-    const table = getTable('GameOptions');
-    table.draftState = {
-      id: 'draftState',
-      state: {
-        draftStarted: true,
-        pickOrder: [1, 2],
-        currentPicker: 1,
-        currentPickNumber: 1,
-        availableTeams: ['BOS', 'TOR'],
-        version: 1,
-      },
+    putItem('DraftState', {
+      draftId: 'season2',
+      draftStarted: true,
+      pickOrder: ['1', '2'],
+      currentPicker: '1',
+      currentPickNumber: 1,
+      availableTeams: ['BOS', 'TOR'],
+      version: 1,
       updatedAt: '2026-03-01T00:00:00.000Z',
-    };
+    });
 
     const result = await invoke('/draft/state', 'PATCH', {
       body: {
@@ -329,7 +376,7 @@ describe('http-api contract behavior', () => {
     });
 
     expect(result.statusCode).toBe(200);
-    expect(result.json.currentPicker).toBe(2);
+    expect(result.json.currentPicker).toBe('2');
     expect(result.json.version).toBe(2);
   });
 });

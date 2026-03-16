@@ -5,20 +5,25 @@ const dynamoDB = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION || 'us-east-1',
 });
 
-const PLAYERS_TABLE = process.env.PLAYERS_TABLE || 'Players';
-const GAME_RECORDS_TABLE = process.env.GAME_RECORDS_TABLE || 'GameRecords';
 const GAME_OPTIONS_TABLE = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
-const DRAFT_STATE_ID = process.env.DRAFT_STATE_ID || 'draftState';
+const PLAYER_SEASON_TABLE = process.env.PLAYER_SEASON_TABLE || 'PlayerSeason';
+const PLAYER_LIFETIME_TABLE = process.env.PLAYER_LIFETIME_TABLE || 'PlayerLifetime';
+const GAME_RECORDS_V2_TABLE = process.env.GAME_RECORDS_V2_TABLE || 'GameRecordsV2';
+const DRAFT_STATE_TABLE = process.env.DRAFT_STATE_TABLE || 'DraftState';
+const SEASON_CATALOG_ID = process.env.SEASON_CATALOG_ID || 'seasonCatalog';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const CACHE_TTLS = {
-  roster: Number(process.env.PLAYERS_CACHE_TTL) || 60 * 60 * 6, // 6 hours
-  gameRecords: Number(process.env.GAME_RECORDS_CACHE_TTL) || 60 * 15, // 15 minutes
-  playingDay: Number(process.env.PLAYING_DAY_CACHE_TTL) || 60 * 5, // 5 minutes
-  nonPlayingDay: Number(process.env.NON_PLAYING_DAY_CACHE_TTL) || 60 * 60 * 24, // 24 hours
+  roster: Number(process.env.PLAYERS_CACHE_TTL) || 60 * 60 * 6,
+  gameRecords: Number(process.env.GAME_RECORDS_CACHE_TTL) || 60 * 15,
+  playingDay: Number(process.env.PLAYING_DAY_CACHE_TTL) || 60 * 5,
+  nonPlayingDay: Number(process.env.NON_PLAYING_DAY_CACHE_TTL) || 60 * 60 * 24,
   staleWhileRevalidate: Number(process.env.STALE_WHILE_REVALIDATE) || 60 * 5,
-  staleWhileRevalidateLong: Number(process.env.STALE_WHILE_REVALIDATE_LONG) || 60 * 60, // 1 hour
+  staleWhileRevalidateLong: Number(process.env.STALE_WHILE_REVALIDATE_LONG) || 60 * 60,
   staleIfError: Number(process.env.STALE_IF_ERROR) || 60,
 };
+
+const DEFAULT_SEASON = normalizeSeasonId(process.env.DEFAULT_SEASON) || 'season2';
+
 const ALLOWED_HOSTS = ['inseasoncup.com'];
 const NHL_API_BASE =
   process.env.NHL_API_BASE || process.env.API_URL || 'https://api-web.nhle.com/v1';
@@ -26,7 +31,7 @@ const NHL_API_BASE =
 const NHL_TEAMS = (process.env.NHL_TEAMS ||
   'ANA,BOS,BUF,CGY,CAR,CHI,COL,CBJ,DAL,DET,EDM,FLA,LAK,MIN,MTL,NSH,NJD,NYI,NYR,OTT,PHI,PIT,SJS,SEA,STL,TBL,TOR,UTA,VAN,VGK,WSH,WPG')
   .split(',')
-  .map((t) => t.trim())
+  .map((team) => team.trim())
   .filter(Boolean);
 
 const DEFAULT_DRAFT_STATE = Object.freeze({
@@ -73,9 +78,11 @@ function buildCacheControl(ttlSeconds, options = {}) {
 function getCorsOrigin(event) {
   const origin = event?.headers?.origin || event?.headers?.Origin;
   if (!origin) return CORS_ORIGIN === '*' ? '*' : null;
+
   try {
     const { hostname, protocol } = new URL(origin);
     if (!['http:', 'https:'].includes(protocol)) return null;
+
     if (
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
@@ -85,11 +92,13 @@ function getCorsOrigin(event) {
     ) {
       return origin;
     }
+
     if (ALLOWED_HOSTS.includes(hostname)) return origin;
-    if (ALLOWED_HOSTS.some((h) => hostname.endsWith(`.${h}`))) return origin;
-  } catch (err) {
-    console.error('Invalid origin header', origin, err);
+    if (ALLOWED_HOSTS.some((host) => hostname.endsWith(`.${host}`))) return origin;
+  } catch (error) {
+    console.error('Invalid origin header', origin, error);
   }
+
   return CORS_ORIGIN === '*' ? '*' : null;
 }
 
@@ -100,14 +109,19 @@ function buildHeaders(event, cacheOptions = null) {
     'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
     Vary: 'Origin',
   };
-  if (origin) base['Access-Control-Allow-Origin'] = origin;
+
+  if (origin) {
+    base['Access-Control-Allow-Origin'] = origin;
+  }
+
   if (cacheOptions?.ttlSeconds) {
     const cacheControl = buildCacheControl(cacheOptions.ttlSeconds, cacheOptions);
     if (cacheControl) {
       base['Cache-Control'] = cacheControl;
-      base['CDN-Cache-Control'] = cacheControl; // Some CDNs (e.g., CloudFront) respect this override.
+      base['CDN-Cache-Control'] = cacheControl;
     }
   }
+
   return base;
 }
 
@@ -123,11 +137,13 @@ function normalizePath(event) {
   const raw = event?.rawPath || event?.path || '/';
   const stage = event?.requestContext?.stage;
   let path = raw;
+
   if (stage && path.startsWith(`/${stage}/`)) {
-    path = path.slice(stage.length + 1); // remove "/{stage}"
+    path = path.slice(stage.length + 1);
   } else if (stage && path === `/${stage}`) {
     path = '/';
   }
+
   return path.endsWith('/') && path !== '/' ? path.slice(0, -1) : path;
 }
 
@@ -143,8 +159,8 @@ function parseBody(body) {
   if (!body) return {};
   try {
     return JSON.parse(body);
-  } catch (err) {
-    console.error('Body parse failed', err);
+  } catch (error) {
+    console.error('Body parse failed', error);
     return {};
   }
 }
@@ -152,18 +168,17 @@ function parseBody(body) {
 function getHeaderValue(event, headerName) {
   const headers = event?.headers || {};
   const target = String(headerName || '').toLowerCase();
-  const matchedKey = Object.keys(headers).find(
+  const matched = Object.keys(headers).find(
     (key) => String(key).toLowerCase() === target
   );
-  if (!matchedKey) return undefined;
-  return headers[matchedKey];
+  return matched ? headers[matched] : undefined;
 }
 
 function isAuthorized(event) {
   const requiredAdminToken = process.env.ADMIN_API_TOKEN;
   if (!requiredAdminToken) return true;
-  const providedToken = getHeaderValue(event, 'x-admin-token');
-  return providedToken === requiredAdminToken;
+  const provided = getHeaderValue(event, 'x-admin-token');
+  return provided === requiredAdminToken;
 }
 
 function getQueryParams(event) {
@@ -177,6 +192,8 @@ function getQueryParams(event) {
 function normalizeSeasonId(value) {
   if (!value) return null;
   const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+
   const seasonMatch = normalized.match(/^season(\d+)$/);
   if (seasonMatch) {
     const seasonNumber = Number(seasonMatch[1]);
@@ -185,59 +202,154 @@ function normalizeSeasonId(value) {
     }
     return null;
   }
-  const seasonNumber = Number(normalized);
-  if (Number.isInteger(seasonNumber) && seasonNumber > 0) {
-    return `season${seasonNumber}`;
+
+  const numeric = Number(normalized);
+  if (Number.isInteger(numeric) && numeric > 0) {
+    return `season${numeric}`;
   }
+
   return null;
 }
 
 function getSeasonNumber(seasonId) {
-  const seasonMatch = String(seasonId || '').match(/^season(\d+)$/);
-  if (!seasonMatch) return null;
-  const seasonNumber = Number(seasonMatch[1]);
-  return Number.isInteger(seasonNumber) && seasonNumber > 0
-    ? seasonNumber
-    : null;
+  const match = String(seasonId || '').match(/^season(\d+)$/);
+  if (!match) return null;
+  const seasonNumber = Number(match[1]);
+  return Number.isInteger(seasonNumber) && seasonNumber > 0 ? seasonNumber : null;
 }
 
-function resolveSeasonTables(seasonId) {
-  const seasonNumber = getSeasonNumber(seasonId) || 2;
-  const playersTableOverride = process.env[`PLAYERS_TABLE_SEASON${seasonNumber}`];
-  const gameRecordsTableOverride =
-    process.env[`GAME_RECORDS_TABLE_SEASON${seasonNumber}`];
+function toSeasonLabel(seasonId) {
+  const seasonNumber = getSeasonNumber(seasonId);
+  return seasonNumber ? String(seasonNumber) : String(seasonId || '');
+}
+
+function normalizeSeasonOption(entry) {
+  if (typeof entry === 'string') {
+    const id = normalizeSeasonId(entry);
+    if (!id) return null;
+    return { id, label: toSeasonLabel(id), status: null };
+  }
+
+  if (!entry || typeof entry !== 'object') return null;
+  const id = normalizeSeasonId(entry.id || entry.value);
+  if (!id) return null;
 
   return {
-    players:
-      playersTableOverride ||
-      (seasonNumber === 2 ? PLAYERS_TABLE : `${PLAYERS_TABLE}-Season${seasonNumber}`),
-    gameRecords:
-      gameRecordsTableOverride ||
-      (seasonNumber === 2
-        ? GAME_RECORDS_TABLE
-        : `${GAME_RECORDS_TABLE}-Season${seasonNumber}`),
+    id,
+    label: String(entry.label || toSeasonLabel(id)),
+    status: entry.status || null,
   };
+}
+
+function parseSeasonsFromEnv() {
+  const raw = String(process.env.AVAILABLE_SEASONS || '')
+    .split(',')
+    .map((value) => normalizeSeasonId(value))
+    .filter(Boolean);
+
+  const unique = [];
+  const seen = new Set();
+  raw.forEach((seasonId) => {
+    if (seen.has(seasonId)) return;
+    seen.add(seasonId);
+    unique.push(seasonId);
+  });
+
+  if (!seen.has(DEFAULT_SEASON)) {
+    unique.push(DEFAULT_SEASON);
+  }
+  if (!seen.has('season1')) {
+    unique.unshift('season1');
+  }
+
+  return unique.map((seasonId) => ({
+    id: seasonId,
+    label: toSeasonLabel(seasonId),
+    status: null,
+  }));
+}
+
+async function getSeasonCatalogItem() {
+  const result = await dynamoDB
+    .get({
+      TableName: GAME_OPTIONS_TABLE,
+      Key: { id: SEASON_CATALOG_ID },
+    })
+    .promise();
+  return result.Item || null;
+}
+
+async function getSeasonOptions() {
+  const envFallback = {
+    defaultSeason: DEFAULT_SEASON,
+    seasons: parseSeasonsFromEnv(),
+    updatedAt: null,
+  };
+
+  try {
+    const item = await getSeasonCatalogItem();
+    if (!item) return envFallback;
+
+    const defaultSeason =
+      normalizeSeasonId(item.defaultSeason || item.currentSeason) || DEFAULT_SEASON;
+
+    const normalized = Array.isArray(item.seasons)
+      ? item.seasons.map(normalizeSeasonOption).filter(Boolean)
+      : [];
+
+    const merged = [];
+    const seen = new Set();
+
+    normalized.forEach((entry) => {
+      if (seen.has(entry.id)) return;
+      seen.add(entry.id);
+      merged.push(entry);
+    });
+
+    if (!seen.has(defaultSeason)) {
+      merged.push({
+        id: defaultSeason,
+        label: toSeasonLabel(defaultSeason),
+        status: null,
+      });
+    }
+
+    if (merged.length === 0) {
+      return envFallback;
+    }
+
+    merged.sort((a, b) => {
+      const aNum = getSeasonNumber(a.id) || Number.MAX_SAFE_INTEGER;
+      const bNum = getSeasonNumber(b.id) || Number.MAX_SAFE_INTEGER;
+      return aNum - bNum;
+    });
+
+    return {
+      defaultSeason,
+      seasons: merged,
+      updatedAt: item.updatedAt || null,
+    };
+  } catch (error) {
+    console.error('Failed to load season options from GameOptions:', error);
+    return envFallback;
+  }
 }
 
 function getSeasonContext(event) {
   const query = getQueryParams(event);
   const requestedSeasonRaw = query?.season;
   const requestedSeason = normalizeSeasonId(requestedSeasonRaw);
+
   const hasInvalidSeasonQuery =
     requestedSeasonRaw !== undefined &&
     requestedSeasonRaw !== null &&
     requestedSeasonRaw !== '' &&
     !requestedSeason;
-  const defaultSeason = normalizeSeasonId(process.env.DEFAULT_SEASON) || 'season2';
-  const seasonId = requestedSeason || defaultSeason;
-  const tableConfig = resolveSeasonTables(seasonId);
 
   return {
     requestedSeason,
     hasInvalidSeasonQuery,
-    seasonId,
-    playersTable: tableConfig.players,
-    gameRecordsTable: tableConfig.gameRecords,
+    seasonId: requestedSeason || DEFAULT_SEASON,
   };
 }
 
@@ -247,7 +359,7 @@ function parseBool(value, fallback = false) {
 }
 
 function getSeasonMeta(seasonId) {
-  const envPrefix = seasonId.toUpperCase(); // e.g. SEASON2
+  const envPrefix = String(seasonId || '').toUpperCase();
   const regularSeasonEnd = process.env[`${envPrefix}_REGULAR_SEASON_END`] || null;
   const playoffsStart = process.env[`${envPrefix}_PLAYOFFS_START`] || null;
   const explicitSeasonOver = process.env[`${envPrefix}_SEASON_OVER`];
@@ -267,98 +379,329 @@ function getSeasonMeta(seasonId) {
   };
 }
 
-function coerceId(value) {
-  const asNumber = Number(value);
-  return Number.isNaN(asNumber) ? value : asNumber;
+function normalizePlayerId(value) {
+  const normalized = String(value || '').trim();
+  return normalized || null;
 }
 
-function getToday(tz = 'America/New_York') {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+function normalizeTeamCode(value) {
+  const normalized = String(value || '').trim().toUpperCase();
+  return normalized || null;
 }
 
-async function listPlayers(tableName = PLAYERS_TABLE) {
-  const result = await dynamoDB.scan({ TableName: tableName }).promise();
-  return result.Items || [];
+function normalizeTeams(teams) {
+  if (!Array.isArray(teams)) return [];
+  const unique = new Set();
+  teams.forEach((team) => {
+    const normalized = normalizeTeamCode(team);
+    if (normalized) {
+      unique.add(normalized);
+    }
+  });
+  return Array.from(unique);
 }
 
-async function getPlayerByName(name, tableName = PLAYERS_TABLE) {
-  const res = await dynamoDB
-    .query({
-      TableName: tableName,
-      IndexName: 'NameIndex',
-      KeyConditionExpression: '#n = :name',
-      ExpressionAttributeNames: { '#n': 'name' },
-      ExpressionAttributeValues: { ':name': name },
-      Limit: 1,
+async function queryAll(params) {
+  const items = [];
+  let ExclusiveStartKey;
+
+  do {
+    const page = await dynamoDB
+      .query({
+        ...params,
+        ...(ExclusiveStartKey ? { ExclusiveStartKey } : {}),
+      })
+      .promise();
+
+    items.push(...(page.Items || []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+
+  return items;
+}
+
+async function scanAll(params) {
+  const items = [];
+  let ExclusiveStartKey;
+
+  do {
+    const page = await dynamoDB
+      .scan({
+        ...params,
+        ...(ExclusiveStartKey ? { ExclusiveStartKey } : {}),
+      })
+      .promise();
+
+    items.push(...(page.Items || []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+
+  return items;
+}
+
+async function listPlayerSeasonRows(seasonId) {
+  return queryAll({
+    TableName: PLAYER_SEASON_TABLE,
+    KeyConditionExpression: '#seasonId = :seasonId',
+    ExpressionAttributeNames: {
+      '#seasonId': 'seasonId',
+    },
+    ExpressionAttributeValues: {
+      ':seasonId': seasonId,
+    },
+  });
+}
+
+async function listPlayerLifetimeRows() {
+  return scanAll({
+    TableName: PLAYER_LIFETIME_TABLE,
+  });
+}
+
+async function getPlayerSeasonRow(seasonId, playerId) {
+  const result = await dynamoDB
+    .get({
+      TableName: PLAYER_SEASON_TABLE,
+      Key: {
+        seasonId,
+        playerId,
+      },
     })
     .promise();
-  return res.Items?.[0] || null;
+  return result.Item || null;
 }
 
-async function getPlayerById(id, tableName = PLAYERS_TABLE) {
-  const res = await dynamoDB
-    .get({ TableName: tableName, Key: { id } })
+async function getPlayerLifetimeRow(playerId) {
+  const result = await dynamoDB
+    .get({
+      TableName: PLAYER_LIFETIME_TABLE,
+      Key: { playerId },
+    })
     .promise();
-  return res.Item || null;
+  return result.Item || null;
 }
 
-async function updatePlayerTeams(id, team, action = 'add', tableName = PLAYERS_TABLE) {
-  const player = await getPlayerById(id, tableName);
-  if (!player) throw new Error(`Player ${id} not found`);
+function mergePlayerRows({ seasonId, playerId, seasonRow, lifetimeRow }) {
+  const normalizedPlayerId = normalizePlayerId(playerId);
+  const titleDefenses = Number(seasonRow?.titleDefenses || 0);
+  const totalDefenses = Number(lifetimeRow?.totalDefenses || 0);
+  const championships = Number(lifetimeRow?.championships || 0);
 
-  const currentTeams = Array.isArray(player.teams) ? [...player.teams] : [];
+  return {
+    id: normalizedPlayerId,
+    playerId: normalizedPlayerId,
+    seasonId,
+    name: seasonRow?.name || lifetimeRow?.name || normalizedPlayerId,
+    teams: normalizeTeams(seasonRow?.teams),
+    titleDefenses: Number.isFinite(titleDefenses) ? titleDefenses : 0,
+    totalDefenses: Number.isFinite(totalDefenses) ? totalDefenses : 0,
+    championships: Number.isFinite(championships) ? championships : 0,
+    updatedAt: seasonRow?.updatedAt || lifetimeRow?.updatedAt || null,
+  };
+}
+
+async function listPlayers(seasonId) {
+  const [seasonRows, lifetimeRows] = await Promise.all([
+    listPlayerSeasonRows(seasonId),
+    listPlayerLifetimeRows(),
+  ]);
+
+  const seasonById = new Map();
+  seasonRows.forEach((row) => {
+    const playerId = normalizePlayerId(row.playerId);
+    if (playerId) seasonById.set(playerId, row);
+  });
+
+  const lifetimeById = new Map();
+  lifetimeRows.forEach((row) => {
+    const playerId = normalizePlayerId(row.playerId || row.id);
+    if (playerId) lifetimeById.set(playerId, row);
+  });
+
+  const allPlayerIds = new Set([
+    ...Array.from(seasonById.keys()),
+    ...Array.from(lifetimeById.keys()),
+  ]);
+
+  return Array.from(allPlayerIds)
+    .map((playerId) =>
+      mergePlayerRows({
+        seasonId,
+        playerId,
+        seasonRow: seasonById.get(playerId),
+        lifetimeRow: lifetimeById.get(playerId),
+      })
+    )
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+async function getPlayerByName(seasonId, name) {
+  const players = await listPlayers(seasonId);
+  return (
+    players.find(
+      (player) =>
+        String(player?.name || '').toLowerCase() === String(name || '').toLowerCase()
+    ) || null
+  );
+}
+
+async function getPlayerById(seasonId, playerId) {
+  const normalizedPlayerId = normalizePlayerId(playerId);
+  if (!normalizedPlayerId) return null;
+
+  const [seasonRow, lifetimeRow] = await Promise.all([
+    getPlayerSeasonRow(seasonId, normalizedPlayerId),
+    getPlayerLifetimeRow(normalizedPlayerId),
+  ]);
+
+  if (!seasonRow && !lifetimeRow) return null;
+
+  return mergePlayerRows({
+    seasonId,
+    playerId: normalizedPlayerId,
+    seasonRow,
+    lifetimeRow,
+  });
+}
+
+async function ensurePlayerSeasonRow(seasonId, playerId) {
+  const normalizedPlayerId = normalizePlayerId(playerId);
+  if (!normalizedPlayerId) {
+    throw new Error('playerId is required');
+  }
+
+  const existing = await getPlayerSeasonRow(seasonId, normalizedPlayerId);
+  if (existing) return existing;
+
+  const lifetimeRow = await getPlayerLifetimeRow(normalizedPlayerId);
+  const now = new Date().toISOString();
+  const created = {
+    seasonId,
+    playerId: normalizedPlayerId,
+    name: lifetimeRow?.name || normalizedPlayerId,
+    teams: [],
+    titleDefenses: 0,
+    updatedAt: now,
+  };
+
+  try {
+    await dynamoDB
+      .put({
+        TableName: PLAYER_SEASON_TABLE,
+        Item: created,
+        ConditionExpression:
+          'attribute_not_exists(#seasonId) AND attribute_not_exists(#playerId)',
+        ExpressionAttributeNames: {
+          '#seasonId': 'seasonId',
+          '#playerId': 'playerId',
+        },
+      })
+      .promise();
+  } catch (error) {
+    if (error?.code !== 'ConditionalCheckFailedException') {
+      throw error;
+    }
+  }
+
+  return (await getPlayerSeasonRow(seasonId, normalizedPlayerId)) || created;
+}
+
+async function updatePlayerTeams(seasonId, playerId, team, action = 'add') {
+  const normalizedPlayerId = normalizePlayerId(playerId);
+  if (!normalizedPlayerId) throw new Error('playerId is required');
+
+  const seasonRow = await ensurePlayerSeasonRow(seasonId, normalizedPlayerId);
+  const currentTeams = normalizeTeams(seasonRow.teams);
+  const normalizedTeam = normalizeTeamCode(team);
+
+  if (!normalizedTeam) {
+    throw new Error('team is required');
+  }
+
   const nextTeams =
     action === 'remove'
-      ? currentTeams.filter((t) => t !== team)
-      : currentTeams.includes(team)
+      ? currentTeams.filter((candidate) => candidate !== normalizedTeam)
+      : currentTeams.includes(normalizedTeam)
       ? currentTeams
-      : [...currentTeams, team];
+      : [...currentTeams, normalizedTeam];
 
-  const res = await dynamoDB
+  const updatedAt = new Date().toISOString();
+
+  await dynamoDB
     .update({
-      TableName: tableName,
-      Key: { id },
-      UpdateExpression: 'SET teams = :teams, updatedAt = :ts',
+      TableName: PLAYER_SEASON_TABLE,
+      Key: {
+        seasonId,
+        playerId: normalizedPlayerId,
+      },
+      UpdateExpression: 'SET teams = :teams, updatedAt = :updatedAt',
       ExpressionAttributeValues: {
         ':teams': nextTeams,
-        ':ts': new Date().toISOString(),
+        ':updatedAt': updatedAt,
       },
-      ReturnValues: 'ALL_NEW',
     })
     .promise();
 
-  return res.Attributes;
+  return getPlayerById(seasonId, normalizedPlayerId);
 }
 
-async function resetTeams(tableName = PLAYERS_TABLE) {
-  const allPlayers = await listPlayers(tableName);
-  const promises = allPlayers.map((p) =>
-    dynamoDB
+async function resetTeams(seasonId) {
+  const seasonRows = await listPlayerSeasonRows(seasonId);
+  const updates = seasonRows.map((row) => {
+    const playerId = normalizePlayerId(row.playerId);
+    if (!playerId) return Promise.resolve();
+
+    return dynamoDB
       .update({
-        TableName: tableName,
-        Key: { id: p.id },
-        UpdateExpression: 'REMOVE teams',
+        TableName: PLAYER_SEASON_TABLE,
+        Key: {
+          seasonId,
+          playerId,
+        },
+        UpdateExpression: 'SET teams = :teams, updatedAt = :updatedAt',
+        ExpressionAttributeValues: {
+          ':teams': [],
+          ':updatedAt': new Date().toISOString(),
+        },
       })
-      .promise()
-  );
-  await Promise.all(promises);
+      .promise();
+  });
+
+  await Promise.all(updates);
 }
 
-async function listGameRecords(tableName = GAME_RECORDS_TABLE) {
-  const result = await dynamoDB.scan({ TableName: tableName }).promise();
-  return result.Items || [];
+function normalizeGameRecord(record = {}) {
+  const id = Number(record.id ?? record.gameId);
+  const gameId = Number.isFinite(id) ? id : record.id ?? record.gameId ?? null;
+
+  return {
+    ...record,
+    id: gameId,
+    gameId,
+  };
+}
+
+async function listGameRecords(seasonId) {
+  const records = await queryAll({
+    TableName: GAME_RECORDS_V2_TABLE,
+    KeyConditionExpression: '#seasonId = :seasonId',
+    ExpressionAttributeNames: {
+      '#seasonId': 'seasonId',
+    },
+    ExpressionAttributeValues: {
+      ':seasonId': seasonId,
+    },
+  });
+
+  return records.map(normalizeGameRecord);
 }
 
 async function getGameOptions() {
-  const res = await dynamoDB
+  const result = await dynamoDB
     .get({ TableName: GAME_OPTIONS_TABLE, Key: { id: 'currentChampion' } })
     .promise();
-  return res.Item || {};
+
+  return result.Item || {};
 }
 
 async function setGameId(gameID) {
@@ -373,19 +716,29 @@ async function setGameId(gameID) {
     return null;
   }
 
-  const res = await dynamoDB
+  const result = await dynamoDB
     .update({
       TableName: GAME_OPTIONS_TABLE,
       Key: { id: 'currentChampion' },
-      UpdateExpression: 'SET gameID = :g, updatedAt = :ts',
+      UpdateExpression: 'SET gameID = :gameID, updatedAt = :updatedAt',
       ExpressionAttributeValues: {
-        ':g': gameID,
-        ':ts': new Date().toISOString(),
+        ':gameID': gameID,
+        ':updatedAt': new Date().toISOString(),
       },
       ReturnValues: 'UPDATED_NEW',
     })
     .promise();
-  return res.Attributes?.gameID || gameID;
+
+  return result.Attributes?.gameID || gameID;
+}
+
+function getToday(tz = 'America/New_York') {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
 }
 
 async function fetchSchedule(date) {
@@ -393,15 +746,18 @@ async function fetchSchedule(date) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, (res) => {
       let data = '';
-      res.on('data', (chunk) => (data += chunk));
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           resolve(JSON.parse(data));
-        } catch (err) {
-          reject(err);
+        } catch (error) {
+          reject(error);
         }
       });
     });
+
     req.on('error', reject);
     req.setTimeout(8000, () => {
       req.destroy(new Error('Request timed out'));
@@ -412,59 +768,93 @@ async function fetchSchedule(date) {
 function findChampionGame(schedule, champion, date) {
   const gameWeek = schedule?.gameWeek;
   if (!Array.isArray(gameWeek)) return null;
-  const today = gameWeek.find((d) => d?.date === date);
+
+  const today = gameWeek.find((entry) => entry?.date === date);
   const games = today?.games || [];
-  for (const g of games) {
-    const home = g?.homeTeam?.abbrev;
-    const away = g?.awayTeam?.abbrev;
-    if (home === champion || away === champion) return g.id;
+
+  for (const game of games) {
+    const home = game?.homeTeam?.abbrev;
+    const away = game?.awayTeam?.abbrev;
+    if (home === champion || away === champion) {
+      return game.id;
+    }
   }
+
   return null;
 }
 
-async function ensureDraftState() {
-  const res = await dynamoDB
-    .get({ TableName: GAME_OPTIONS_TABLE, Key: { id: DRAFT_STATE_ID } })
+async function getDraftStateRow(seasonId) {
+  const result = await dynamoDB
+    .get({
+      TableName: DRAFT_STATE_TABLE,
+      Key: { draftId: seasonId },
+    })
     .promise();
-  if (res.Item?.state) {
-    const state = { ...res.Item.state };
-    const hadAvailableTeams = Array.isArray(state.availableTeams);
-    if (!Array.isArray(state.availableTeams)) {
-      state.availableTeams = [...NHL_TEAMS];
-    }
-    const rawVersion = state.version;
-    const parsedVersion = Number(state.version);
-    state.version =
-      Number.isInteger(parsedVersion) && parsedVersion >= 0 ? parsedVersion : 0;
-    state.updatedAt = state.updatedAt || res.Item.updatedAt || null;
 
-    const needsNormalization =
-      !hadAvailableTeams ||
-      rawVersion !== state.version ||
-      !state.updatedAt;
-    if (needsNormalization) {
-      const now = new Date().toISOString();
-      state.updatedAt = now;
-      await dynamoDB
-        .update({
-          TableName: GAME_OPTIONS_TABLE,
-          Key: { id: DRAFT_STATE_ID },
-          UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
-          ExpressionAttributeNames: {
-            '#state': 'state',
-            '#updatedAt': 'updatedAt',
-          },
-          ExpressionAttributeValues: {
-            ':state': state,
-            ':ts': now,
-          },
-        })
-        .promise();
-    }
-    return state;
+  return result.Item || null;
+}
+
+function normalizeDraftState(rawState) {
+  if (!rawState || typeof rawState !== 'object') {
+    return {
+      ...DEFAULT_DRAFT_STATE,
+      availableTeams: [...NHL_TEAMS],
+      version: 0,
+      updatedAt: null,
+    };
   }
 
-  const state = {
+  const parsedVersion = Number(rawState.version);
+  const parsedPickNumber = Number(rawState.currentPickNumber);
+
+  return {
+    draftStarted: Boolean(rawState.draftStarted),
+    pickOrder: Array.isArray(rawState.pickOrder)
+      ? rawState.pickOrder.map((id) => normalizePlayerId(id)).filter(Boolean)
+      : [],
+    currentPicker: normalizePlayerId(rawState.currentPicker),
+    currentPickNumber:
+      Number.isInteger(parsedPickNumber) && parsedPickNumber >= 0
+        ? parsedPickNumber
+        : 0,
+    availableTeams: Array.isArray(rawState.availableTeams)
+      ? normalizeTeams(rawState.availableTeams)
+      : [...NHL_TEAMS],
+    version: Number.isInteger(parsedVersion) && parsedVersion >= 0 ? parsedVersion : 0,
+    updatedAt: rawState.updatedAt || null,
+  };
+}
+
+async function ensureDraftState(seasonId) {
+  const existing = await getDraftStateRow(seasonId);
+  const normalized = normalizeDraftState(existing);
+
+  if (existing) {
+    const needsNormalization =
+      !Array.isArray(existing.availableTeams) ||
+      !Number.isInteger(Number(existing.version)) ||
+      !existing.updatedAt;
+
+    if (needsNormalization) {
+      const normalizedItem = {
+        draftId: seasonId,
+        ...normalized,
+        updatedAt: new Date().toISOString(),
+      };
+      await dynamoDB
+        .put({
+          TableName: DRAFT_STATE_TABLE,
+          Item: normalizedItem,
+        })
+        .promise();
+      return normalizeDraftState(normalizedItem);
+    }
+
+    return normalized;
+  }
+
+  const created = {
+    draftId: seasonId,
     ...DEFAULT_DRAFT_STATE,
     availableTeams: [...NHL_TEAMS],
     version: 0,
@@ -473,16 +863,13 @@ async function ensureDraftState() {
 
   await dynamoDB
     .put({
-      TableName: GAME_OPTIONS_TABLE,
-      Item: {
-        id: DRAFT_STATE_ID,
-        state,
-        updatedAt: state.updatedAt,
-      },
+      TableName: DRAFT_STATE_TABLE,
+      Item: created,
+      ConditionExpression: 'attribute_not_exists(draftId)',
     })
     .promise();
 
-  return state;
+  return normalizeDraftState(created);
 }
 
 function parseDraftStateVersion(value) {
@@ -492,67 +879,58 @@ function parseDraftStateVersion(value) {
   return parsed;
 }
 
-async function updateDraftState(patch = {}) {
+async function updateDraftState(seasonId, patch = {}) {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
     throw new DraftStateValidationError('patch body must be an object');
   }
   if (patch.version === undefined) {
     throw new DraftStateValidationError('version is required');
   }
+
   const expectedVersion = parseDraftStateVersion(patch.version);
   if (expectedVersion === null) {
     throw new DraftStateValidationError('version must be a non-negative integer');
   }
 
-  const current = await ensureDraftState();
-  if (expectedVersion !== current.version) {
-    throw new DraftStateConflictError(
-      'Draft state version conflict',
-      current
-    );
+  const current = await ensureDraftState(seasonId);
+  if (current.version !== expectedVersion) {
+    throw new DraftStateConflictError('Draft state version conflict', current);
   }
 
   const patchWithoutVersion = { ...patch };
   delete patchWithoutVersion.version;
   delete patchWithoutVersion.updatedAt;
 
-  const next = {
+  const next = normalizeDraftState({
     ...current,
     ...patchWithoutVersion,
     version: current.version + 1,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   try {
     await dynamoDB
-      .update({
-        TableName: GAME_OPTIONS_TABLE,
-        Key: { id: DRAFT_STATE_ID },
-        UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
-        ConditionExpression:
-          '(attribute_not_exists(#state.#version) AND :expected = :zero) OR #state.#version = :expected',
+      .put({
+        TableName: DRAFT_STATE_TABLE,
+        Item: {
+          draftId: seasonId,
+          ...next,
+        },
+        ConditionExpression: 'attribute_exists(draftId) AND #version = :expectedVersion',
         ExpressionAttributeNames: {
-          '#state': 'state',
           '#version': 'version',
-          '#updatedAt': 'updatedAt',
         },
         ExpressionAttributeValues: {
-          ':state': next,
-          ':ts': next.updatedAt,
-          ':expected': expectedVersion,
-          ':zero': 0,
+          ':expectedVersion': expectedVersion,
         },
       })
       .promise();
-  } catch (err) {
-    if (err?.code === 'ConditionalCheckFailedException') {
-      const latest = await ensureDraftState();
-      throw new DraftStateConflictError(
-        'Draft state version conflict',
-        latest
-      );
+  } catch (error) {
+    if (error?.code === 'ConditionalCheckFailedException') {
+      const latest = await ensureDraftState(seasonId);
+      throw new DraftStateConflictError('Draft state version conflict', latest);
     }
-    throw err;
+    throw error;
   }
 
   return next;
@@ -579,15 +957,21 @@ function mapChampionHistoryRecord(record = {}) {
     record.updatedAt ||
     record.createdAt ||
     null;
-  const idNumber = Number(record.id);
+
+  const gameId = Number(record.gameId ?? record.id);
+
   return {
-    gameId: Number.isFinite(idNumber) ? idNumber : record.id ?? null,
+    gameId: Number.isFinite(gameId) ? gameId : record.gameId ?? record.id ?? null,
     winnerTeam,
-    winnerScore: Number.isFinite(Number(record.wScore))
-      ? Number(record.wScore)
-      : null,
+    winnerScore:
+      Number.isFinite(Number(record.wScore)) && record.wScore !== null
+        ? Number(record.wScore)
+        : null,
     loserTeam,
-    loserScore: Number.isFinite(Number(record.lScore)) ? Number(record.lScore) : null,
+    loserScore:
+      Number.isFinite(Number(record.lScore)) && record.lScore !== null
+        ? Number(record.lScore)
+        : null,
     participants,
     recordedAt,
   };
@@ -596,17 +980,43 @@ function mapChampionHistoryRecord(record = {}) {
 function historySortKey(entry = {}) {
   const timestamp = Date.parse(entry.recordedAt || '');
   if (Number.isFinite(timestamp)) return timestamp;
+
   const gameIdNumber = Number(entry.gameId);
   if (Number.isFinite(gameIdNumber)) return gameIdNumber;
+
   return -1;
 }
 
-async function listChampionHistory(limit, tableName = GAME_RECORDS_TABLE) {
-  const records = await listGameRecords(tableName);
+async function listChampionHistory(seasonId, limit) {
+  const records = await listGameRecords(seasonId);
   return records
     .map(mapChampionHistoryRecord)
     .sort((a, b) => historySortKey(b) - historySortKey(a))
     .slice(0, limit);
+}
+
+async function isDraftWriteWindowOpen(seasonContext) {
+  if (parseBool(process.env.ALLOW_IN_SEASON_DRAFT_WRITES, false)) {
+    return true;
+  }
+
+  const seasonMeta = getSeasonMeta(seasonContext.seasonId);
+  if (seasonMeta.seasonOver) {
+    return true;
+  }
+
+  const existingRecords = await listGameRecords(seasonContext.seasonId);
+  return existingRecords.length === 0;
+}
+
+async function guardDraftWriteWindow(event, seasonContext) {
+  const allowed = await isDraftWriteWindowOpen(seasonContext);
+  if (allowed) return null;
+
+  return response(event, 409, {
+    error:
+      'Draft/team updates are locked during active season. Updates are only allowed pre-season (no games recorded) or off-season (seasonOver=true).',
+  });
 }
 
 export const handler = async (event) => {
@@ -614,7 +1024,9 @@ export const handler = async (event) => {
   const method = getMethod(event);
   const seasonContext = getSeasonContext(event);
 
-  if (method === 'OPTIONS') return response(event, 204, {});
+  if (method === 'OPTIONS') {
+    return response(event, 204, {});
+  }
 
   try {
     if (seasonContext.hasInvalidSeasonQuery) {
@@ -624,30 +1036,39 @@ export const handler = async (event) => {
       });
     }
 
-    // ---- Players ----
+    if (path === '/season/options' && method === 'GET') {
+      return response(event, 200, await getSeasonOptions(), {
+        ttlSeconds: CACHE_TTLS.nonPlayingDay,
+        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+        staleIfError: CACHE_TTLS.staleIfError,
+      });
+    }
+
     if (path === '/players' && method === 'GET') {
-      return response(
-        event,
-        200,
-        await listPlayers(seasonContext.playersTable),
-        {
+      return response(event, 200, await listPlayers(seasonContext.seasonId), {
         ttlSeconds: CACHE_TTLS.roster,
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
         staleIfError: CACHE_TTLS.staleIfError,
-        }
-      );
+      });
     }
 
     if (path.startsWith('/players/') && method === 'GET') {
       const name = decodeURIComponent(path.split('/').pop());
-      return response(event, 200, await getPlayerByName(name, seasonContext.playersTable));
+      return response(
+        event,
+        200,
+        await getPlayerByName(seasonContext.seasonId, name)
+      );
     }
 
     if (path === '/players/reset-teams' && method === 'POST') {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
       }
-      await resetTeams(seasonContext.playersTable);
+      const lockResponse = await guardDraftWriteWindow(event, seasonContext);
+      if (lockResponse) return lockResponse;
+
+      await resetTeams(seasonContext.seasonId);
       return response(event, 200, { ok: true });
     }
 
@@ -656,23 +1077,28 @@ export const handler = async (event) => {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
       }
+      const lockResponse = await guardDraftWriteWindow(event, seasonContext);
+      if (lockResponse) return lockResponse;
+
       const body = parseBody(event.body);
       const team = body?.team;
       const action = body?.action || 'add';
-      if (!team) return response(event, 400, { error: 'team is required' });
-      const playerId = coerceId(teamPatchMatch[1]);
+      if (!team) {
+        return response(event, 400, { error: 'team is required' });
+      }
+
       const updated = await updatePlayerTeams(
-        playerId,
+        seasonContext.seasonId,
+        teamPatchMatch[1],
         team,
-        action,
-        seasonContext.playersTable
+        action
       );
+
       return response(event, 200, updated);
     }
 
-    // ---- Game records ----
     if (path === '/game-records' && method === 'GET') {
-      return response(event, 200, await listGameRecords(seasonContext.gameRecordsTable), {
+      return response(event, 200, await listGameRecords(seasonContext.seasonId), {
         ttlSeconds: CACHE_TTLS.gameRecords,
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
         staleIfError: CACHE_TTLS.staleIfError,
@@ -688,17 +1114,13 @@ export const handler = async (event) => {
         });
       }
 
-      const history = await listChampionHistory(
-        limit,
-        seasonContext.gameRecordsTable
-      );
       return response(
         event,
         200,
         {
           seasonId: seasonContext.seasonId,
           limit,
-          history,
+          history: await listChampionHistory(seasonContext.seasonId, limit),
         },
         {
           ttlSeconds: CACHE_TTLS.gameRecords,
@@ -708,20 +1130,21 @@ export const handler = async (event) => {
       );
     }
 
-    // ---- Champion + game id ----
     if (path === '/champion' && method === 'GET') {
-      const opts = await getGameOptions();
-      const champion = opts.champion;
+      const gameOptions = await getGameOptions();
+      const champion = gameOptions.champion;
+
       if (!champion) {
         return response(event, 404, { error: 'Champion not set in GameOptions' });
       }
 
-      let gameID = opts.activeGameId ?? opts.gameID ?? null;
+      let gameID = gameOptions.activeGameId ?? gameOptions.gameID ?? null;
       let cacheOptions = {
         ttlSeconds: CACHE_TTLS.playingDay,
         staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
         staleIfError: CACHE_TTLS.staleIfError,
       };
+
       if (NHL_API_BASE) {
         try {
           const today = getToday();
@@ -741,27 +1164,37 @@ export const handler = async (event) => {
                   staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
                   staleIfError: CACHE_TTLS.staleIfError,
                 };
-        } catch (err) {
-          console.error('schedule lookup failed', err);
+        } catch (error) {
+          console.error('schedule lookup failed', error);
         }
       }
 
       return response(
         event,
         200,
-        { champion, gameID, activeGameId: gameID, seasonId: seasonContext.seasonId },
+        {
+          champion,
+          gameID,
+          activeGameId: gameID,
+          seasonId: seasonContext.seasonId,
+        },
         cacheOptions
       );
     }
 
     if (path === '/gameid' && method === 'GET') {
-      const opts = await getGameOptions();
-      const activeGameId = opts.activeGameId ?? opts.gameID ?? null;
+      const gameOptions = await getGameOptions();
+      const activeGameId = gameOptions.activeGameId ?? gameOptions.gameID ?? null;
       const hasActiveGame = Boolean(activeGameId);
+
       return response(
         event,
         200,
-        { gameID: activeGameId, activeGameId, seasonId: seasonContext.seasonId },
+        {
+          gameID: activeGameId,
+          activeGameId,
+          seasonId: seasonContext.seasonId,
+        },
         hasActiveGame
           ? {
               ttlSeconds: CACHE_TTLS.playingDay,
@@ -777,17 +1210,17 @@ export const handler = async (event) => {
     }
 
     if (path === '/check-status' && method === 'GET') {
-      const opts = await getGameOptions();
+      const gameOptions = await getGameOptions();
       return response(event, 200, {
         seasonId: seasonContext.seasonId,
-        champion: opts.champion ?? null,
-        gameID: opts.activeGameId ?? opts.gameID ?? null,
-        activeGameId: opts.activeGameId ?? null,
-        checkStatus: opts.checkStatus ?? null,
-        nextCheckAt: opts.nextCheckAt ?? null,
-        lastCheckedAt: opts.lastCheckedAt ?? null,
-        finalizedAt: opts.finalizedAt ?? null,
-        processedGameId: opts.processedGameId ?? null,
+        champion: gameOptions.champion ?? null,
+        gameID: gameOptions.activeGameId ?? gameOptions.gameID ?? null,
+        activeGameId: gameOptions.activeGameId ?? null,
+        checkStatus: gameOptions.checkStatus ?? null,
+        nextCheckAt: gameOptions.nextCheckAt ?? null,
+        lastCheckedAt: gameOptions.lastCheckedAt ?? null,
+        finalizedAt: gameOptions.finalizedAt ?? null,
+        processedGameId: gameOptions.processedGameId ?? null,
       });
     }
 
@@ -799,19 +1232,21 @@ export const handler = async (event) => {
       });
     }
 
-    // ---- Draft ----
     if (path === '/draft/state' && method === 'GET') {
-      const state = await ensureDraftState();
-      return response(event, 200, state);
+      return response(event, 200, await ensureDraftState(seasonContext.seasonId));
     }
 
     if (path === '/draft/state' && method === 'PATCH') {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
       }
+
+      const lockResponse = await guardDraftWriteWindow(event, seasonContext);
+      if (lockResponse) return lockResponse;
+
       const patch = parseBody(event.body);
       try {
-        const state = await updateDraftState(patch);
+        const state = await updateDraftState(seasonContext.seasonId, patch);
         return response(event, 200, state);
       } catch (error) {
         if (error instanceof DraftStateValidationError) {
@@ -832,22 +1267,36 @@ export const handler = async (event) => {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
       }
+
+      const lockResponse = await guardDraftWriteWindow(event, seasonContext);
+      if (lockResponse) return lockResponse;
+
       const { playerId, team } = parseBody(event.body);
       if (!playerId || !team) {
-        return response(event, 400, { error: 'playerId and team are required' });
+        return response(event, 400, {
+          error: 'playerId and team are required',
+        });
       }
+
       const updated = await updatePlayerTeams(
-        coerceId(playerId),
+        seasonContext.seasonId,
+        playerId,
         team,
-        'add',
-        seasonContext.playersTable
+        'add'
       );
-      return response(event, 200, { player: updated, team });
+
+      return response(event, 200, {
+        player: updated,
+        team,
+      });
     }
 
     return response(event, 404, { error: 'Not found', path, method });
-  } catch (err) {
-    console.error('handler error', err);
-    return response(event, 500, { error: 'Internal Server Error', detail: String(err) });
+  } catch (error) {
+    console.error('handler error', error);
+    return response(event, 500, {
+      error: 'Internal Server Error',
+      detail: String(error),
+    });
   }
 };
