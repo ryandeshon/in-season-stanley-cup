@@ -19,8 +19,9 @@ const scheduler = AWS.Scheduler
   : null;
 
 const TABLE_NAME = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
-const PLAYERS_TABLE = process.env.PLAYERS_TABLE || 'Players';
-const GAME_RECORDS = process.env.GAME_RECORDS_TABLE || 'GameRecords';
+const PLAYER_SEASON_TABLE = process.env.PLAYER_SEASON_TABLE || 'PlayerSeason';
+const PLAYER_LIFETIME_TABLE = process.env.PLAYER_LIFETIME_TABLE || 'PlayerLifetime';
+const GAME_RECORDS_V2_TABLE = process.env.GAME_RECORDS_V2_TABLE || 'GameRecordsV2';
 const PARTITION_KEY = process.env.GAME_OPTIONS_KEY || 'currentChampion';
 const GAME_ID_FIELD = process.env.GAME_ID_FIELD || 'gameID';
 const ACTIVE_GAME_ID_FIELD = process.env.ACTIVE_GAME_ID_FIELD || 'activeGameId';
@@ -53,6 +54,30 @@ const API_CACHE_INVALIDATION_PATHS = (
   .map((path) => path.trim())
   .filter(Boolean)
   .map((path) => (path.startsWith('/') ? path : `/${path}`));
+const DEFAULT_SEASON = normalizeSeasonId(process.env.DEFAULT_SEASON) || 'season2';
+
+function normalizeSeasonId(value) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+  const seasonMatch = normalized.match(/^season(\d+)$/);
+  if (seasonMatch) {
+    const number = Number(seasonMatch[1]);
+    if (Number.isInteger(number) && number > 0) {
+      return `season${number}`;
+    }
+    return null;
+  }
+  const numeric = Number(normalized);
+  if (Number.isInteger(numeric) && numeric > 0) {
+    return `season${numeric}`;
+  }
+  return null;
+}
+
+function resolveSeasonId(gameOptions = {}) {
+  return normalizeSeasonId(gameOptions.currentSeason) || DEFAULT_SEASON;
+}
 
 function log(level, msg, extra = {}) {
   const base = { level, ts: new Date().toISOString(), ...extra };
@@ -387,61 +412,145 @@ async function fetchGameData(gameID) {
   });
 }
 
-async function findPlayerWithTeam(team) {
-  const params = { TableName: PLAYERS_TABLE };
+async function listSeasonPlayers(seasonId) {
+  const players = [];
+  let ExclusiveStartKey;
+  do {
+    const result = await dynamoDB
+      .query({
+        TableName: PLAYER_SEASON_TABLE,
+        KeyConditionExpression: '#seasonId = :seasonId',
+        ExpressionAttributeNames: {
+          '#seasonId': 'seasonId',
+        },
+        ExpressionAttributeValues: {
+          ':seasonId': seasonId,
+        },
+        ...(ExclusiveStartKey ? { ExclusiveStartKey } : {}),
+      })
+      .promise();
+    players.push(...(result.Items || []));
+    ExclusiveStartKey = result.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  return players;
+}
+
+async function findPlayerWithTeam(team, seasonId) {
   try {
-    const result = await dynamoDB.scan(params).promise();
-    const player = result.Items?.find(
-      (p) => Array.isArray(p.teams) && p.teams.includes(team)
+    const players = await listSeasonPlayers(seasonId);
+    const player = players.find(
+      (candidate) => Array.isArray(candidate.teams) && candidate.teams.includes(team)
     );
-    return player ? player.id : null;
+    if (!player) return null;
+    return {
+      playerId: player.playerId,
+      name: player.name || null,
+    };
   } catch (error) {
-    log('error', 'Players scan failed', { error: String(error) });
+    log('error', 'PlayerSeason query failed', {
+      error: String(error),
+      seasonId,
+      team,
+    });
     throw new Error('Failed to find player with winning team');
   }
 }
 
-async function incrementTitleDefense(playerId, team) {
-  const params = {
-    TableName: PLAYERS_TABLE,
-    Key: { id: playerId },
-    UpdateExpression:
-      'SET titleDefenses = if_not_exists(titleDefenses, :zero) + :inc, totalDefenses = if_not_exists(totalDefenses, :zero) + :inc',
-    ExpressionAttributeValues: { ':inc': 1, ':zero': 0 },
-    ReturnValues: 'UPDATED_NEW',
-  };
-  const out = await dynamoDB.update(params).promise();
+async function incrementDefenses(playerId, team, seasonId, playerName = null) {
+  const timestamp = nowIso();
+  const [seasonUpdate, lifetimeUpdate] = await Promise.all([
+    dynamoDB
+      .update({
+        TableName: PLAYER_SEASON_TABLE,
+        Key: { seasonId, playerId },
+        UpdateExpression:
+          'SET #name = if_not_exists(#name, :name), teams = if_not_exists(teams, :emptyTeams), titleDefenses = if_not_exists(titleDefenses, :zero) + :inc, updatedAt = :updatedAt',
+        ExpressionAttributeNames: {
+          '#name': 'name',
+        },
+        ExpressionAttributeValues: {
+          ':name': playerName || String(playerId),
+          ':emptyTeams': [],
+          ':inc': 1,
+          ':zero': 0,
+          ':updatedAt': timestamp,
+        },
+        ReturnValues: 'UPDATED_NEW',
+      })
+      .promise(),
+    dynamoDB
+      .update({
+        TableName: PLAYER_LIFETIME_TABLE,
+        Key: { playerId },
+        UpdateExpression:
+          'SET #name = if_not_exists(#name, :name), totalDefenses = if_not_exists(totalDefenses, :zero) + :inc, updatedAt = :updatedAt',
+        ExpressionAttributeNames: {
+          '#name': 'name',
+        },
+        ExpressionAttributeValues: {
+          ':name': playerName || String(playerId),
+          ':inc': 1,
+          ':zero': 0,
+          ':updatedAt': timestamp,
+        },
+        ReturnValues: 'UPDATED_NEW',
+      })
+      .promise(),
+  ]);
+
   log('info', 'Player defenses incremented', {
     playerId,
     team,
-    updated: out?.Attributes,
+    seasonId,
+    seasonUpdated: seasonUpdate?.Attributes,
+    lifetimeUpdated: lifetimeUpdate?.Attributes,
   });
 }
 
-async function saveGameStats(gameID, wTeam, wScore, lTeam, lScore) {
+async function saveGameStats(seasonId, gameID, wTeam, wScore, lTeam, lScore) {
+  const normalizedGameId = String(gameID);
+  const timestamp = nowIso();
   const params = {
-    TableName: GAME_RECORDS,
+    TableName: GAME_RECORDS_V2_TABLE,
     Item: {
-      id: gameID,
+      seasonId,
+      gameId: normalizedGameId,
+      id: normalizedGameId,
       wTeam,
       wScore,
       lTeam,
       lScore,
-      savedAt: new Date().toISOString(),
+      savedAt: timestamp,
+      updatedAt: timestamp,
     },
-    ConditionExpression: 'attribute_not_exists(id)',
+    ConditionExpression:
+      'attribute_not_exists(#seasonId) AND attribute_not_exists(#gameId)',
+    ExpressionAttributeNames: {
+      '#seasonId': 'seasonId',
+      '#gameId': 'gameId',
+    },
   };
 
   try {
     await dynamoDB.put(params).promise();
-    log('info', 'Game record saved', { gameID, wTeam, wScore, lTeam, lScore });
+    log('info', 'Game record saved', {
+      seasonId,
+      gameID: normalizedGameId,
+      wTeam,
+      wScore,
+      lTeam,
+      lScore,
+    });
     return true;
-  } catch (e) {
-    if (e.code === 'ConditionalCheckFailedException') {
-      log('info', 'Game record already exists, skipping save', { gameID });
+  } catch (error) {
+    if (error.code === 'ConditionalCheckFailedException') {
+      log('info', 'Game record already exists, skipping save', {
+        seasonId,
+        gameID: normalizedGameId,
+      });
       return false;
     }
-    throw e;
+    throw error;
   }
 }
 
@@ -610,6 +719,7 @@ const handler = async (event, context) => {
 
   try {
     const gameOptions = await getGameOptions();
+    const seasonId = resolveSeasonId(gameOptions);
     const champion = gameOptions?.[CHAMPION_FIELD] ?? null;
     if (!champion) {
       log('info', 'No champion set in GameOptions; exiting early');
@@ -645,7 +755,7 @@ const handler = async (event, context) => {
         decision: 'discovery_set_watch',
       });
     }
-    log('info', 'GameID loaded', { gameID });
+    log('info', 'GameID loaded', { gameID, seasonId });
 
     const game = await fetchGameData(gameID);
     log('info', 'Game state fetched', {
@@ -725,6 +835,7 @@ const handler = async (event, context) => {
 
     try {
       const didSaveGameRecord = await saveGameStats(
+        seasonId,
         gameID,
         wTeam,
         wScore,
@@ -736,15 +847,21 @@ const handler = async (event, context) => {
       await invalidateApiCache(gameID, 'game_finalized');
 
       if (didSaveGameRecord) {
-        const playerId = await findPlayerWithTeam(wTeam);
-        if (playerId) {
-          await incrementTitleDefense(playerId, wTeam);
+        const winnerPlayer = await findPlayerWithTeam(wTeam, seasonId);
+        if (winnerPlayer?.playerId !== undefined && winnerPlayer?.playerId !== null) {
+          await incrementDefenses(
+            winnerPlayer.playerId,
+            wTeam,
+            seasonId,
+            winnerPlayer.name
+          );
         } else {
-          log('info', 'No player found for winning team', { wTeam });
+          log('info', 'No player found for winning team', { wTeam, seasonId });
         }
       } else {
         log('info', 'Skipping defense increment due existing game record', {
           gameID,
+          seasonId,
           writeOutcome: 'record_exists',
         });
       }
@@ -753,7 +870,7 @@ const handler = async (event, context) => {
       throw error;
     }
 
-    log('info', 'Invocation complete', { gameID, champion: wTeam });
+    log('info', 'Invocation complete', { gameID, seasonId, champion: wTeam });
     return {
       statusCode: 200,
       body: JSON.stringify({ message: `Winner ${wTeam} saved` }),
