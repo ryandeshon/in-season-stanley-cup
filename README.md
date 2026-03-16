@@ -233,6 +233,7 @@ GET    /champion/history
 GET    /gameid
 GET    /check-status
 GET    /season/meta
+GET    /season/options
 
 GET    /draft/state
 PATCH  /draft/state
@@ -246,9 +247,11 @@ Notes:
 
 ### Key DynamoDB tables
 
-- `Players` (player profiles, teams, title defenses, etc.)
-- `GameRecords` (per-game win/loss records)
-- `GameOptions` (current champion + draft state)
+- `PlayerLifetime` (lifetime `championships` + `totalDefenses`)
+- `PlayerSeason` (season-specific teams + `titleDefenses`)
+- `GameRecordsV2` (season-scoped game history by `seasonId`)
+- `DraftState` (season-scoped draft state by `draftId=seasonId`)
+- `GameOptions` (current champion/checker state + `seasonCatalog`)
 - `SocketConnections` (WebSocket connections for live updates)
 
 ### Lambda config env vars
@@ -257,22 +260,18 @@ Used by `lambdas/http-api/index.js`:
 
 ```
 AWS_REGION
-PLAYERS_TABLE
-GAME_RECORDS_TABLE
 GAME_OPTIONS_TABLE
-DRAFT_STATE_ID
+PLAYER_SEASON_TABLE
+PLAYER_LIFETIME_TABLE
+GAME_RECORDS_V2_TABLE
+DRAFT_STATE_TABLE
 CORS_ORIGIN
 NHL_API_BASE
 NHL_TEAMS
 DEFAULT_SEASON
+SEASON_CATALOG_ID
+AVAILABLE_SEASONS
 ADMIN_API_TOKEN
-PLAYERS_TABLE_SEASON1
-GAME_RECORDS_TABLE_SEASON1
-PLAYERS_TABLE_SEASON2
-GAME_RECORDS_TABLE_SEASON2
-PLAYERS_TABLE_SEASON3
-GAME_RECORDS_TABLE_SEASON3
-...
 SEASON2_REGULAR_SEASON_END
 SEASON2_PLAYOFFS_START
 SEASON2_SEASON_OVER
@@ -296,8 +295,10 @@ LAST_CHECKED_AT_FIELD
 FINALIZED_AT_FIELD
 WATCH_STARTED_AT_FIELD
 PROCESSED_GAME_ID_FIELD
-PLAYERS_TABLE
-GAME_RECORDS_TABLE
+PLAYER_SEASON_TABLE
+PLAYER_LIFETIME_TABLE
+GAME_RECORDS_V2_TABLE
+DEFAULT_SEASON
 NHL_API_BASE
 SELF_SCHEDULING_ENABLED
 SCHEDULER_GROUP_NAME
@@ -321,9 +322,10 @@ Purpose:
   - Schedules an adaptive one-off recheck (10m pregame, 2m live, 1m critical).
 - If game is final:
   - Claims `processedGameId` to prevent duplicate write cycles.
-  - Writes a game record to `GameRecords`.
+  - Writes a game record to `GameRecordsV2` using `seasonId + gameId`.
   - Updates `champion` in `GameOptions`.
-  - Increments `titleDefenses` and `totalDefenses` for the winning player.
+  - Increments season `titleDefenses` in `PlayerSeason`.
+  - Increments lifetime `totalDefenses` in `PlayerLifetime`.
   - Marks finalization metadata and clears active game fields.
   - Invalidates API cache paths (for example `/champion`, `/gameid`) in CloudFront.
   - Stops additional self-check schedules.
@@ -355,6 +357,14 @@ Optional broadcaster:
     - `Handler error`
     - `decision":"watching_too_long"`
   - Creates matching CloudWatch alarms in namespace `InSeason/Checker`.
+
+## Offseason migration helper
+
+- `scripts/aws/offseason-migrate-season-data.sh`
+  - Snapshots legacy season tables.
+  - Backfills `PlayerLifetime`, `PlayerSeason`, `GameRecordsV2`, and `DraftState`.
+  - Optionally updates Lambda env vars for API/checker cutover.
+  - Tags legacy tables as frozen after migration.
 
 ## NHL API usage
 
