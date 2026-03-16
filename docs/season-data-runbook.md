@@ -24,6 +24,18 @@
 - `PATCH /draft/state`
 - `POST /draft/select-team`
 
+## Draft write lock (active season protection)
+- Draft/team mutation routes are blocked during active season:
+  - `POST /players/reset-teams`
+  - `PATCH /players/:id/teams`
+  - `PATCH /draft/state`
+  - `POST /draft/select-team`
+- Allowed windows:
+  - Pre-season (no game records yet for the selected season), or
+  - Off-season (`seasonOver=true` from season metadata).
+- In-season writes return `409` with a lock message.
+- Emergency override (operators only): set `ALLOW_IN_SEASON_DRAFT_WRITES=true` on `inseason-http-api`.
+
 ## Contract deployment verification checklist
 Use this checklist any time frontend code depends on new HTTP API routes (for example PR #48 season contracts).
 

@@ -267,6 +267,32 @@ function getSeasonMeta(seasonId) {
   };
 }
 
+async function isDraftWriteWindowOpen(seasonContext) {
+  // Emergency override for operator-managed incidents.
+  if (parseBool(process.env.ALLOW_IN_SEASON_DRAFT_WRITES, false)) {
+    return true;
+  }
+
+  const seasonMeta = getSeasonMeta(seasonContext.seasonId);
+  if (seasonMeta.seasonOver) {
+    return true;
+  }
+
+  // Pre-season: no recorded games yet, so drafting is still allowed.
+  const existingRecords = await listGameRecords(seasonContext.gameRecordsTable);
+  return existingRecords.length === 0;
+}
+
+async function guardDraftWriteWindow(event, seasonContext) {
+  const allowed = await isDraftWriteWindowOpen(seasonContext);
+  if (allowed) return null;
+
+  return response(event, 409, {
+    error:
+      'Draft/team updates are locked during active season. Updates are only allowed pre-season (no games recorded) or off-season (seasonOver=true).',
+  });
+}
+
 function coerceId(value) {
   const asNumber = Number(value);
   return Number.isNaN(asNumber) ? value : asNumber;
@@ -647,6 +673,13 @@ export const handler = async (event) => {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
       }
+      const draftWriteGuardResponse = await guardDraftWriteWindow(
+        event,
+        seasonContext
+      );
+      if (draftWriteGuardResponse) {
+        return draftWriteGuardResponse;
+      }
       await resetTeams(seasonContext.playersTable);
       return response(event, 200, { ok: true });
     }
@@ -655,6 +688,13 @@ export const handler = async (event) => {
     if (teamPatchMatch && method === 'PATCH') {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
+      }
+      const draftWriteGuardResponse = await guardDraftWriteWindow(
+        event,
+        seasonContext
+      );
+      if (draftWriteGuardResponse) {
+        return draftWriteGuardResponse;
       }
       const body = parseBody(event.body);
       const team = body?.team;
@@ -809,6 +849,13 @@ export const handler = async (event) => {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
       }
+      const draftWriteGuardResponse = await guardDraftWriteWindow(
+        event,
+        seasonContext
+      );
+      if (draftWriteGuardResponse) {
+        return draftWriteGuardResponse;
+      }
       const patch = parseBody(event.body);
       try {
         const state = await updateDraftState(patch);
@@ -831,6 +878,13 @@ export const handler = async (event) => {
     if (path === '/draft/select-team' && method === 'POST') {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
+      }
+      const draftWriteGuardResponse = await guardDraftWriteWindow(
+        event,
+        seasonContext
+      );
+      if (draftWriteGuardResponse) {
+        return draftWriteGuardResponse;
       }
       const { playerId, team } = parseBody(event.body);
       if (!playerId || !team) {
