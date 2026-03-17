@@ -1,0 +1,125 @@
+name: Issue Release Tag Guard
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - reopened
+      - labeled
+      - unlabeled
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  require-release-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate issue release label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue = context.payload.issue;
+            const issue_number = issue.number;
+            const labelNames = (issue.labels || []).map((label) => label.name);
+
+            const releaseLabelRegex = /^release\/\d+\.\d+(?:\.\d+)?$/;
+            const releaseVersionRegex = /^\d+\.\d+(?:\.\d+)?$/;
+            const needsReleaseTagLabel = "needs-release-tag";
+            const reminderMarker = "<!-- release-tag-reminder -->";
+
+            async function ensureLabelExists(name, color, description) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                await github.rest.issues.createLabel({ owner, repo, name, color, description });
+              }
+            }
+
+            async function addLabelIfMissing(name) {
+              if (!labelNames.includes(name)) {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number,
+                  labels: [name]
+                });
+                labelNames.push(name);
+              }
+            }
+
+            const releaseVersionMatch = (issue.body || "").match(
+              /###\s*Release Version\s*\r?\n+([^\r\n]+)/i
+            );
+            const releaseVersion = releaseVersionMatch?.[1]?.trim();
+            const parsedReleaseLabel = releaseVersionRegex.test(releaseVersion || "")
+              ? `release/${releaseVersion}`
+              : null;
+
+            if (parsedReleaseLabel) {
+              await ensureLabelExists(parsedReleaseLabel, "0E8A16", "Planned app release version");
+              await addLabelIfMissing(parsedReleaseLabel);
+            }
+
+            const hasReleaseLabel = labelNames.some((name) => releaseLabelRegex.test(name));
+
+            await ensureLabelExists(
+              needsReleaseTagLabel,
+              "FBCA04",
+              "Issue is missing a release/x.y or release/x.y.z label"
+            );
+
+            if (hasReleaseLabel) {
+              if (labelNames.includes(needsReleaseTagLabel)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number,
+                    name: needsReleaseTagLabel
+                  });
+                } catch (error) {
+                  if (error.status !== 404) {
+                    throw error;
+                  }
+                }
+              }
+              core.info("Issue has a release label.");
+              return;
+            }
+
+            await addLabelIfMissing(needsReleaseTagLabel);
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100
+            });
+            const alreadyReminded = comments.some(
+              (comment) =>
+                comment.user?.type === "Bot" &&
+                typeof comment.body === "string" &&
+                comment.body.includes(reminderMarker)
+            );
+
+            if (!alreadyReminded) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: `${reminderMarker}
+Please add a release label to this issue using one of these formats:
+- \`release/x.y\`
+- \`release/x.y.z\`
+
+Example: \`release/2.1\` for feature work planned for version 2.1.0.`
+              });
+            }
