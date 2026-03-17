@@ -1,5 +1,5 @@
 <template>
-  <v-container class="max-w-screen-md min-h-32">
+  <v-container class="max-w-screen-xl min-h-32 px-4 sm:px-6">
     <div v-if="loading" class="flex justify-center items-center mt-10">
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
     </div>
@@ -19,8 +19,8 @@
     >
       Player profile is not available.
     </v-alert>
-    <div v-else class="flex flex-col justify-center items-center my-4">
-      <v-card class="pb-3">
+    <div v-else class="w-full flex flex-col justify-center items-center my-4">
+      <v-card class="profile-section pb-3">
         <v-card-text class="flex flex-col justify-center items-center">
           <PlayerCard
             :player="player"
@@ -50,127 +50,145 @@
           >
         </v-card-text>
       </v-card>
-      <v-card class="mt-5 w-full" data-test="player-profile-trend-panel">
+      <v-card
+        class="profile-section mt-5"
+        data-test="player-profile-trend-panel"
+      >
         <v-card-title>Trend Snapshot</v-card-title>
         <v-card-text>
           <p v-if="!playersGamesPlayed.length" class="text-sm">
             No trend data available yet for this player.
           </p>
-          <v-table v-else>
+          <div v-else class="w-full overflow-x-auto">
+            <v-table>
+              <tbody>
+                <tr data-test="player-profile-trend-last10">
+                  <td class="font-bold">Last 10</td>
+                  <td class="text-center">{{ trendSummary.lastTen.record }}</td>
+                  <td class="text-right">
+                    Win% {{ formatWinPct(trendSummary.lastTen.winPct) }}
+                  </td>
+                </tr>
+                <tr data-test="player-profile-trend-best-team">
+                  <td class="font-bold">Best Team</td>
+                  <td class="text-center">
+                    {{
+                      trendSummary.bestTeam
+                        ? `${trendSummary.bestTeam.wins}-${trendSummary.bestTeam.losses}`
+                        : 'N/A'
+                    }}
+                  </td>
+                  <td class="text-right">
+                    {{
+                      trendSummary.bestTeam
+                        ? `${trendSummary.bestTeam.team} (${formatWinPct(
+                            trendSummary.bestTeam.winPct
+                          )})`
+                        : 'N/A'
+                    }}
+                  </td>
+                </tr>
+                <tr data-test="player-profile-trend-weakest-matchup">
+                  <td class="font-bold">Weakest Matchup</td>
+                  <td class="text-center">
+                    {{
+                      trendSummary.weakestMatchup
+                        ? `${trendSummary.weakestMatchup.wins}-${trendSummary.weakestMatchup.losses}`
+                        : 'N/A'
+                    }}
+                  </td>
+                  <td class="text-right">
+                    {{
+                      trendSummary.weakestMatchup
+                        ? `${trendSummary.weakestMatchup.team} (${formatWinPct(
+                            trendSummary.weakestMatchup.winPct
+                          )})`
+                        : 'N/A'
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
+        </v-card-text>
+      </v-card>
+      <div
+        v-if="playersGamesPlayed.length"
+        class="profile-section mt-5 grid gap-5"
+      >
+        <div class="w-full overflow-x-auto">
+          <v-table>
+            <thead>
+              <tr>
+                <th class="text-center font-bold">Match Up</th>
+                <th class="text-center font-bold">Result</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr data-test="player-profile-trend-last10">
-                <td class="font-bold">Last 10</td>
-                <td class="text-center">{{ trendSummary.lastTen.record }}</td>
-                <td class="text-right">
-                  Win% {{ formatWinPct(trendSummary.lastTen.winPct) }}
+              <tr v-for="game in displayedGames" :key="game.id" class="py-2">
+                <td class="text-center flex gap-2 justify-center items-center">
+                  <TeamLogo :team="game.wTeam" />
+                  vs.
+                  <TeamLogo :team="game.lTeam" />
                 </td>
-              </tr>
-              <tr data-test="player-profile-trend-best-team">
-                <td class="font-bold">Best Team</td>
+
                 <td class="text-center">
-                  {{
-                    trendSummary.bestTeam
-                      ? `${trendSummary.bestTeam.wins}-${trendSummary.bestTeam.losses}`
-                      : 'N/A'
-                  }}
-                </td>
-                <td class="text-right">
-                  {{
-                    trendSummary.bestTeam
-                      ? `${trendSummary.bestTeam.team} (${formatWinPct(
-                          trendSummary.bestTeam.winPct
-                        )})`
-                      : 'N/A'
-                  }}
-                </td>
-              </tr>
-              <tr data-test="player-profile-trend-weakest-matchup">
-                <td class="font-bold">Weakest Matchup</td>
-                <td class="text-center">
-                  {{
-                    trendSummary.weakestMatchup
-                      ? `${trendSummary.weakestMatchup.wins}-${trendSummary.weakestMatchup.losses}`
-                      : 'N/A'
-                  }}
-                </td>
-                <td class="text-right">
-                  {{
-                    trendSummary.weakestMatchup
-                      ? `${trendSummary.weakestMatchup.team} (${formatWinPct(
-                          trendSummary.weakestMatchup.winPct
-                        )})`
-                      : 'N/A'
-                  }}
+                  <div
+                    class="text-center flex gap-2 justify-center items-center"
+                  >
+                    <TeamLogo
+                      v-if="getResults(game).team"
+                      :team="getResults(game).team"
+                    />
+                    <router-link
+                      :to="{ name: 'GamePage', params: { id: game.id } }"
+                    >
+                      {{ getResults(game).result }}
+                    </router-link>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </v-table>
-        </v-card-text>
-      </v-card>
-      <div v-if="playersGamesPlayed.length" class="mt-5 grid gap-5">
-        <v-table>
-          <thead>
-            <tr>
-              <th class="text-center font-bold">Match Up</th>
-              <th class="text-center font-bold">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="game in displayedGames" :key="game.id" class="py-2">
-              <td class="text-center flex gap-2 justify-center items-center">
-                <TeamLogo :team="game.wTeam" />
-                vs.
-                <TeamLogo :team="game.lTeam" />
-              </td>
-
-              <td class="text-center">
-                <div class="text-center flex gap-2 justify-center items-center">
-                  <TeamLogo
-                    v-if="getResults(game).team"
-                    :team="getResults(game).team"
-                  />
-                  <router-link
-                    :to="{ name: 'GamePage', params: { id: game.id } }"
-                  >
-                    {{ getResults(game).result }}
-                  </router-link>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+        </div>
         <v-btn
           v-if="displayedGames.length < playersGamesPlayed.length"
           @click="loadMore"
         >
           Load More
         </v-btn>
-        <v-table>
-          <thead>
-            <tr>
-              <th class="text-center">Team</th>
-              <th class="text-center">Record</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="team in player.teams"
-              :key="team"
-              class="py-2 align-middle"
-            >
-              <td class="text-center">
-                <div class="flex justify-center items-center">
-                  <TeamLogo :team="team" class="!w-10 !h-10" />
-                </div>
-              </td>
-              <td class="text-center">
-                {{ getWins(team) }} - {{ getLosses(team) }}
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+        <div class="w-full overflow-x-auto">
+          <v-table>
+            <thead>
+              <tr>
+                <th class="text-center">Team</th>
+                <th class="text-center">Record</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="team in player.teams"
+                :key="team"
+                class="py-2 align-middle"
+              >
+                <td class="text-center">
+                  <div class="flex justify-center items-center">
+                    <TeamLogo :team="team" class="!w-10 !h-10" />
+                  </div>
+                </td>
+                <td class="text-center">
+                  {{ getWins(team) }} - {{ getLosses(team) }}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
       </div>
-      <p v-else class="text-sm mt-5" data-test="player-profile-no-games">
+      <p
+        v-else
+        class="profile-section text-sm mt-5 text-center"
+        data-test="player-profile-no-games"
+      >
         No game records yet for this player.
       </p>
     </div>
@@ -314,3 +332,10 @@ watch(
   { immediate: true }
 );
 </script>
+
+<style scoped>
+.profile-section {
+  width: 100%;
+  max-width: 64rem;
+}
+</style>
