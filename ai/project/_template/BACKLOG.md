@@ -20,3 +20,5 @@
 - Update this file as work progresses.
 - Link PRs, commits, and test evidence here.
 - For merged PRs that complete tasks/issues, include closing keywords in PR body (e.g., `Closes #123`).
+- Ensure related issue is labeled with `release/x.y` or `release/x.y.z`.
+- If code changes impact a release, include a changeset entry in the PR.

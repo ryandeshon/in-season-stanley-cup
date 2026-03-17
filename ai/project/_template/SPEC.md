@@ -3,6 +3,10 @@
 ## Summary
 One-paragraph description of the project goal and why it matters.
 
+## Release Target
+- Planned release label (`release/x.y` or `release/x.y.z`)
+- Expected SemVer bump (`major`, `minor`, or `patch`)
+
 ## Problem
 - What is broken or missing?
 - Who is impacted?
