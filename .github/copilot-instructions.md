@@ -121,6 +121,22 @@ initSocket({
 - Bug fixes must include a Cypress assertion that would fail before the fix and pass after.
 - PR descriptions must list Cypress coverage changes and test results.
 
+### Release Versioning Policy
+
+- App version baseline is `2.0.0`.
+- SemVer mapping is mandatory:
+  - `major` for new season rollovers
+  - `minor` for new features
+  - `patch` for bug fixes, copy edits, and small maintenance
+- Add a changeset for release-impacting PRs:
+
+```bash
+yarn changeset
+```
+
+- Do not manually bump versions in feature/fix PRs; the automated `Version Packages` PR handles release numbers and changelog updates.
+- Every GitHub issue must include a `release/x.y` or `release/x.y.z` label.
+
 ### Code Style
 
 - **Vue 3 Composition API** with `<script setup>` syntax
