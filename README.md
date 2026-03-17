@@ -102,11 +102,28 @@ VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
 - AI project workflow and templates: `ai/README.md`
 - AI security guardrails (public repo safety checklist): `ai/SECURITY.md`
 - AI best-practice guide for this repo: `ai/BEST_PRACTICES.md`
+- Release/versioning workflow and SemVer policy: `.changeset/README.md`
 - New project planning convention:
   - `ai/project/<name-of-project>/SPEC.md`
   - `ai/project/<name-of-project>/BACKLOG.md`
 - Local security scan command:
   - `yarn security:audit`
+
+### Release versioning and changelog
+
+- App version starts at `2.0.0`.
+- Semantic version rules:
+  - `major`: new season release
+  - `minor`: new feature
+  - `patch`: bug fix/copy edit/small maintenance
+- Add a changeset in feature/fix PRs:
+  - `yarn changeset`
+- On merge to `main`, GitHub Actions updates the release PR (`chore(release): version packages`) with:
+  - next version number
+  - `CHANGELOG.md` updates
+- Final release number approval happens by reviewing/merging that release PR.
+- Every issue must be tagged with a release label:
+  - `release/x.y` or `release/x.y.z`
 
 ### Public repo safety note
 - `amplify/team-provider-info.json` is required for this Amplify Gen 1 backend build flow.

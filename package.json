@@ -1,6 +1,6 @@
 {
   "name": "in-season-stanley-cup",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -15,7 +15,10 @@
     "assets:bootstrap": "bash ./scripts/assets/bootstrap-assets-infra.sh",
     "test:e2e": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
     "test:e2e:open": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
-    "security:audit": "bash ./scripts/security-scan.sh"
+    "security:audit": "bash ./scripts/security-scan.sh",
+    "changeset": "changeset",
+    "version:prepare": "changeset version",
+    "version:status": "changeset status --verbose"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
@@ -32,6 +35,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
+    "@changesets/cli": "^2.29.6",
     "@vitejs/plugin-vue": "6.0.5",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",

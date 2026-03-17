@@ -4,6 +4,7 @@
 - Start each change with `ai/project/<name>/SPEC.md`.
 - Track execution in `ai/project/<name>/BACKLOG.md`.
 - Keep tasks small; verify each task before moving on.
+- Tag every issue with a target release label: `release/x.y` or `release/x.y.z`.
 
 ## Code changes
 - Prefer minimal, targeted diffs.
@@ -24,6 +25,11 @@
   - `Fixes #<issue-number>`
   - `Resolves #<issue-number>`
 - Use `Refs #<issue-number>` only for partial/non-closing relationships.
+- Every release-impacting PR should include a changeset file (`yarn changeset`) using:
+  - `major` for a new season
+  - `minor` for new features
+  - `patch` for bug fixes/copy edits/small updates
+- Approve release numbers by reviewing and merging the automated `chore(release): version packages` PR.
 
 ## AWS operations
 - Verify before changing production resources.

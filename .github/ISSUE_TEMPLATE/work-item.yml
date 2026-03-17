@@ -1,0 +1,48 @@
+name: Work Item
+description: Create a tracked issue for a feature, bug fix, or maintenance task.
+title: "[Work]: "
+labels:
+  - needs-release-tag
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every issue must include a target release version.
+  - type: input
+    id: release_version
+    attributes:
+      label: Release Version
+      description: Use `x.y` or `x.y.z` (for example `2.1` or `2.1.3`).
+      placeholder: "2.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: change_type
+    attributes:
+      label: Change Type
+      description: Select the SemVer impact for this issue.
+      options:
+        - Major (new season)
+        - Minor (new feature)
+        - Patch (bug fix/copy edit)
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the requested change and expected result.
+      placeholder: What should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Add clear conditions for completion.
+      placeholder: |
+        - Given ...
+        - When ...
+        - Then ...
+    validations:
+      required: true

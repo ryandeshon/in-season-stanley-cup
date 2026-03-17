@@ -27,7 +27,13 @@ Example:
 7. When committing, group file changes into logical, sizable chunks and write commit messages that describe what changed (and why when helpful).
 8. Before PR/merge, run the security checklist in `ai/SECURITY.md`.
 9. In every PR description, include related issue links and use closing keywords for completed work (for example: `Closes #18`).
-10. Environment policy: local, test, and prod workflows should all use production data/API by default unless explicitly told otherwise for a task.
+10. Every issue must carry a release label in the format `release/x.y` or `release/x.y.z`.
+11. Every code-change PR must include a changeset (`yarn changeset`) matching this SemVer policy:
+   - `major`: new season release
+   - `minor`: new feature
+   - `patch`: bug fix, copy edit, or small maintenance
+12. Do not manually bump app versions on feature/fix PRs. Release numbers are generated via the automated "Version Packages" PR.
+13. Environment policy: local, test, and prod workflows should all use production data/API by default unless explicitly told otherwise for a task.
 
 ## Templates
 - `ai/project/_template/SPEC.md`
