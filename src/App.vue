@@ -11,7 +11,9 @@
     <!-- Footer -->
     <v-footer app color="primary">
       <span class="mx-auto"
-        >© {{ new Date().getFullYear() }} In Season Cup</span
+        >© {{ new Date().getFullYear() }} In Season Cup | v{{
+          appVersion
+        }}</span
       >
     </v-footer>
   </v-app>
@@ -24,6 +26,7 @@ import { useTheme as useVuetifyTheme } from 'vuetify';
 import { useSeasonStore } from '@/store/seasonStore';
 import NavigationBar from '@/components/NavigationBar.vue';
 
+const appVersion = process.env.VUE_APP_VERSION || 'dev';
 const { isDarkTheme } = useTheme();
 const seasonStore = useSeasonStore();
 const theme = useVuetifyTheme();
