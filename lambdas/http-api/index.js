@@ -34,7 +34,14 @@ const DEFAULT_DRAFT_STATE = Object.freeze({
   pickOrder: [],
   currentPicker: null,
   currentPickNumber: 0,
+  isLocked: false,
+  autoPickEnabled: false,
+  autoPickSeconds: 60,
+  autoPickDeadlineAt: null,
+  pickHistory: [],
 });
+
+const MAX_AUTO_PICK_SECONDS = 600;
 
 class DraftStateValidationError extends Error {
   constructor(message) {
@@ -272,6 +279,126 @@ function coerceId(value) {
   return Number.isNaN(asNumber) ? value : asNumber;
 }
 
+function parseAutoPickSeconds(value, fallback = 60) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, MAX_AUTO_PICK_SECONDS);
+}
+
+function parseDraftStateVersion(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+function normalizeIsoDate(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString();
+}
+
+function shouldDisableAutoPick(state) {
+  if (!state.autoPickEnabled) return true;
+  if (!state.draftStarted) return true;
+  if (!state.currentPicker) return true;
+  if (state.isLocked) return true;
+  if (!Array.isArray(state.availableTeams) || state.availableTeams.length === 0) {
+    return true;
+  }
+  return !Number.isInteger(state.autoPickSeconds) || state.autoPickSeconds <= 0;
+}
+
+function getNextAutoPickDeadline(state, now = Date.now()) {
+  if (shouldDisableAutoPick(state)) return null;
+  return new Date(now + state.autoPickSeconds * 1000).toISOString();
+}
+
+function normalizePickHistoryEntry(entry = {}) {
+  if (!entry || typeof entry !== 'object') return null;
+  const team = String(entry.team || '')
+    .trim()
+    .toUpperCase();
+  const rawPlayerId = entry.playerId;
+  const hasPlayerId = rawPlayerId !== undefined && rawPlayerId !== null && rawPlayerId !== '';
+  if (!team || !hasPlayerId) return null;
+
+  const pickNumberRaw = Number(entry.pickNumber);
+  const pickNumber =
+    Number.isInteger(pickNumberRaw) && pickNumberRaw > 0
+      ? pickNumberRaw
+      : null;
+
+  return {
+    playerId: coerceId(rawPlayerId),
+    team,
+    pickNumber,
+    pickedAt: normalizeIsoDate(entry.pickedAt),
+  };
+}
+
+function normalizePickHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .map(normalizePickHistoryEntry)
+    .filter(Boolean);
+}
+
+function normalizeDraftState(state = {}, options = {}) {
+  const nowIso = options.nowIso || new Date().toISOString();
+  const normalized = {
+    ...DEFAULT_DRAFT_STATE,
+    ...state,
+  };
+
+  if (!Array.isArray(normalized.pickOrder)) {
+    normalized.pickOrder = [];
+  }
+  if (!Array.isArray(normalized.availableTeams)) {
+    normalized.availableTeams = [...NHL_TEAMS];
+  }
+
+  normalized.currentPicker =
+    normalized.currentPicker === undefined ? null : normalized.currentPicker;
+  normalized.currentPickNumber = Number.isInteger(Number(normalized.currentPickNumber))
+    ? Number(normalized.currentPickNumber)
+    : 0;
+  normalized.version = Number.isInteger(Number(normalized.version))
+    ? Math.max(0, Number(normalized.version))
+    : 0;
+  normalized.draftStarted = Boolean(normalized.draftStarted);
+  normalized.isLocked = Boolean(normalized.isLocked);
+  normalized.autoPickEnabled = Boolean(normalized.autoPickEnabled);
+  normalized.autoPickSeconds = parseAutoPickSeconds(normalized.autoPickSeconds);
+  normalized.pickHistory = normalizePickHistory(normalized.pickHistory);
+  normalized.updatedAt = normalizeIsoDate(normalized.updatedAt) || nowIso;
+
+  const normalizedDeadline = normalizeIsoDate(normalized.autoPickDeadlineAt);
+  if (shouldDisableAutoPick(normalized)) {
+    normalized.autoPickDeadlineAt = null;
+  } else {
+    normalized.autoPickDeadlineAt = normalizedDeadline;
+  }
+
+  return normalized;
+}
+
+function shouldRefreshAutoPickDeadline(patch = {}) {
+  const deadlineTriggers = [
+    'draftStarted',
+    'currentPicker',
+    'isLocked',
+    'availableTeams',
+    'autoPickEnabled',
+    'autoPickSeconds',
+  ];
+  return deadlineTriggers.some((key) =>
+    Object.prototype.hasOwnProperty.call(patch, key)
+  );
+}
+
 function getToday(tz = 'America/New_York') {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: tz,
@@ -427,21 +554,26 @@ async function ensureDraftState() {
     .get({ TableName: GAME_OPTIONS_TABLE, Key: { id: DRAFT_STATE_ID } })
     .promise();
   if (res.Item?.state) {
-    const state = { ...res.Item.state };
-    const hadAvailableTeams = Array.isArray(state.availableTeams);
-    if (!Array.isArray(state.availableTeams)) {
-      state.availableTeams = [...NHL_TEAMS];
-    }
-    const rawVersion = state.version;
-    const parsedVersion = Number(state.version);
-    state.version =
-      Number.isInteger(parsedVersion) && parsedVersion >= 0 ? parsedVersion : 0;
-    state.updatedAt = state.updatedAt || res.Item.updatedAt || null;
+    const state = normalizeDraftState(
+      {
+        ...res.Item.state,
+        updatedAt: res.Item.state.updatedAt || res.Item.updatedAt,
+      },
+      {
+        nowIso: new Date().toISOString(),
+      }
+    );
 
     const needsNormalization =
-      !hadAvailableTeams ||
-      rawVersion !== state.version ||
-      !state.updatedAt;
+      typeof res.Item.state.isLocked !== 'boolean' ||
+      typeof res.Item.state.autoPickEnabled !== 'boolean' ||
+      !Number.isInteger(Number(res.Item.state.autoPickSeconds)) ||
+      !Array.isArray(res.Item.state.pickHistory) ||
+      !Array.isArray(res.Item.state.availableTeams) ||
+      !Number.isInteger(Number(res.Item.state.version)) ||
+      !res.Item.state.updatedAt ||
+      normalizeIsoDate(res.Item.state.autoPickDeadlineAt || null) !==
+        state.autoPickDeadlineAt;
     if (needsNormalization) {
       const now = new Date().toISOString();
       state.updatedAt = now;
@@ -465,10 +597,16 @@ async function ensureDraftState() {
   }
 
   const state = {
-    ...DEFAULT_DRAFT_STATE,
-    availableTeams: [...NHL_TEAMS],
+    ...normalizeDraftState(
+      {
+        ...DEFAULT_DRAFT_STATE,
+        availableTeams: [...NHL_TEAMS],
+      },
+      {
+        nowIso: new Date().toISOString(),
+      }
+    ),
     version: 0,
-    updatedAt: new Date().toISOString(),
   };
 
   await dynamoDB
@@ -485,11 +623,28 @@ async function ensureDraftState() {
   return state;
 }
 
-function parseDraftStateVersion(value) {
-  if (value === undefined || value === null || value === '') return null;
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) return null;
-  return parsed;
+function getDraftStateVersionCondition() {
+  return '(attribute_not_exists(#state.#version) AND :expected = :zero) OR #state.#version = :expected';
+}
+
+function buildDraftStateVersionedWrite(nextState, expectedVersion) {
+  return {
+    TableName: GAME_OPTIONS_TABLE,
+    Key: { id: DRAFT_STATE_ID },
+    UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
+    ConditionExpression: getDraftStateVersionCondition(),
+    ExpressionAttributeNames: {
+      '#state': 'state',
+      '#version': 'version',
+      '#updatedAt': 'updatedAt',
+    },
+    ExpressionAttributeValues: {
+      ':state': nextState,
+      ':ts': nextState.updatedAt,
+      ':expected': expectedVersion,
+      ':zero': 0,
+    },
+  };
 }
 
 async function updateDraftState(patch = {}) {
@@ -516,34 +671,31 @@ async function updateDraftState(patch = {}) {
   delete patchWithoutVersion.version;
   delete patchWithoutVersion.updatedAt;
 
-  const next = {
-    ...current,
-    ...patchWithoutVersion,
-    version: current.version + 1,
-    updatedAt: new Date().toISOString(),
-  };
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const next = normalizeDraftState(
+    {
+      ...current,
+      ...patchWithoutVersion,
+      updatedAt: nowIso,
+    },
+    {
+      nowIso,
+    }
+  );
+
+  if (shouldDisableAutoPick(next)) {
+    next.autoPickDeadlineAt = null;
+  } else if (shouldRefreshAutoPickDeadline(patchWithoutVersion)) {
+    next.autoPickDeadlineAt = getNextAutoPickDeadline(next, now);
+  } else if (!next.autoPickDeadlineAt) {
+    next.autoPickDeadlineAt = getNextAutoPickDeadline(next, now);
+  }
+
+  next.version = current.version + 1;
 
   try {
-    await dynamoDB
-      .update({
-        TableName: GAME_OPTIONS_TABLE,
-        Key: { id: DRAFT_STATE_ID },
-        UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
-        ConditionExpression:
-          '(attribute_not_exists(#state.#version) AND :expected = :zero) OR #state.#version = :expected',
-        ExpressionAttributeNames: {
-          '#state': 'state',
-          '#version': 'version',
-          '#updatedAt': 'updatedAt',
-        },
-        ExpressionAttributeValues: {
-          ':state': next,
-          ':ts': next.updatedAt,
-          ':expected': expectedVersion,
-          ':zero': 0,
-        },
-      })
-      .promise();
+    await dynamoDB.update(buildDraftStateVersionedWrite(next, expectedVersion)).promise();
   } catch (err) {
     if (err?.code === 'ConditionalCheckFailedException') {
       const latest = await ensureDraftState();
@@ -556,6 +708,257 @@ async function updateDraftState(patch = {}) {
   }
 
   return next;
+}
+
+function normalizeDraftTeam(team) {
+  const normalized = String(team || '')
+    .trim()
+    .toUpperCase();
+  return normalized || null;
+}
+
+function getNextPicker(pickOrder = [], currentPicker) {
+  if (!Array.isArray(pickOrder) || pickOrder.length === 0) return null;
+  const currentIndex = pickOrder.findIndex(
+    (entry) => coerceId(entry) === coerceId(currentPicker)
+  );
+  if (currentIndex < 0) return null;
+  const nextIndex = (currentIndex + 1) % pickOrder.length;
+  return pickOrder[nextIndex];
+}
+
+function mapPlayerWithTeams(player, teams, updatedAt) {
+  return {
+    ...(player || {}),
+    teams,
+    updatedAt,
+  };
+}
+
+async function makeDraftPick({ playerId, team, version, playersTable }) {
+  const expectedVersion = parseDraftStateVersion(version);
+  if (expectedVersion === null) {
+    throw new DraftStateValidationError('version must be a non-negative integer');
+  }
+
+  const normalizedPlayerId = coerceId(playerId);
+  const normalizedTeam = normalizeDraftTeam(team);
+  if (!normalizedTeam) {
+    throw new DraftStateValidationError('team is required');
+  }
+
+  const current = await ensureDraftState();
+  if (expectedVersion !== current.version) {
+    throw new DraftStateConflictError('Draft state version conflict', current);
+  }
+  if (!current.draftStarted) {
+    throw new DraftStateValidationError('Draft has not started');
+  }
+  if (current.isLocked) {
+    throw new DraftStateValidationError('Draft is locked');
+  }
+  if (!Array.isArray(current.pickOrder) || current.pickOrder.length === 0) {
+    throw new DraftStateValidationError('Draft pick order is not configured');
+  }
+  if (coerceId(current.currentPicker) !== normalizedPlayerId) {
+    throw new DraftStateValidationError('It is not this player\'s turn');
+  }
+  if (!Array.isArray(current.availableTeams) || !current.availableTeams.includes(normalizedTeam)) {
+    throw new DraftStateValidationError('Team is no longer available');
+  }
+
+  const player = await getPlayerById(normalizedPlayerId, playersTable);
+  if (!player) {
+    throw new DraftStateValidationError(`Player ${normalizedPlayerId} was not found`);
+  }
+
+  const existingTeams = Array.isArray(player.teams) ? [...player.teams] : [];
+  if (existingTeams.includes(normalizedTeam)) {
+    throw new DraftStateValidationError('Player already has that team');
+  }
+
+  const nextPicker = getNextPicker(current.pickOrder, current.currentPicker);
+  if (nextPicker === null) {
+    throw new DraftStateValidationError('Draft current picker is not in pick order');
+  }
+
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const nextPlayerTeams = [...existingTeams, normalizedTeam];
+  const nextAvailableTeams = current.availableTeams.filter((entry) => entry !== normalizedTeam);
+  const pickNumber = Math.max(1, Number(current.currentPickNumber) || 1);
+  const nextState = normalizeDraftState(
+    {
+      ...current,
+      availableTeams: nextAvailableTeams,
+      currentPicker: nextPicker,
+      currentPickNumber: pickNumber + 1,
+      pickHistory: [
+        ...(current.pickHistory || []),
+        {
+          playerId: normalizedPlayerId,
+          team: normalizedTeam,
+          pickNumber,
+          pickedAt: nowIso,
+        },
+      ],
+      updatedAt: nowIso,
+      version: current.version + 1,
+    },
+    {
+      nowIso,
+    }
+  );
+  nextState.autoPickDeadlineAt = getNextAutoPickDeadline(nextState, now);
+
+  try {
+    await dynamoDB
+      .transactWrite({
+        TransactItems: [
+          {
+            Update: {
+              TableName: playersTable,
+              Key: { id: normalizedPlayerId },
+              UpdateExpression: 'SET teams = :teams, updatedAt = :ts',
+              ConditionExpression:
+                'attribute_exists(id) AND (attribute_not_exists(teams) OR NOT contains(teams, :team))',
+              ExpressionAttributeValues: {
+                ':teams': nextPlayerTeams,
+                ':ts': nowIso,
+                ':team': normalizedTeam,
+              },
+            },
+          },
+          {
+            Update: buildDraftStateVersionedWrite(nextState, expectedVersion),
+          },
+        ],
+      })
+      .promise();
+  } catch (err) {
+    if (
+      err?.code === 'ConditionalCheckFailedException' ||
+      err?.code === 'TransactionCanceledException'
+    ) {
+      const latest = await ensureDraftState();
+      throw new DraftStateConflictError(
+        'Draft state changed before the pick could be applied',
+        latest
+      );
+    }
+    throw err;
+  }
+
+  return {
+    team: normalizedTeam,
+    player: mapPlayerWithTeams(player, nextPlayerTeams, nowIso),
+    state: nextState,
+  };
+}
+
+async function undoLastDraftPick({ version, playersTable }) {
+  const expectedVersion = parseDraftStateVersion(version);
+  if (expectedVersion === null) {
+    throw new DraftStateValidationError('version must be a non-negative integer');
+  }
+
+  const current = await ensureDraftState();
+  if (expectedVersion !== current.version) {
+    throw new DraftStateConflictError('Draft state version conflict', current);
+  }
+
+  const history = normalizePickHistory(current.pickHistory);
+  if (history.length === 0) {
+    throw new DraftStateValidationError('No picks are available to undo');
+  }
+
+  const lastPick = history[history.length - 1];
+  const undoPlayerId = coerceId(lastPick.playerId);
+  const undoTeam = normalizeDraftTeam(lastPick.team);
+  if (!undoTeam) {
+    throw new DraftStateValidationError('Last pick is invalid and cannot be undone');
+  }
+
+  const player = await getPlayerById(undoPlayerId, playersTable);
+  if (!player) {
+    throw new DraftStateValidationError(`Player ${undoPlayerId} was not found`);
+  }
+
+  const existingTeams = Array.isArray(player.teams) ? [...player.teams] : [];
+  if (!existingTeams.includes(undoTeam)) {
+    throw new DraftStateValidationError('Last picked team is not assigned to the expected player');
+  }
+
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const nextPlayerTeams = existingTeams.filter((entry) => entry !== undoTeam);
+  const nextAvailableTeams = current.availableTeams.includes(undoTeam)
+    ? [...current.availableTeams]
+    : [...current.availableTeams, undoTeam];
+  const fallbackPickNumber = Math.max(1, Number(current.currentPickNumber || 1) - 1);
+  const restoredPickNumber =
+    Number.isInteger(lastPick.pickNumber) && lastPick.pickNumber > 0
+      ? lastPick.pickNumber
+      : fallbackPickNumber;
+
+  const nextState = normalizeDraftState(
+    {
+      ...current,
+      availableTeams: nextAvailableTeams,
+      currentPicker: undoPlayerId,
+      currentPickNumber: restoredPickNumber,
+      pickHistory: history.slice(0, -1),
+      updatedAt: nowIso,
+      version: current.version + 1,
+    },
+    {
+      nowIso,
+    }
+  );
+  nextState.autoPickDeadlineAt = getNextAutoPickDeadline(nextState, now);
+
+  try {
+    await dynamoDB
+      .transactWrite({
+        TransactItems: [
+          {
+            Update: {
+              TableName: playersTable,
+              Key: { id: undoPlayerId },
+              UpdateExpression: 'SET teams = :teams, updatedAt = :ts',
+              ConditionExpression: 'attribute_exists(id) AND contains(teams, :team)',
+              ExpressionAttributeValues: {
+                ':teams': nextPlayerTeams,
+                ':ts': nowIso,
+                ':team': undoTeam,
+              },
+            },
+          },
+          {
+            Update: buildDraftStateVersionedWrite(nextState, expectedVersion),
+          },
+        ],
+      })
+      .promise();
+  } catch (err) {
+    if (
+      err?.code === 'ConditionalCheckFailedException' ||
+      err?.code === 'TransactionCanceledException'
+    ) {
+      const latest = await ensureDraftState();
+      throw new DraftStateConflictError(
+        'Draft state changed before the undo could be applied',
+        latest
+      );
+    }
+    throw err;
+  }
+
+  return {
+    undonePick: lastPick,
+    player: mapPlayerWithTeams(player, nextPlayerTeams, nowIso),
+    state: nextState,
+  };
 }
 
 function parseHistoryLimit(limitRaw) {
@@ -828,6 +1231,72 @@ export const handler = async (event) => {
       }
     }
 
+    if (path === '/draft/pick' && method === 'POST') {
+      const { playerId, team, version } = parseBody(event.body);
+      if (playerId === undefined || playerId === null || playerId === '') {
+        return response(event, 400, { error: 'playerId is required' });
+      }
+      if (!team) {
+        return response(event, 400, { error: 'team is required' });
+      }
+      if (version === undefined) {
+        return response(event, 400, { error: 'version is required' });
+      }
+
+      try {
+        const result = await makeDraftPick({
+          playerId,
+          team,
+          version,
+          playersTable: seasonContext.playersTable,
+        });
+        return response(event, 200, result);
+      } catch (error) {
+        if (error instanceof DraftStateValidationError) {
+          return response(event, 400, { error: error.message });
+        }
+        if (error instanceof DraftStateConflictError) {
+          return response(event, 409, {
+            error: error.message,
+            currentVersion: error.currentState?.version ?? null,
+            currentState: error.currentState ?? null,
+          });
+        }
+        throw error;
+      }
+    }
+
+    if (path === '/draft/undo-last-pick' && method === 'POST') {
+      if (!isAuthorized(event)) {
+        return response(event, 401, { error: 'Unauthorized' });
+      }
+
+      const { version } = parseBody(event.body);
+      if (version === undefined) {
+        return response(event, 400, { error: 'version is required' });
+      }
+
+      try {
+        const result = await undoLastDraftPick({
+          version,
+          playersTable: seasonContext.playersTable,
+        });
+        return response(event, 200, result);
+      } catch (error) {
+        if (error instanceof DraftStateValidationError) {
+          return response(event, 400, { error: error.message });
+        }
+        if (error instanceof DraftStateConflictError) {
+          return response(event, 409, {
+            error: error.message,
+            currentVersion: error.currentState?.version ?? null,
+            currentState: error.currentState ?? null,
+          });
+        }
+        throw error;
+      }
+    }
+
     if (path === '/draft/select-team' && method === 'POST') {
       if (!isAuthorized(event)) {
         return response(event, 401, { error: 'Unauthorized' });
@@ -835,6 +1304,14 @@ export const handler = async (event) => {
       const { playerId, team } = parseBody(event.body);
       if (!playerId || !team) {
         return response(event, 400, { error: 'playerId and team are required' });
+      }
+      const state = await ensureDraftState();
+      if (state.isLocked) {
+        return response(event, 409, {
+          error: 'Draft is locked',
+          currentVersion: state.version,
+          currentState: state,
+        });
       }
       const updated = await updatePlayerTeams(
         coerceId(playerId),

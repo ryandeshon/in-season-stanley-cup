@@ -9,18 +9,17 @@ describe('Draft flows', () => {
       cy.wait(['@getDraftPlayers', '@getDraftState']);
 
       cy.contains('Disconnected. Trying to reconnect...').should('exist');
+      cy.get('[data-test="draft-player-autopick-countdown"]').should('exist');
       cy.get('[data-test="draft-team-card-BOS"]').click();
 
-      cy.wait('@selectDraftTeam')
-        .its('request.body.team')
-        .should('eq', 'BOS');
-      cy.wait('@patchDraftState')
-        .its('request.body.version')
-        .should('eq', 7);
+      cy.wait('@pickDraftTeam').then(({ request }) => {
+        expect(request.body.team).to.eq('BOS');
+        expect(request.body.version).to.eq(7);
+      });
     });
 
     it('shows a conflict message when draft version is stale', () => {
-      cy.intercept('PATCH', '**/draft/state*', {
+      cy.intercept('POST', '**/draft/pick*', {
         statusCode: 409,
         body: {
           error: 'Draft state version conflict',
@@ -32,6 +31,11 @@ describe('Draft flows', () => {
             currentPickNumber: 2,
             availableTeams: ['ANA', 'TOR'],
             version: 8,
+            isLocked: false,
+            autoPickEnabled: false,
+            autoPickSeconds: 60,
+            autoPickDeadlineAt: null,
+            pickHistory: [],
           },
         },
       }).as('forcedDraftConflict');
@@ -52,7 +56,7 @@ describe('Draft flows', () => {
       cy.mockDraftScenario('draft-not-started');
     });
 
-    it('covers start, advance, and reset controls', () => {
+    it('covers start, lock/unlock, countdown, advance, undo, and reset controls', () => {
       cy.visit('/draft/admin');
       cy.wait(['@getDraftPlayers', '@getDraftState']);
 
@@ -67,9 +71,27 @@ describe('Draft flows', () => {
         'Draft started successfully.'
       );
 
+      cy.get('[data-test="draft-admin-autopick-enabled"]').click();
+      cy.get('[data-test="draft-admin-autopick-seconds"]').clear().type('25');
+      cy.get('[data-test="draft-admin-autopick-save"]').click();
+      cy.wait('@patchDraftState')
+        .its('request.body.autoPickEnabled')
+        .should('eq', true);
+
+      cy.get('[data-test="draft-admin-lock-toggle"]').click();
+      cy.wait('@patchDraftState')
+        .its('request.body.isLocked')
+        .should('eq', true);
+      cy.get('[data-test="draft-admin-lock-toggle"]').click();
+      cy.wait('@patchDraftState')
+        .its('request.body.isLocked')
+        .should('eq', false);
+
       cy.get('[data-test="draft-admin-advance"]').click();
-      cy.wait('@selectDraftTeam');
-      cy.wait('@patchDraftState');
+      cy.wait('@pickDraftTeam');
+
+      cy.get('[data-test="draft-admin-undo"]').click();
+      cy.wait('@undoDraftPick');
 
       cy.get('[data-test="draft-admin-reset"]').click();
       cy.get('[data-test="draft-admin-reset-dialog"]').should('be.visible');
