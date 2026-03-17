@@ -1,5 +1,5 @@
 <template>
-  <v-container class="max-w-screen-xl min-h-32 px-4 sm:px-6">
+  <v-container class="max-w-screen-md min-h-32 px-4 sm:px-6">
     <div v-if="loading" class="flex justify-center items-center mt-10">
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
     </div>
