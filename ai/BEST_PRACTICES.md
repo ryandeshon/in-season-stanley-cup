@@ -25,10 +25,12 @@
   - `Fixes #<issue-number>`
   - `Resolves #<issue-number>`
 - Use `Refs #<issue-number>` only for partial/non-closing relationships.
-- Every release-impacting PR should include a changeset file (`yarn changeset`) using:
+- Every non-doc release-impacting PR must include a changeset file (`yarn changeset`) using:
   - `major` for a new season
   - `minor` for new features
   - `patch` for bug fixes/copy edits/small updates
+- Write the changeset summary to cover the totality of the PR changes, not just one file.
+- Choose the best SemVer type for impact (prefer the smallest correct bump).
 - Approve release numbers by reviewing and merging the automated `chore(release): version packages` PR.
 
 ## AWS operations

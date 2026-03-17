@@ -118,6 +118,7 @@ VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
   - `patch`: bug fix/copy edit/small maintenance
 - Add a changeset in feature/fix PRs:
   - `yarn changeset`
+- Non-doc PRs are CI-enforced to include a changeset entry (`.changeset/*.md`).
 - On merge to `main`, GitHub Actions updates the release PR (`chore(release): version packages`) with:
   - next version number
   - `CHANGELOG.md` updates

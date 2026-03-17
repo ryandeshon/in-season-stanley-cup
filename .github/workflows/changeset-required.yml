@@ -1,0 +1,86 @@
+name: Changeset Required
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate-changeset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR includes a changeset for non-doc changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pr = context.payload.pull_request;
+            const pull_number = pr.number;
+
+            const isAutomatedReleasePr =
+              pr.title === "chore(release): version packages" ||
+              pr.head.ref.startsWith("changeset-release/");
+
+            if (isAutomatedReleasePr) {
+              core.info("Automated release PR detected. Skipping changeset guard.");
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number,
+              per_page: 100,
+            });
+
+            const changedFiles = files.map((file) => file.filename);
+            const hasChangesetEntry = changedFiles.some(
+              (file) => file.startsWith(".changeset/") && file.endsWith(".md")
+            );
+
+            const requiresChangeset = changedFiles.some((file) => {
+              if (file.startsWith(".changeset/")) return false;
+              if (file === "CHANGELOG.md") return false;
+              if (file.startsWith("ai/")) return false;
+              if (file.endsWith(".md")) return false;
+              return true;
+            });
+
+            if (!requiresChangeset) {
+              core.info("Docs/AI-only PR detected. Changeset is not required.");
+              return;
+            }
+
+            if (!hasChangesetEntry) {
+              const releaseRelevantFiles = changedFiles
+                .filter((file) => {
+                  if (file.startsWith(".changeset/")) return false;
+                  if (file === "CHANGELOG.md") return false;
+                  if (file.startsWith("ai/")) return false;
+                  if (file.endsWith(".md")) return false;
+                  return true;
+                })
+                .slice(0, 20);
+
+              core.setFailed(
+                [
+                  "Missing required changeset for this PR.",
+                  "This PR has non-doc changes but no `.changeset/*.md` entry.",
+                  "Run `yarn changeset`, choose major/minor/patch, and commit the generated file.",
+                  "",
+                  "Example release-relevant files:",
+                  ...releaseRelevantFiles.map((file) => `- ${file}`),
+                ].join("\n")
+              );
+              return;
+            }
+
+            core.info("Changeset check passed.");
