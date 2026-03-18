@@ -1,0 +1,131 @@
+{
+  "championResponse": {
+    "champion": "BOS"
+  },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": false
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 200,
+    "history": [
+      {
+        "gameId": 2024020100,
+        "winnerTeam": "BOS",
+        "winnerScore": 5,
+        "loserTeam": "TOR",
+        "loserScore": 2,
+        "participants": ["BOS", "TOR"],
+        "recordedAt": "2026-02-12T02:00:00.000Z"
+      },
+      {
+        "gameId": 2024020098,
+        "winnerTeam": "TOR",
+        "winnerScore": 4,
+        "loserTeam": "SEA",
+        "loserScore": 3,
+        "participants": ["TOR", "SEA"],
+        "recordedAt": "2026-02-10T02:00:00.000Z"
+      }
+    ]
+  },
+  "gameIdResponse": {
+    "gameID": 2024021111,
+    "message": "Cup defense vs TOR"
+  },
+  "playersResponse": [
+    {
+      "id": 1,
+      "name": "Ryan",
+      "teams": ["BOS", "NYR"],
+      "titleDefenses": 4,
+      "championships": 1
+    },
+    {
+      "id": 2,
+      "name": "Cooper",
+      "teams": ["TOR", "DAL"],
+      "titleDefenses": 1,
+      "championships": 0
+    },
+    {
+      "id": 3,
+      "name": "Boz",
+      "teams": ["SEA", "STL"],
+      "titleDefenses": 0,
+      "championships": 0
+    }
+  ],
+  "gameRecordsResponse": [
+    {
+      "id": 2024020100,
+      "wTeam": "BOS",
+      "wScore": 5,
+      "lTeam": "TOR",
+      "lScore": 2
+    }
+  ],
+  "gameInfoResponse": {
+    "id": 2024021111,
+    "gameState": "FINAL",
+    "startTimeUTC": "2024-11-01T23:00:00Z",
+    "clock": {
+      "inIntermission": false,
+      "timeRemaining": "00:00",
+      "secondsRemaining": 0
+    },
+    "periodDescriptor": {
+      "periodType": "REG",
+      "number": 3
+    },
+    "homeTeam": {
+      "id": 6,
+      "abbrev": "BOS",
+      "score": 4,
+      "sog": 31,
+      "placeName": { "default": "Boston" },
+      "commonName": { "default": "Bruins" }
+    },
+    "awayTeam": {
+      "id": 10,
+      "abbrev": "TOR",
+      "score": 2,
+      "sog": 28,
+      "placeName": { "default": "Toronto" },
+      "commonName": { "default": "Maple Leafs" }
+    }
+  },
+  "scheduleResponse": {
+    "gameWeek": [
+      {
+        "date": "2024-11-01",
+        "games": [
+          {
+            "id": 2024021111,
+            "homeTeam": { "abbrev": "BOS" },
+            "awayTeam": { "abbrev": "TOR" },
+            "startTimeUTC": "2024-11-01T23:00:00Z"
+          }
+        ]
+      },
+      {
+        "date": "2024-11-02",
+        "games": [
+          {
+            "id": 2024022111,
+            "homeTeam": { "abbrev": "SEA" },
+            "awayTeam": { "abbrev": "BOS" },
+            "startTimeUTC": "2024-11-02T23:00:00Z"
+          },
+          {
+            "id": 2024022113,
+            "homeTeam": { "abbrev": "BOS" },
+            "awayTeam": { "abbrev": "STL" },
+            "startTimeUTC": "2024-11-03T02:00:00Z"
+          }
+        ]
+      }
+    ]
+  }
+}

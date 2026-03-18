@@ -213,14 +213,21 @@ export function useUpcomingMatchups({
     }
   }
 
-  async function getPossibleMatchUps(championTeam) {
+  function resolveScheduleBaseDate(referenceDate) {
+    if (!referenceDate) return DateTime.now();
+    const parsed = DateTime.fromISO(referenceDate);
+    return parsed.isValid ? parsed : DateTime.now();
+  }
+
+  async function getPossibleMatchUps(championTeam, options = {}) {
     potentialLoading.value = true;
     possibleMatchupsError.value = '';
     const upcomingGames = [];
-    const tomorrow = DateTime.now().plus({ days: 1 }).toFormat('yyyy-MM-dd');
+    const baseDate = resolveScheduleBaseDate(options.referenceDate);
+    const targetDate = baseDate.plus({ days: 1 }).toFormat('yyyy-MM-dd');
 
     try {
-      const scheduleData = await nhlApi.getSchedule(tomorrow);
+      const scheduleData = await nhlApi.getSchedule(targetDate);
       const gameWeek = scheduleData?.data?.gameWeek;
       if (!Array.isArray(gameWeek)) {
         possibleMatchUps.value = [];
@@ -230,7 +237,12 @@ export function useUpcomingMatchups({
         return;
       }
 
-      gameWeek.forEach((date) => {
+      const filteredWindow = gameWeek.filter(
+        (date) => date?.date && date.date >= targetDate
+      );
+      const scheduleWindow = filteredWindow.length ? filteredWindow : gameWeek;
+
+      scheduleWindow.forEach((date) => {
         (date?.games || []).forEach((game) => {
           const { id, homeTeam, awayTeam, startTimeUTC } = game;
           if (
@@ -243,11 +255,23 @@ export function useUpcomingMatchups({
               awayTeam,
               dateTime:
                 DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
+              startTimeUTC,
             });
           }
         });
       });
-      possibleMatchUps.value = upcomingGames;
+
+      possibleMatchUps.value = upcomingGames
+        .sort(
+          (a, b) =>
+            DateTime.fromISO(a.startTimeUTC).toMillis() -
+            DateTime.fromISO(b.startTimeUTC).toMillis()
+        )
+        .map(({ startTimeUTC, ...game }) => ({
+          ...game,
+          dateTime:
+            DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
+        }));
     } catch (err) {
       console.error('Failed to load possible matchups', err);
       possibleMatchUps.value = [];

@@ -23,11 +23,15 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('Period').should('contain', '2');
       cy.contains('Time Remaining').should('contain', '08:12');
       cy.get('[data-test="conditional-matchups-section"]').should('not.exist');
+      cy.get('[data-test="whats-next-panel"]').should('not.exist');
       cy.get('[data-test="view-game-details-link"]')
         .should('have.attr', 'href')
         .and('include', '/game/2024021111');
       cy.get('[data-test="champion-history-list"]').should('exist');
-      cy.get('[data-test="champion-history-item"]').should('have.length.at.least', 1);
+      cy.get('[data-test="champion-history-item"]').should(
+        'have.length.at.least',
+        1
+      );
     });
 
     it('shows conditional rest-of-week matchups when champion or challenger is selected', () => {
@@ -108,6 +112,32 @@ describe('In Season Cup - Homepage', () => {
     });
   });
 
+  context('Game final state', () => {
+    beforeEach(() => {
+      cy.mockApiScenario('cup-day-final');
+    });
+
+    it('shows the unified next-defense panel and removes the legacy next-game snippet', () => {
+      cy.visit('/');
+      cy.wait([
+        '@getSeasonMeta',
+        '@getChampionHistory',
+        '@getChampion',
+        '@getGameId',
+        '@getGameInfo',
+        '@getPlayers',
+        '@getSchedule',
+      ]);
+
+      cy.contains('Game Over');
+      cy.get('.next-game-info').should('not.exist');
+      cy.get('[data-test="whats-next-panel"]').should('exist');
+      cy.get('[data-test="whats-next-row"]').should('have.length', 2);
+      cy.contains('Boz');
+      cy.contains('Ryan');
+    });
+  });
+
   context('Off day', () => {
     beforeEach(() => {
       cy.mockApiScenario('no-games');
@@ -135,7 +165,34 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('Terry');
       cy.contains('Boz');
       cy.get('[data-test="champion-history-item"]').should('have.length', 2);
-      cy.contains('[data-test="champion-history-item"]', 'Terry • VAN def. PHI');
+      cy.contains('[data-test="champion-history-item"]', 'VAN def. PHI');
+    });
+  });
+
+  context('Timeline load-more', () => {
+    beforeEach(() => {
+      cy.mockApiScenario('no-games-history-long');
+    });
+
+    it('shows 6 timeline rows by default and reveals more on demand', () => {
+      cy.visit('/');
+      cy.wait([
+        '@getSeasonMeta',
+        '@getChampionHistory',
+        '@getChampion',
+        '@getGameId',
+        '@getPlayers',
+        '@getSchedule',
+      ]);
+
+      cy.get('[data-test="champion-history-streak"]').should(
+        'contain',
+        'Current Streak'
+      );
+      cy.get('[data-test="champion-history-item"]').should('have.length', 6);
+      cy.get('[data-test="champion-history-load-more"]').click();
+      cy.get('[data-test="champion-history-item"]').should('have.length', 8);
+      cy.get('[data-test="champion-history-load-more"]').should('not.exist');
     });
   });
 
@@ -195,11 +252,13 @@ describe('In Season Cup - Homepage', () => {
       cy.mockApiScenario('season-over');
     });
 
-    it('shows the season-over homepage branch from metadata', () => {
+    it('shows the season-over homepage branch and still renders timeline', () => {
       cy.visit('/');
       cy.wait(['@getSeasonMeta', '@getChampionHistory']);
       cy.contains('h1', 'In Season Cup Champion');
       cy.contains("What's Next").should('not.exist');
+      cy.get('[data-test="champion-timeline"]').should('exist');
+      cy.get('[data-test="champion-history-empty"]').should('exist');
     });
   });
 
