@@ -11,9 +11,15 @@
     <!-- Footer -->
     <v-footer app color="primary">
       <span class="mx-auto"
-        >© {{ new Date().getFullYear() }} In Season Cup | v{{
-          appVersion
-        }}</span
+        >© {{ new Date().getFullYear() }} In Season Cup |
+        <a
+          :href="changelogUrl"
+          class="app-version-link"
+          target="_blank"
+          rel="noopener noreferrer"
+          :aria-label="`Open public changelog for version ${appVersion}`"
+          >v{{ appVersion }}</a
+        ></span
       >
     </v-footer>
   </v-app>
@@ -27,6 +33,9 @@ import { useSeasonStore } from '@/store/seasonStore';
 import NavigationBar from '@/components/NavigationBar.vue';
 
 const appVersion = process.env.VUE_APP_VERSION || 'dev';
+const changelogUrl =
+  process.env.VUE_APP_CHANGELOG_URL ||
+  'https://github.com/ryandeshon/in-season-stanley-cup/blob/main/CHANGELOG.md';
 const { isDarkTheme } = useTheme();
 const seasonStore = useSeasonStore();
 const theme = useVuetifyTheme();
@@ -85,4 +94,10 @@ watch(
 /* Import CSS files from the assets folder */
 @import '@/assets/_variables.css';
 @import '@/assets/style.css';
+
+.app-version-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 </style>

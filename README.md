@@ -88,6 +88,7 @@ VUE_APP_WEB_SOCKET_URL=<websocket-url>
 VUE_APP_ENABLE_SEASON_CONTRACTS=<optional true|false for /season/meta and /champion/history calls>
 VUE_APP_ASSET_BASE_URL=<optional-cloudfront-asset-domain>
 VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
+VUE_APP_CHANGELOG_URL=<optional-public-changelog-url-used-by-footer-version-link>
 ```
 
 ### Caching and deployment
@@ -112,6 +113,8 @@ VUE_APP_ASSET_VERSION=<optional-version-prefix-like-v1>
 ### Release versioning and changelog
 
 - App version starts at `2.0.0`.
+- Public changelog: [CHANGELOG.md](https://github.com/ryandeshon/in-season-stanley-cup/blob/main/CHANGELOG.md)
+- In-app footer version (`vX.Y.Z`) links to the public changelog.
 - Semantic version rules:
   - `major`: new season release
   - `minor`: new feature
@@ -151,6 +154,8 @@ Notes:
   Season 2 custom team logos, with local fallback if remote assets fail.
 - `VUE_APP_ASSET_VERSION` optionally prepends a path segment (e.g., `v1`) so
   you can roll forward/backward asset versions without changing the domain.
+- `VUE_APP_CHANGELOG_URL` overrides the default public changelog link used by
+  the footer version text.
 
 ## How the app works (data flow)
 
