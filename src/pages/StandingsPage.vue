@@ -207,7 +207,7 @@ watch(
 
 <style scoped>
 .standings-table-shell {
-  border-radius: 16px;
+  border-radius: var(--border-radius);
   overflow: hidden;
 }
 </style>
