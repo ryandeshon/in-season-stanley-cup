@@ -59,26 +59,28 @@
           <p v-if="!playersGamesPlayed.length" class="text-sm">
             No trend data available yet for this player.
           </p>
-          <div v-else class="w-full overflow-x-auto">
+          <div v-else class="trend-table w-full overflow-x-auto">
             <v-table>
               <tbody>
                 <tr data-test="player-profile-trend-last10">
-                  <td class="font-bold">Last 10</td>
-                  <td class="text-center">{{ trendSummary.lastTen.record }}</td>
-                  <td class="text-right">
+                  <td class="font-bold trend-row-label">Last 10</td>
+                  <td class="text-center trend-row-record">
+                    {{ trendSummary.lastTen.record }}
+                  </td>
+                  <td class="text-right trend-row-detail">
                     Win% {{ formatWinPct(trendSummary.lastTen.winPct) }}
                   </td>
                 </tr>
                 <tr data-test="player-profile-trend-best-team">
-                  <td class="font-bold">Best Team</td>
-                  <td class="text-center">
+                  <td class="font-bold trend-row-label">Best Team</td>
+                  <td class="text-center trend-row-record">
                     {{
                       trendSummary.bestTeam
                         ? `${trendSummary.bestTeam.wins}-${trendSummary.bestTeam.losses}`
                         : 'N/A'
                     }}
                   </td>
-                  <td class="text-right">
+                  <td class="text-right trend-row-detail">
                     {{
                       trendSummary.bestTeam
                         ? `${trendSummary.bestTeam.team} (${formatWinPct(
@@ -89,15 +91,15 @@
                   </td>
                 </tr>
                 <tr data-test="player-profile-trend-weakest-matchup">
-                  <td class="font-bold">Weakest Matchup</td>
-                  <td class="text-center">
+                  <td class="font-bold trend-row-label">Weakest Matchup</td>
+                  <td class="text-center trend-row-record">
                     {{
                       trendSummary.weakestMatchup
                         ? `${trendSummary.weakestMatchup.wins}-${trendSummary.weakestMatchup.losses}`
                         : 'N/A'
                     }}
                   </td>
-                  <td class="text-right">
+                  <td class="text-right trend-row-detail">
                     {{
                       trendSummary.weakestMatchup
                         ? `${trendSummary.weakestMatchup.team} (${formatWinPct(
@@ -116,7 +118,7 @@
         v-if="playersGamesPlayed.length"
         class="profile-section mt-5 grid gap-5"
       >
-        <div class="w-full overflow-x-auto">
+        <div class="profile-table-shell w-full overflow-x-auto">
           <v-table>
             <thead>
               <tr>
@@ -126,10 +128,14 @@
             </thead>
             <tbody>
               <tr v-for="game in displayedGames" :key="game.id" class="py-2">
-                <td class="text-center flex gap-2 justify-center items-center">
-                  <TeamLogo :team="game.wTeam" />
-                  vs.
-                  <TeamLogo :team="game.lTeam" />
+                <td class="text-center">
+                  <div
+                    class="matchup-cell flex gap-2 justify-center items-center"
+                  >
+                    <TeamLogo :team="game.wTeam" />
+                    vs.
+                    <TeamLogo :team="game.lTeam" />
+                  </div>
                 </td>
 
                 <td class="text-center">
@@ -157,7 +163,7 @@
         >
           Load More
         </v-btn>
-        <div class="w-full overflow-x-auto">
+        <div class="profile-table-shell w-full overflow-x-auto">
           <v-table>
             <thead>
               <tr>
@@ -337,5 +343,56 @@ watch(
 .profile-section {
   width: 100%;
   max-width: 64rem;
+}
+
+.profile-table-shell {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.trend-table :deep(table) {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.trend-row-label {
+  width: 40%;
+}
+
+.trend-row-record {
+  width: 20%;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-row-detail {
+  width: 40%;
+}
+
+@media (max-width: 640px) {
+  .trend-table :deep(th),
+  .trend-table :deep(td),
+  .profile-table-shell :deep(th),
+  .profile-table-shell :deep(td) {
+    padding: 0.55rem 0.4rem;
+  }
+
+  .trend-row-label {
+    width: 34%;
+  }
+
+  .trend-row-record {
+    width: 22%;
+  }
+
+  .trend-row-detail {
+    width: 44%;
+    font-size: 0.95rem;
+    line-height: 1.2;
+  }
+
+  .matchup-cell {
+    gap: 0.35rem;
+  }
 }
 </style>

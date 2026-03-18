@@ -11,48 +11,52 @@
       </div>
     </template>
     <div v-else>
-      <v-table>
-        <thead>
-          <tr class="font-bold text-lg">
-            <th class="text-left">Player</th>
-            <th class="text-center">Teams</th>
-            <th class="text-center">Title Defenses</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="standing in allPlayersData"
-            :key="standing.name"
-            class="py-2"
-          >
-            <td class="text-left font-bold align-middle">
-              <router-link :to="`/player/${standing.name}`">{{
-                standing.name
-              }}</router-link>
-              <img
-                v-if="standing.name === currentChampion?.name"
-                :src="Crown"
-                alt="Crown"
-                class="inline ml-1 w-8 h-8"
-              />
-            </td>
-            <td class="align-top">
-              <div class="flex flex-wrap justify-center items-start gap-1 py-2">
-                <TeamLogo
-                  v-for="team in standing.teams"
-                  :key="team"
-                  :team="team"
-                  width="40"
-                  height="40"
+      <div class="standings-table-shell overflow-x-auto">
+        <v-table>
+          <thead>
+            <tr class="font-bold text-lg">
+              <th class="text-left">Player</th>
+              <th class="text-center">Teams</th>
+              <th class="text-center">Title Defenses</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="standing in allPlayersData"
+              :key="standing.name"
+              class="py-2"
+            >
+              <td class="text-left font-bold align-middle">
+                <router-link :to="`/player/${standing.name}`">{{
+                  standing.name
+                }}</router-link>
+                <img
+                  v-if="standing.name === currentChampion?.name"
+                  :src="Crown"
+                  alt="Crown"
+                  class="inline ml-1 w-8 h-8"
                 />
-              </div>
-            </td>
-            <td class="text-center align-middle">
-              {{ standing.titleDefenses }}
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+              </td>
+              <td class="align-top">
+                <div
+                  class="flex flex-wrap justify-center items-start gap-1 py-2"
+                >
+                  <TeamLogo
+                    v-for="team in standing.teams"
+                    :key="team"
+                    :team="team"
+                    width="40"
+                    height="40"
+                  />
+                </div>
+              </td>
+              <td class="text-center align-middle">
+                {{ standing.titleDefenses }}
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </div>
       <div class="text-sm my-2">
         <img :src="Crown" alt="Crown" class="inline w-8 h-8 mr-1" /> = Current
         Champion
@@ -200,3 +204,10 @@ watch(
   { immediate: true }
 );
 </script>
+
+<style scoped>
+.standings-table-shell {
+  border-radius: 16px;
+  overflow: hidden;
+}
+</style>
