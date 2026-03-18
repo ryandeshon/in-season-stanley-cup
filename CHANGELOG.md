@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1
+
+### Patch Changes
+
+- 2fedbed: Perform a dependency security maintenance pass by upgrading lockfile-resolved packages and pinning vulnerable transitive packages (`cross-spawn`, `serialize-javascript`) to patched versions. This reduces audit findings to remaining moderate issues tied to Vue CLI webpack tooling.
+
 ## 2.1.0
 
 ### Minor Changes
