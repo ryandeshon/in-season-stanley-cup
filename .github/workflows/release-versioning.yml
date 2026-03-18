@@ -28,6 +28,8 @@ jobs:
         run: yarn install --frozen-lockfile --network-timeout 600000
 
       - name: Create or update version PR
+        id: changesets
+        continue-on-error: true
         uses: changesets/action@v1
         with:
           version: yarn version:prepare
@@ -35,3 +37,9 @@ jobs:
           title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report restricted PR permissions
+        if: steps.changesets.outcome == 'failure'
+        run: |
+          echo "::warning::Release branch was updated, but pull request creation is blocked for GITHUB_TOKEN."
+          echo "::warning::Enable repository setting 'Allow GitHub Actions to create and approve pull requests' to restore automatic release PR creation."

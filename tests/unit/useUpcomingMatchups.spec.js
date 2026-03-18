@@ -179,6 +179,79 @@ describe('useUpcomingMatchups', () => {
     expect(composable.potentialLoading.value).toBe(false);
   });
 
+  it('uses reference date and only includes same-week games on or after target date', async () => {
+    nhlApi.getSchedule.mockResolvedValue({
+      data: {
+        gameWeek: [
+          {
+            date: '2026-03-15',
+            games: [
+              {
+                id: 8,
+                startTimeUTC: '2026-03-15T23:00:00Z',
+                homeTeam: { abbrev: 'TOR' },
+                awayTeam: { abbrev: 'BOS' },
+              },
+            ],
+          },
+          {
+            date: '2026-03-16',
+            games: [
+              {
+                id: 3,
+                startTimeUTC: '2026-03-16T23:00:00Z',
+                homeTeam: { abbrev: 'BOS' },
+                awayTeam: { abbrev: 'TOR' },
+              },
+              {
+                id: 1,
+                startTimeUTC: '2026-03-16T17:00:00Z',
+                homeTeam: { abbrev: 'TOR' },
+                awayTeam: { abbrev: 'NYR' },
+              },
+            ],
+          },
+          {
+            date: '2026-03-17',
+            games: [
+              {
+                id: 2,
+                startTimeUTC: '2026-03-17T18:00:00Z',
+                homeTeam: { abbrev: 'MTL' },
+                awayTeam: { abbrev: 'TOR' },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const { composable } = createComposable();
+    await composable.getPossibleMatchUps('TOR', {
+      referenceDate: '2026-03-15T05:00:00Z',
+    });
+
+    expect(nhlApi.getSchedule).toHaveBeenCalledWith('2026-03-16');
+    expect(composable.possibleMatchUps.value.map((game) => game.id)).toEqual([
+      1, 3, 2,
+    ]);
+  });
+
+  it('falls back to today when an invalid reference date is provided', async () => {
+    nhlApi.getSchedule.mockResolvedValue({
+      data: {
+        gameWeek: [],
+      },
+    });
+
+    const { composable } = createComposable();
+    await composable.getPossibleMatchUps('TOR', {
+      referenceDate: 'not-a-date',
+    });
+
+    expect(nhlApi.getSchedule).toHaveBeenCalledTimes(1);
+  });
+
   it('derives first non-champion team owner from upcoming games', () => {
     const { composable } = createComposable();
 
