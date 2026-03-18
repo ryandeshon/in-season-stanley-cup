@@ -115,11 +115,13 @@ jobs:
                 owner,
                 repo,
                 issue_number,
-                body: `${reminderMarker}
-Please add a release label to this issue using one of these formats:
-- \`release/x.y\`
-- \`release/x.y.z\`
-
-Example: \`release/2.1\` for feature work planned for version 2.1.0.`
+                body: [
+                  reminderMarker,
+                  "Please add a release label to this issue using one of these formats:",
+                  "- `release/x.y`",
+                  "- `release/x.y.z`",
+                  "",
+                  "Example: `release/2.1` for feature work planned for version 2.1.0."
+                ].join("\n")
               });
             }
