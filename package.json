@@ -55,6 +55,10 @@
     "vitest": "^4.1.0",
     "vue-cli-plugin-vuetify": "~2.5.8"
   },
+  "resolutions": {
+    "**/cross-spawn": "7.0.6",
+    "**/serialize-javascript": "7.0.3"
+  },
   "eslintConfig": {
     "root": true,
     "env": {
