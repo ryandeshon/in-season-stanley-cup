@@ -1,5 +1,5 @@
 <template>
-  <v-container class="max-w-screen-md min-h-32">
+  <v-container class="max-w-screen-md min-h-32 px-4 sm:px-6">
     <div v-if="loading" class="flex justify-center items-center mt-10">
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
     </div>
@@ -19,8 +19,8 @@
     >
       Player profile is not available.
     </v-alert>
-    <div v-else class="flex flex-col justify-center items-center my-4">
-      <v-card class="pb-3">
+    <div v-else class="w-full flex flex-col justify-center items-center my-4">
+      <v-card class="profile-section pb-3">
         <v-card-text class="flex flex-col justify-center items-center">
           <PlayerCard
             :player="player"
@@ -50,70 +50,151 @@
           >
         </v-card-text>
       </v-card>
-      <div v-if="playersGamesPlayed.length" class="mt-5 grid gap-5">
-        <v-table>
-          <thead>
-            <tr>
-              <th class="text-center font-bold">Match Up</th>
-              <th class="text-center font-bold">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="game in displayedGames" :key="game.id" class="py-2">
-              <td class="text-center flex gap-2 justify-center items-center">
-                <TeamLogo :team="game.wTeam" />
-                vs.
-                <TeamLogo :team="game.lTeam" />
-              </td>
-
-              <td class="text-center">
-                <div class="text-center flex gap-2 justify-center items-center">
-                  <TeamLogo
-                    v-if="getResults(game).team"
-                    :team="getResults(game).team"
-                  />
-                  <router-link
-                    :to="{ name: 'GamePage', params: { id: game.id } }"
+      <v-card
+        class="profile-section mt-5"
+        data-test="player-profile-trend-panel"
+      >
+        <v-card-title>Trend Snapshot</v-card-title>
+        <v-card-text>
+          <p v-if="!playersGamesPlayed.length" class="text-sm">
+            No trend data available yet for this player.
+          </p>
+          <div v-else class="trend-table w-full overflow-x-auto">
+            <v-table>
+              <tbody>
+                <tr data-test="player-profile-trend-last10">
+                  <td class="font-bold trend-row-label">Last 10</td>
+                  <td class="text-center trend-row-record">
+                    {{ trendSummary.lastTen.record }}
+                  </td>
+                  <td class="text-right trend-row-detail">
+                    Win% {{ formatWinPct(trendSummary.lastTen.winPct) }}
+                  </td>
+                </tr>
+                <tr data-test="player-profile-trend-best-team">
+                  <td class="font-bold trend-row-label">Best Team</td>
+                  <td class="text-center trend-row-record">
+                    {{
+                      trendSummary.bestTeam
+                        ? `${trendSummary.bestTeam.wins}-${trendSummary.bestTeam.losses}`
+                        : 'N/A'
+                    }}
+                  </td>
+                  <td class="text-right trend-row-detail">
+                    {{
+                      trendSummary.bestTeam
+                        ? `${trendSummary.bestTeam.team} (${formatWinPct(
+                            trendSummary.bestTeam.winPct
+                          )})`
+                        : 'N/A'
+                    }}
+                  </td>
+                </tr>
+                <tr data-test="player-profile-trend-weakest-matchup">
+                  <td class="font-bold trend-row-label">Weakest Matchup</td>
+                  <td class="text-center trend-row-record">
+                    {{
+                      trendSummary.weakestMatchup
+                        ? `${trendSummary.weakestMatchup.wins}-${trendSummary.weakestMatchup.losses}`
+                        : 'N/A'
+                    }}
+                  </td>
+                  <td class="text-right trend-row-detail">
+                    {{
+                      trendSummary.weakestMatchup
+                        ? `${trendSummary.weakestMatchup.team} (${formatWinPct(
+                            trendSummary.weakestMatchup.winPct
+                          )})`
+                        : 'N/A'
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
+        </v-card-text>
+      </v-card>
+      <div
+        v-if="playersGamesPlayed.length"
+        class="profile-section mt-5 grid gap-5"
+      >
+        <div class="profile-table-shell w-full overflow-x-auto">
+          <v-table>
+            <thead>
+              <tr>
+                <th class="text-center font-bold">Match Up</th>
+                <th class="text-center font-bold">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="game in displayedGames" :key="game.id" class="py-2">
+                <td class="text-center">
+                  <div
+                    class="matchup-cell flex gap-2 justify-center items-center"
                   >
-                    {{ getResults(game).result }}
-                  </router-link>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+                    <TeamLogo :team="game.wTeam" />
+                    vs.
+                    <TeamLogo :team="game.lTeam" />
+                  </div>
+                </td>
+
+                <td class="text-center">
+                  <div
+                    class="text-center flex gap-2 justify-center items-center"
+                  >
+                    <TeamLogo
+                      v-if="getResults(game).team"
+                      :team="getResults(game).team"
+                    />
+                    <router-link
+                      :to="{ name: 'GamePage', params: { id: game.id } }"
+                    >
+                      {{ getResults(game).result }}
+                    </router-link>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
         <v-btn
           v-if="displayedGames.length < playersGamesPlayed.length"
           @click="loadMore"
         >
           Load More
         </v-btn>
-        <v-table>
-          <thead>
-            <tr>
-              <th class="text-center">Team</th>
-              <th class="text-center">Record</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="team in player.teams"
-              :key="team"
-              class="py-2 align-middle"
-            >
-              <td class="text-center">
-                <div class="flex justify-center items-center">
-                  <TeamLogo :team="team" class="!w-10 !h-10" />
-                </div>
-              </td>
-              <td class="text-center">
-                {{ getWins(team) }} - {{ getLosses(team) }}
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+        <div class="profile-table-shell w-full overflow-x-auto">
+          <v-table>
+            <thead>
+              <tr>
+                <th class="text-center">Team</th>
+                <th class="text-center">Record</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="team in player.teams"
+                :key="team"
+                class="py-2 align-middle"
+              >
+                <td class="text-center">
+                  <div class="flex justify-center items-center">
+                    <TeamLogo :team="team" class="!w-10 !h-10" />
+                  </div>
+                </td>
+                <td class="text-center">
+                  {{ getWins(team) }} - {{ getLosses(team) }}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
       </div>
-      <p v-else class="text-sm mt-5" data-test="player-profile-no-games">
+      <p
+        v-else
+        class="profile-section text-sm mt-5 text-center"
+        data-test="player-profile-no-games"
+      >
         No game records yet for this player.
       </p>
     </div>
@@ -123,6 +204,11 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
+import {
+  buildPlayerGameHistory,
+  classifyPlayerGame,
+  getPlayerProfileTrends,
+} from '@/utilities/playerProfileTrends';
 
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
@@ -171,40 +257,67 @@ const loadMore = () => {
   currentPage.value++;
 };
 
+const formatWinPct = (value) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return 'N/A';
+  }
+  return `${(value * 100).toFixed(1)}%`;
+};
+
+const trendSummary = computed(() =>
+  getPlayerProfileTrends(playersGamesPlayed.value, player.value?.teams || [])
+);
+
 const getResults = (game) => {
-  if (
-    player.value.teams.includes(game.lTeam) &&
-    player.value.teams.includes(game.wTeam)
-  ) {
+  const result = classifyPlayerGame(game, player.value?.teams || []);
+
+  if (result.classification === 'Mirror') {
     return { team: null, result: 'Mirror Match' };
   }
 
-  if (player.value.teams.includes(game.lTeam)) {
-    return { team: game.lTeam, result: 'Loss' };
-  } else if (player.value.teams.includes(game.wTeam)) {
-    return { team: game.wTeam, result: 'Win' };
+  if (result.classification === 'Loss') {
+    return { team: result.playerTeam, result: 'Loss' };
   }
-  return { team: 'Unknown', result: 'Unknown' };
+
+  if (result.classification === 'Win') {
+    return { team: result.playerTeam, result: 'Win' };
+  }
+
+  return { team: null, result: 'Unknown' };
 };
 
-const getWins = (team) => {
-  return playersGamesPlayed.value.filter((game) => game.wTeam === team).length;
-};
+const teamStatsByTeam = computed(() => {
+  const summary = new Map();
+  const teams = Array.isArray(player.value?.teams) ? player.value.teams : [];
 
-const getLosses = (team) => {
-  return playersGamesPlayed.value.filter((game) => game.lTeam === team).length;
-};
+  teams.forEach((team) => {
+    summary.set(team, { wins: 0, losses: 0 });
+  });
+
+  playersGamesPlayed.value.forEach((game) => {
+    const result = classifyPlayerGame(game, teams);
+    if (result.winnerTeam && summary.has(result.winnerTeam)) {
+      summary.get(result.winnerTeam).wins += 1;
+    }
+    if (result.loserTeam && summary.has(result.loserTeam)) {
+      summary.get(result.loserTeam).losses += 1;
+    }
+  });
+
+  return summary;
+});
+
+const getWins = (team) => teamStatsByTeam.value.get(team)?.wins || 0;
+
+const getLosses = (team) => teamStatsByTeam.value.get(team)?.losses || 0;
 
 // Function to update player games when game records change
 const updatePlayerGames = () => {
   if (gameRecords.value && gameRecords.value.length > 0 && player.value) {
-    const filteredGames = gameRecords.value.filter(
-      (game) =>
-        player.value.teams.includes(game.lTeam) ||
-        player.value.teams.includes(game.wTeam)
+    playersGamesPlayed.value = buildPlayerGameHistory(
+      gameRecords.value,
+      player.value?.teams || []
     );
-
-    playersGamesPlayed.value = filteredGames.sort((a, b) => b.id - a.id);
 
     // Reset displayed games to show new data
     displayedGames.value = [];
@@ -225,3 +338,61 @@ watch(
   { immediate: true }
 );
 </script>
+
+<style scoped>
+.profile-section {
+  width: 100%;
+  max-width: 64rem;
+}
+
+.profile-table-shell {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.trend-table :deep(table) {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.trend-row-label {
+  width: 40%;
+}
+
+.trend-row-record {
+  width: 20%;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-row-detail {
+  width: 40%;
+}
+
+@media (max-width: 640px) {
+  .trend-table :deep(th),
+  .trend-table :deep(td),
+  .profile-table-shell :deep(th),
+  .profile-table-shell :deep(td) {
+    padding: 0.55rem 0.4rem;
+  }
+
+  .trend-row-label {
+    width: 34%;
+  }
+
+  .trend-row-record {
+    width: 22%;
+  }
+
+  .trend-row-detail {
+    width: 44%;
+    font-size: 0.95rem;
+    line-height: 1.2;
+  }
+
+  .matchup-cell {
+    gap: 0.35rem;
+  }
+}
+</style>

@@ -128,7 +128,7 @@ initSocket({
   - `major` for new season rollovers
   - `minor` for new features
   - `patch` for bug fixes, copy edits, and small maintenance
-- Add a changeset for release-impacting PRs:
+- Add a changeset for every non-doc release-impacting PR:
 
 ```bash
 yarn changeset
@@ -136,6 +136,8 @@ yarn changeset
 
 - Do not manually bump versions in feature/fix PRs; the automated `Version Packages` PR handles release numbers and changelog updates.
 - Every GitHub issue must include a `release/x.y` or `release/x.y.z` label.
+- A PR guard workflow (`Changeset Required`) blocks non-doc PRs without `.changeset/*.md`.
+- Changeset text should summarize the totality of the branch changes and use the smallest correct SemVer bump.
 
 ### Code Style
 
