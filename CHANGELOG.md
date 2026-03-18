@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0
+
+### Minor Changes
+
+- b707db9: Add player profile trend snapshot analytics and improve profile page layout consistency/mobile responsiveness.
+
+### Patch Changes
+
+- 1ed8879: Fix GitHub Actions workflow stability by correcting issue release-tag workflow YAML parsing and preventing release-versioning hard failures when repository PR creation is restricted for `GITHUB_TOKEN`.
+
 All notable changes to this project are tracked in this file.
 
 The format follows Keep a Changelog and Semantic Versioning.
