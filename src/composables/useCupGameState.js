@@ -15,6 +15,161 @@ import {
   setSessionWarning,
 } from '@/utilities/sessionWarnings';
 
+function resolveLocalizedText(value) {
+  if (typeof value === 'string') return value.trim();
+  if (!value || typeof value !== 'object') return '';
+  if (typeof value.default === 'string') return value.default.trim();
+
+  const firstLocalizedValue = Object.values(value).find(
+    (entry) => typeof entry === 'string' && entry.trim()
+  );
+  return firstLocalizedValue ? firstLocalizedValue.trim() : '';
+}
+
+function normalizeTeamAbbrev(value) {
+  return resolveLocalizedText(value).toUpperCase();
+}
+
+function resolveScorerName(goalData = {}) {
+  const directName = resolveLocalizedText(goalData.name);
+  if (directName) return directName;
+
+  const firstName = resolveLocalizedText(goalData.firstName);
+  const lastName = resolveLocalizedText(goalData.lastName);
+  return `${firstName} ${lastName}`.trim();
+}
+
+function addScorerEntry(
+  teamMap,
+  teamAbbrev,
+  scorerName,
+  goalCount,
+  periodType
+) {
+  if (!teamAbbrev || !scorerName || goalCount <= 0) return;
+
+  if (!teamMap[teamAbbrev]) {
+    teamMap[teamAbbrev] = [];
+  }
+
+  let scorerEntry = teamMap[teamAbbrev].find(
+    (entry) => entry.name === scorerName
+  );
+
+  if (!scorerEntry) {
+    scorerEntry = {
+      name: scorerName,
+      goals: 0,
+      hasOvertimeGoal: false,
+      hasShootoutGoal: false,
+    };
+    teamMap[teamAbbrev].push(scorerEntry);
+  }
+
+  scorerEntry.goals += goalCount;
+  if (periodType === 'OT') scorerEntry.hasOvertimeGoal = true;
+  if (periodType === 'SO') scorerEntry.hasShootoutGoal = true;
+}
+
+function extractGoalScorersFromSummary(gameData = {}) {
+  const scoringSummary = gameData?.summary?.scoring;
+  if (!Array.isArray(scoringSummary) || scoringSummary.length === 0) {
+    return {};
+  }
+
+  const scorersByTeam = {};
+
+  scoringSummary.forEach((periodEntry) => {
+    const periodType = periodEntry?.periodDescriptor?.periodType;
+    const goals = Array.isArray(periodEntry?.goals) ? periodEntry.goals : [];
+
+    goals.forEach((goal) => {
+      const teamAbbrev = normalizeTeamAbbrev(goal?.teamAbbrev);
+      const scorerName = resolveScorerName(goal);
+      addScorerEntry(scorersByTeam, teamAbbrev, scorerName, 1, periodType);
+    });
+  });
+
+  return scorersByTeam;
+}
+
+function extractGoalScorersFromPlayerStats(gameData = {}) {
+  const teamStats = gameData?.playerByGameStats;
+  if (!teamStats) return {};
+
+  const teamMappings = [
+    {
+      teamAbbrev: normalizeTeamAbbrev(gameData?.homeTeam?.abbrev),
+      skaters: [
+        ...(Array.isArray(teamStats?.homeTeam?.forwards)
+          ? teamStats.homeTeam.forwards
+          : []),
+        ...(Array.isArray(teamStats?.homeTeam?.defense)
+          ? teamStats.homeTeam.defense
+          : []),
+      ],
+    },
+    {
+      teamAbbrev: normalizeTeamAbbrev(gameData?.awayTeam?.abbrev),
+      skaters: [
+        ...(Array.isArray(teamStats?.awayTeam?.forwards)
+          ? teamStats.awayTeam.forwards
+          : []),
+        ...(Array.isArray(teamStats?.awayTeam?.defense)
+          ? teamStats.awayTeam.defense
+          : []),
+      ],
+    },
+  ];
+
+  const scorersByTeam = {};
+  teamMappings.forEach(({ teamAbbrev, skaters }) => {
+    skaters.forEach((skater) => {
+      const goals = Number(skater?.goals || 0);
+      if (!Number.isFinite(goals) || goals <= 0) return;
+
+      const scorerName = resolveLocalizedText(skater?.name);
+      addScorerEntry(scorersByTeam, teamAbbrev, scorerName, goals);
+    });
+  });
+
+  return scorersByTeam;
+}
+
+function sortScorers(entries = []) {
+  return [...entries].sort((left, right) => {
+    if (right.goals !== left.goals) return right.goals - left.goals;
+    return left.name.localeCompare(right.name);
+  });
+}
+
+function buildGoalScorerMap(gameData = {}) {
+  const fromSummary = extractGoalScorersFromSummary(gameData);
+  const fromPlayerStats = extractGoalScorersFromPlayerStats(gameData);
+
+  const teams = new Set([
+    normalizeTeamAbbrev(gameData?.homeTeam?.abbrev),
+    normalizeTeamAbbrev(gameData?.awayTeam?.abbrev),
+    ...Object.keys(fromSummary),
+    ...Object.keys(fromPlayerStats),
+  ]);
+
+  const scorerMap = {};
+  teams.forEach((teamAbbrev) => {
+    if (!teamAbbrev) return;
+    const summaryEntries = fromSummary[teamAbbrev];
+    const fallbackEntries = fromPlayerStats[teamAbbrev];
+    const chosenEntries =
+      Array.isArray(summaryEntries) && summaryEntries.length > 0
+        ? summaryEntries
+        : fallbackEntries || [];
+
+    scorerMap[teamAbbrev] = sortScorers(chosenEntries);
+  });
+
+  return scorerMap;
+}
+
 /**
  * Home page game-state orchestration for champion/game identity, current matchup,
  * live score transforms, and avatar mood state.
@@ -145,6 +300,9 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
 
   const gameOverWinnerAvatarType = computed(() => 'Happy');
   const gameOverLoserAvatarType = computed(() => 'Sad');
+  const goalScorersByTeam = computed(() =>
+    buildGoalScorerMap(todaysGame.value)
+  );
 
   watch(
     () => todaysGame.value.clock?.secondsRemaining,
@@ -374,6 +532,12 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     });
   });
 
+  function getGoalScorers(teamAbbrev) {
+    const normalizedTeamAbbrev = normalizeTeamAbbrev(teamAbbrev);
+    if (!normalizedTeamAbbrev) return [];
+    return goalScorersByTeam.value[normalizedTeamAbbrev] || [];
+  }
+
   return {
     loading,
     homeError,
@@ -400,12 +564,14 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     challengerAvatarType,
     gameOverWinnerAvatarType,
     gameOverLoserAvatarType,
+    goalScorersByTeam,
     seasonMetaWarning,
     setLifecycleHandlers,
     refreshSeasonMeta,
     refreshChampionAndGameState,
     getGameInfo,
     getQuote,
+    getGoalScorers,
     applyGameUpdate,
   };
 }
