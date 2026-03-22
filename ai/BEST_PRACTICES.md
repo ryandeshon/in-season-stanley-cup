@@ -1,6 +1,10 @@
 # AI Best Practices For This Project
 
 ## Planning
+- Branch first, always:
+  - Run `git branch --show-current` before starting work.
+  - If you are on `main`, create/switch to `isc-<issue-number>-<slug>` before editing anything.
+  - Do not implement issue work on `main`.
 - Start each change with `ai/project/<name>/SPEC.md`.
 - Track execution in `ai/project/<name>/BACKLOG.md`.
 - Keep tasks small; verify each task before moving on.

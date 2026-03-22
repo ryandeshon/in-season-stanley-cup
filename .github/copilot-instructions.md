@@ -96,6 +96,10 @@ initSocket({
 ### Branch Policy
 
 - For every new task, create and switch to a new branch before making changes.
+- Hard pre-edit gate:
+  - Run `git branch --show-current` before touching files.
+  - If the current branch is `main`, stop and create/switch to an issue branch first.
+  - Never implement issue work directly on `main`.
 - Use the existing branch naming format: `isc-<issue-number>` with optional range and short slug.
 - Examples: `isc-032`, `isc-018-020`, `isc-022-home-game-profile`
 

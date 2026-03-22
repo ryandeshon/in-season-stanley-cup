@@ -19,7 +19,10 @@ Example:
 
 ## Required process
 1. Before starting a task, check for an existing open PR for the same issue/scope and reuse it when appropriate (avoid duplicate PRs).
-2. For every new task, create and switch to a new git branch before making changes.
+2. Branch gate (hard requirement): for every new issue/task, create and switch to a new git branch before making any file edits.
+   - Required preflight check: `git branch --show-current`
+   - If output is `main`, stop and create a branch first (example: `git switch -c isc-061-home-goal-scorers`).
+   - Never start implementation commits directly on `main`.
 3. Use the existing branch naming format: `isc-<issue-number>` with optional range and short slug (for example: `isc-032`, `isc-018-020`, `isc-022-home-game-profile`).
 4. Create `SPEC.md` first.
 5. Create `BACKLOG.md` from the template and split work into small verifiable tasks.
