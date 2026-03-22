@@ -55,18 +55,46 @@
           <div
             class="grid gap-4 grid-cols-2 justify-start items-start w-full my-4"
           >
-            <PlayerCard
-              :player="todaysWinner.player"
-              :team="todaysWinner"
-              :image-type="gameOverWinnerAvatarType"
-              :is-game-live="isGameLive"
-            />
-            <PlayerCard
-              :player="todaysLoser.player"
-              :team="todaysLoser"
-              :image-type="gameOverLoserAvatarType"
-              :is-game-live="isGameLive"
-            />
+            <div class="flex flex-col gap-2">
+              <PlayerCard
+                :player="todaysWinner.player"
+                :team="todaysWinner"
+                :image-type="gameOverWinnerAvatarType"
+                :is-game-live="isGameLive"
+              />
+              <div class="text-sm px-2" data-test="winner-goal-scorers">
+                <strong>Goal Scorers:</strong>
+                <template v-if="winnerGoalScorers.length">
+                  <div
+                    v-for="scorer in winnerGoalScorers"
+                    :key="`winner-${scorer.name}`"
+                  >
+                    {{ formatGoalScorerLabel(scorer) }}
+                  </div>
+                </template>
+                <div v-else>No goals yet</div>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <PlayerCard
+                :player="todaysLoser.player"
+                :team="todaysLoser"
+                :image-type="gameOverLoserAvatarType"
+                :is-game-live="isGameLive"
+              />
+              <div class="text-sm px-2" data-test="loser-goal-scorers">
+                <strong>Goal Scorers:</strong>
+                <template v-if="loserGoalScorers.length">
+                  <div
+                    v-for="scorer in loserGoalScorers"
+                    :key="`loser-${scorer.name}`"
+                  >
+                    {{ formatGoalScorerLabel(scorer) }}
+                  </div>
+                </template>
+                <div v-else>No goals yet</div>
+              </div>
+            </div>
           </div>
         </template>
 
@@ -106,6 +134,18 @@
                 :clickable="true"
                 @card-click="handleWinnerSelection('champion')"
               />
+              <div class="text-sm px-2 mt-2" data-test="champion-goal-scorers">
+                <strong>Goal Scorers:</strong>
+                <template v-if="championGoalScorers.length">
+                  <div
+                    v-for="scorer in championGoalScorers"
+                    :key="`champion-${scorer.name}`"
+                  >
+                    {{ formatGoalScorerLabel(scorer) }}
+                  </div>
+                </template>
+                <div v-else>No goals yet</div>
+              </div>
             </div>
             <div class="flex justify-center items-center">
               <strong>VS</strong>
@@ -128,6 +168,21 @@
                 :clickable="true"
                 @card-click="handleWinnerSelection('challenger')"
               />
+              <div
+                class="text-sm px-2 mt-2"
+                data-test="challenger-goal-scorers"
+              >
+                <strong>Goal Scorers:</strong>
+                <template v-if="challengerGoalScorers.length">
+                  <div
+                    v-for="scorer in challengerGoalScorers"
+                    :key="`challenger-${scorer.name}`"
+                  >
+                    {{ formatGoalScorerLabel(scorer) }}
+                  </div>
+                </template>
+                <div v-else>No goals yet</div>
+              </div>
             </div>
           </div>
           <div class="text-center mb-4">
@@ -395,8 +450,35 @@ const {
   refreshChampionAndGameState,
   getGameInfo,
   getQuote,
+  getGoalScorers,
   applyGameUpdate,
 } = cupGameState;
+
+const championGoalScorers = computed(() =>
+  getGoalScorers(playerChampion.value?.championTeam?.abbrev)
+);
+const challengerGoalScorers = computed(() =>
+  getGoalScorers(playerChallenger.value?.challengerTeam?.abbrev)
+);
+const winnerGoalScorers = computed(() =>
+  getGoalScorers(todaysWinner.value?.abbrev)
+);
+const loserGoalScorers = computed(() =>
+  getGoalScorers(todaysLoser.value?.abbrev)
+);
+
+function formatGoalScorerLabel(scorer = {}) {
+  const name = scorer.name || 'Unknown';
+  const goals = Number(scorer.goals || 0);
+  const goalCountSuffix = goals > 1 ? ` (${goals})` : '';
+
+  const context = [];
+  if (scorer.hasOvertimeGoal) context.push('OT');
+  if (scorer.hasShootoutGoal) context.push('SO');
+  const contextSuffix = context.length ? ` [${context.join('/')}]` : '';
+
+  return `${name}${goalCountSuffix}${contextSuffix}`;
+}
 
 const upcomingMatchups = useUpcomingMatchups({
   todaysGame,

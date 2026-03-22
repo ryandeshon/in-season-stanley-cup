@@ -22,6 +22,14 @@ describe('In Season Cup - Homepage', () => {
       cy.contains('Cooper');
       cy.contains('Period').should('contain', '2');
       cy.contains('Time Remaining').should('contain', '08:12');
+      cy.get('[data-test="champion-goal-scorers"]').should(
+        'contain',
+        'Brad Marchand (2)'
+      );
+      cy.get('[data-test="challenger-goal-scorers"]').should(
+        'contain',
+        'Mitch Marner'
+      );
       cy.get('[data-test="conditional-matchups-section"]').should('not.exist');
       cy.get('[data-test="whats-next-panel"]').should('not.exist');
       cy.get('[data-test="view-game-details-link"]')
@@ -104,6 +112,15 @@ describe('In Season Cup - Homepage', () => {
         '@getSchedule',
       ]);
 
+      cy.get('[data-test="champion-goal-scorers"]').should(
+        'contain',
+        'No goals yet'
+      );
+      cy.get('[data-test="challenger-goal-scorers"]').should(
+        'contain',
+        'No goals yet'
+      );
+
       cy.get('[data-test="champion-select-card"] .v-card').click();
       cy.get('[data-test="conditional-matchups-empty"]').should(
         'contain',
@@ -130,6 +147,22 @@ describe('In Season Cup - Homepage', () => {
       ]);
 
       cy.contains('Game Over');
+      cy.get('[data-test="winner-goal-scorers"]').should(
+        'contain',
+        'David Pastrnak (2)'
+      );
+      cy.get('[data-test="winner-goal-scorers"]').should(
+        'contain',
+        'Brad Marchand'
+      );
+      cy.get('[data-test="loser-goal-scorers"]').should(
+        'contain',
+        'Auston Matthews'
+      );
+      cy.get('[data-test="loser-goal-scorers"]').should(
+        'contain',
+        'Mitch Marner'
+      );
       cy.get('.next-game-info').should('not.exist');
       cy.get('[data-test="whats-next-panel"]').should('exist');
       cy.get('[data-test="whats-next-row"]').should('have.length', 2);
