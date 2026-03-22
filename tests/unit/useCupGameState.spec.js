@@ -213,4 +213,156 @@ describe('useCupGameState', () => {
     expect(state.clockTime.value).toBe('08:12');
     expect(onGameInProgress).toHaveBeenCalledTimes(1);
   });
+
+  it('aggregates scorers from skater goal totals when scoring summary is unavailable', () => {
+    const state = useCupGameState({ findPlayerByTeam });
+    state.currentChampion.value = 'TOR';
+
+    state.applyGameUpdate({
+      id: '2024021111',
+      gameState: 'LIVE',
+      homeTeam: { abbrev: 'TOR', score: 3, commonName: { default: 'Maple' } },
+      awayTeam: { abbrev: 'BOS', score: 1, commonName: { default: 'Bruins' } },
+      clock: { secondsRemaining: 300 },
+      periodDescriptor: { number: 3, periodType: 'REG' },
+      startTimeUTC: '2026-03-15T00:00:00Z',
+      playerByGameStats: {
+        homeTeam: {
+          forwards: [
+            { name: { default: 'Mitch Marner' }, goals: 2 },
+            { name: { default: 'Auston Matthews' }, goals: 0 },
+          ],
+          defense: [{ name: { default: 'Morgan Rielly' }, goals: 1 }],
+        },
+        awayTeam: {
+          forwards: [{ name: { default: 'David Pastrnak' }, goals: 1 }],
+          defense: [{ name: { default: 'Charlie McAvoy' }, goals: 0 }],
+        },
+      },
+    });
+
+    expect(state.getGoalScorers('TOR')).toEqual([
+      {
+        goals: 2,
+        hasOvertimeGoal: false,
+        hasShootoutGoal: false,
+        name: 'Mitch Marner',
+      },
+      {
+        goals: 1,
+        hasOvertimeGoal: false,
+        hasShootoutGoal: false,
+        name: 'Morgan Rielly',
+      },
+    ]);
+    expect(state.getGoalScorers('BOS')).toEqual([
+      {
+        goals: 1,
+        hasOvertimeGoal: false,
+        hasShootoutGoal: false,
+        name: 'David Pastrnak',
+      },
+    ]);
+  });
+
+  it('prefers scoring-summary events and annotates overtime/shootout context', () => {
+    const state = useCupGameState({ findPlayerByTeam });
+    state.currentChampion.value = 'TOR';
+
+    state.applyGameUpdate({
+      id: '2024021111',
+      gameState: 'FINAL',
+      homeTeam: { abbrev: 'TOR', score: 3, commonName: { default: 'Maple' } },
+      awayTeam: { abbrev: 'BOS', score: 2, commonName: { default: 'Bruins' } },
+      clock: { secondsRemaining: 0 },
+      periodDescriptor: { number: 4, periodType: 'OT' },
+      startTimeUTC: '2026-03-15T00:00:00Z',
+      summary: {
+        scoring: [
+          {
+            periodDescriptor: { periodType: 'REG' },
+            goals: [
+              {
+                teamAbbrev: { default: 'TOR' },
+                name: { default: 'Mitch Marner' },
+              },
+            ],
+          },
+          {
+            periodDescriptor: { periodType: 'OT' },
+            goals: [
+              {
+                teamAbbrev: { default: 'TOR' },
+                name: { default: 'Mitch Marner' },
+              },
+            ],
+          },
+          {
+            periodDescriptor: { periodType: 'SO' },
+            goals: [
+              {
+                teamAbbrev: { default: 'BOS' },
+                name: { default: 'David Pastrnak' },
+              },
+            ],
+          },
+        ],
+      },
+      playerByGameStats: {
+        homeTeam: {
+          forwards: [{ name: { default: 'Mitch Marner' }, goals: 1 }],
+          defense: [],
+        },
+        awayTeam: {
+          forwards: [{ name: { default: 'David Pastrnak' }, goals: 1 }],
+          defense: [],
+        },
+      },
+    });
+
+    expect(state.getGoalScorers('TOR')).toEqual([
+      {
+        goals: 2,
+        hasOvertimeGoal: true,
+        hasShootoutGoal: false,
+        name: 'Mitch Marner',
+      },
+    ]);
+    expect(state.getGoalScorers('BOS')).toEqual([
+      {
+        goals: 1,
+        hasOvertimeGoal: false,
+        hasShootoutGoal: true,
+        name: 'David Pastrnak',
+      },
+    ]);
+  });
+
+  it('returns an empty scorer list when no goals are recorded', () => {
+    const state = useCupGameState({ findPlayerByTeam });
+    state.currentChampion.value = 'TOR';
+
+    state.applyGameUpdate({
+      id: '2024021111',
+      gameState: 'FUT',
+      homeTeam: { abbrev: 'TOR', score: 0, commonName: { default: 'Maple' } },
+      awayTeam: { abbrev: 'BOS', score: 0, commonName: { default: 'Bruins' } },
+      clock: { secondsRemaining: 1200 },
+      periodDescriptor: { number: 1, periodType: 'REG' },
+      startTimeUTC: '2026-03-15T00:00:00Z',
+      playerByGameStats: {
+        homeTeam: {
+          forwards: [{ name: { default: 'Mitch Marner' }, goals: 0 }],
+          defense: [],
+        },
+        awayTeam: {
+          forwards: [{ name: { default: 'David Pastrnak' }, goals: 0 }],
+          defense: [],
+        },
+      },
+    });
+
+    expect(state.getGoalScorers('TOR')).toEqual([]);
+    expect(state.getGoalScorers('BOS')).toEqual([]);
+  });
 });
