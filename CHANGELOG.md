@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2
+
+### Patch Changes
+
+- 7afdb73: Add GitHub Actions automation to auto-enable merge for `changeset-release/main` release PRs so version bump PRs merge automatically after required checks pass.
+
 ## 2.1.1
 
 ### Patch Changes
