@@ -1,13 +1,19 @@
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, unref } from 'vue';
 import { useSeasonStore } from '@/store/seasonStore';
-import { getGameRecords, getPlayerData } from '@/services/dynamodbService';
+import {
+  getAllPlayers,
+  getGameRecords,
+  getPlayerData,
+} from '@/services/dynamodbService';
 
 export function usePlayerSeasonData(playerName) {
   const seasonStore = useSeasonStore();
   const gameRecords = ref([]);
+  const players = ref([]);
   const player = ref(null);
   const loading = ref(false);
   const error = ref(null);
+  const resolvedPlayerName = () => String(unref(playerName) || '').trim();
 
   // Function to fetch game records for current season
   const fetchGameRecords = async () => {
@@ -31,22 +37,41 @@ export function usePlayerSeasonData(playerName) {
 
   // Function to fetch player data for current season
   const fetchPlayerData = async () => {
-    if (!playerName) return;
+    const playerNameValue = resolvedPlayerName();
+    if (!playerNameValue) {
+      player.value = null;
+      return;
+    }
 
     try {
       console.log(
-        `Fetching player data for ${playerName} in ${seasonStore.seasonDisplayName}...`
+        `Fetching player data for ${playerNameValue} in ${seasonStore.seasonDisplayName}...`
       );
       console.log(`Players table: ${seasonStore.playersTableName}`);
 
-      const playerData = await getPlayerData(playerName, {
+      const playerData = await getPlayerData(playerNameValue, {
         season: seasonStore.currentSeason,
       });
       player.value = playerData;
 
-      console.log(`Loaded player data for ${playerName}:`, playerData);
+      console.log(`Loaded player data for ${playerNameValue}:`, playerData);
     } catch (err) {
       console.error('Error fetching player data:', err);
+      error.value = err;
+    }
+  };
+
+  // Function to fetch all players for current season
+  const fetchPlayers = async () => {
+    try {
+      console.log(`Fetching players from ${seasonStore.playersTableName}...`);
+      const playersData = await getAllPlayers({
+        season: seasonStore.currentSeason,
+      });
+      players.value = playersData;
+      console.log(`Loaded ${playersData.length} players`);
+    } catch (err) {
+      console.error('Error fetching players:', err);
       error.value = err;
     }
   };
@@ -57,7 +82,11 @@ export function usePlayerSeasonData(playerName) {
     error.value = null;
 
     try {
-      await Promise.all([fetchPlayerData(), fetchGameRecords()]);
+      await Promise.all([
+        fetchPlayerData(),
+        fetchGameRecords(),
+        fetchPlayers(),
+      ]);
     } finally {
       loading.value = false;
     }
@@ -73,6 +102,17 @@ export function usePlayerSeasonData(playerName) {
     }
   );
 
+  watch(
+    () => resolvedPlayerName(),
+    (newPlayerName, oldPlayerName) => {
+      if (newPlayerName === oldPlayerName) return;
+      console.log(
+        `Player profile changed from ${oldPlayerName || '<none>'} to ${newPlayerName || '<none>'}`
+      );
+      fetchSeasonData();
+    }
+  );
+
   // Initial data fetch on mount
   onMounted(() => {
     seasonStore.loadSeasonFromStorage();
@@ -81,10 +121,12 @@ export function usePlayerSeasonData(playerName) {
 
   return {
     gameRecords,
+    players,
     player,
     loading,
     error,
     fetchGameRecords,
+    fetchPlayers,
     fetchPlayerData,
     fetchSeasonData,
     currentSeason: seasonStore.currentSeason,

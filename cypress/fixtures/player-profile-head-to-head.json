@@ -1,0 +1,79 @@
+{
+  "championResponse": {
+    "champion": "BOS"
+  },
+  "seasonMetaResponse": {
+    "seasonId": "season2",
+    "seasonOver": false
+  },
+  "championHistoryResponse": {
+    "seasonId": "season2",
+    "limit": 6,
+    "history": []
+  },
+  "gameIdResponse": {
+    "gameID": null,
+    "message": "No game today"
+  },
+  "playersResponse": [
+    {
+      "id": 1,
+      "name": "Ryan",
+      "teams": ["TOR", "BOS"],
+      "titleDefenses": 4,
+      "championships": 1
+    },
+    {
+      "id": 2,
+      "name": "Boz",
+      "teams": ["DET", "LAK"],
+      "titleDefenses": 1,
+      "championships": 0
+    },
+    {
+      "id": 3,
+      "name": "Cooper",
+      "teams": ["NYR", "DAL"],
+      "titleDefenses": 2,
+      "championships": 0
+    },
+    {
+      "id": 4,
+      "name": "Terry",
+      "teams": ["SEA", "WPG"],
+      "titleDefenses": 0,
+      "championships": 0
+    }
+  ],
+  "gameRecordsResponse": [
+    {
+      "id": 9,
+      "wTeam": "TOR",
+      "lTeam": "DET"
+    },
+    {
+      "id": 8,
+      "wTeam": "NYR",
+      "lTeam": "BOS"
+    },
+    {
+      "id": 7,
+      "wTeam": "TOR",
+      "lTeam": "NYR"
+    },
+    {
+      "id": 6,
+      "wTeam": "DET",
+      "lTeam": "BOS"
+    },
+    {
+      "id": 3,
+      "wTeam": "WIN",
+      "lTeam": "TOR"
+    }
+  ],
+  "gameInfoResponse": {},
+  "scheduleResponse": {
+    "gameWeek": []
+  }
+}
