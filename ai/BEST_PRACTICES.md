@@ -29,12 +29,13 @@
   - `Fixes #<issue-number>`
   - `Resolves #<issue-number>`
 - Use `Refs #<issue-number>` only for partial/non-closing relationships.
-- Every non-doc release-impacting PR must include a changeset file (`yarn changeset`) using:
-  - `major` for a new season
-  - `minor` for new features
-  - `patch` for bug fixes/copy edits/small updates
+- Before creating/updating any non-doc PR, run this version check sequence:
+  - `node -p "require('./package.json').version"`
+  - `yarn version:status`
+- Every non-doc release-impacting PR must include a changeset file (`yarn changeset`).
+- AI default is a `patch` changeset for PRs unless a maintainer explicitly requires `minor` or `major`.
 - Write the changeset summary to cover the totality of the PR changes, not just one file.
-- Choose the best SemVer type for impact (prefer the smallest correct bump).
+- Re-run `yarn version:status` and confirm the expected next patch bump is detected.
 - Approve release numbers by reviewing and merging the automated `chore(release): version packages` PR.
 
 ## AWS operations
