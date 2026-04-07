@@ -190,15 +190,17 @@
               >
                 <td class="text-center">
                   <div class="flex justify-center items-center">
-                    <img
-                      v-if="summary.avatarSrc"
-                      :src="summary.avatarSrc"
-                      :alt="`${summary.opponentName} ${summary.avatarType} avatar`"
-                      class="head-to-head-avatar"
-                    />
-                    <div v-else class="head-to-head-avatar-fallback">
-                      {{ summary.opponentName.charAt(0) }}
-                    </div>
+                    <router-link :to="`/player/${summary.opponentName}`">
+                      <img
+                        v-if="summary.avatarSrc"
+                        :src="summary.avatarSrc"
+                        :alt="`${summary.opponentName} ${summary.avatarType} avatar`"
+                        class="head-to-head-avatar"
+                      />
+                      <div v-else class="head-to-head-avatar-fallback">
+                        {{ summary.opponentName.charAt(0) }}
+                      </div>
+                    </router-link>
                   </div>
                 </td>
                 <td class="text-center">
