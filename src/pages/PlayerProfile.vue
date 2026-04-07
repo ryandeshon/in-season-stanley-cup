@@ -170,7 +170,11 @@
           class="profile-table-shell w-full overflow-x-auto"
           data-test="player-profile-head-to-head-panel"
         >
-          <v-table>
+          <v-table class="profile-records-table">
+            <colgroup>
+              <col class="profile-records-col-label" />
+              <col class="profile-records-col-record" />
+            </colgroup>
             <thead>
               <tr>
                 <th class="text-center">Head-to-Head</th>
@@ -208,7 +212,11 @@
           class="profile-table-shell w-full overflow-x-auto"
           data-test="player-profile-team-records-panel"
         >
-          <v-table>
+          <v-table class="profile-records-table">
+            <colgroup>
+              <col class="profile-records-col-label" />
+              <col class="profile-records-col-record" />
+            </colgroup>
             <thead>
               <tr>
                 <th class="text-center">Team</th>
@@ -490,16 +498,29 @@ watch(
   overflow: hidden;
 }
 
+.profile-records-table :deep(table) {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.profile-records-col-label {
+  width: 50%;
+}
+
+.profile-records-col-record {
+  width: 50%;
+}
+
 .head-to-head-avatar {
-  width: 3rem;
-  height: 3rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 9999px;
   object-fit: contain;
 }
 
 .head-to-head-avatar-fallback {
-  width: 3rem;
-  height: 3rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 9999px;
   display: flex;
   align-items: center;
@@ -551,6 +572,12 @@ watch(
 
   .matchup-cell {
     gap: 0.35rem;
+  }
+
+  .head-to-head-avatar,
+  .head-to-head-avatar-fallback {
+    width: 3.25rem;
+    height: 3.25rem;
   }
 }
 </style>
