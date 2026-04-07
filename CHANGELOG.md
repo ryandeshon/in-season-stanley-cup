@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.1
+
+### Patch Changes
+
+- c1828fc: Only render the Home page `Goal Scorers` sections while a game is live.
+  This hides pregame scorer blocks that previously displayed before puck drop.
+
 ## 2.3.0
 
 ### Minor Changes
