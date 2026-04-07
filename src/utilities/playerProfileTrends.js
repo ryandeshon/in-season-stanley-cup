@@ -19,6 +19,10 @@ function normalizeTeamAbbrev(team) {
   return TEAM_ABBREV_ALIASES[normalized] || normalized;
 }
 
+function normalizePlayerName(name) {
+  return String(name || '').trim();
+}
+
 function toOwnedTeamSet(playerTeams) {
   if (playerTeams instanceof Set) return playerTeams;
   const ownedTeams = new Set();
@@ -258,6 +262,101 @@ export function buildPlayerGameHistory(gameRecords, playerTeams) {
       );
     })
   );
+}
+
+export function getHeadToHeadAvatarType(wins, losses) {
+  if (wins > losses) return 'Angry';
+  if (losses > wins) return 'Happy';
+  return 'Sad';
+}
+
+function buildTeamOwnerMap(players) {
+  const teamOwnerMap = new Map();
+  (Array.isArray(players) ? players : []).forEach((player) => {
+    const playerName = normalizePlayerName(player?.name);
+    if (!playerName) return;
+    (Array.isArray(player?.teams) ? player.teams : []).forEach((team) => {
+      const normalizedTeam = normalizeTeamAbbrev(team);
+      if (normalizedTeam) {
+        teamOwnerMap.set(normalizedTeam, playerName);
+      }
+    });
+  });
+  return teamOwnerMap;
+}
+
+function resolveProfilePlayerName(profilePlayerName, players) {
+  const requestedName = normalizePlayerName(profilePlayerName);
+  if (!requestedName) return '';
+
+  const matchedPlayer = (Array.isArray(players) ? players : []).find(
+    (player) =>
+      normalizePlayerName(player?.name).toLowerCase() ===
+      requestedName.toLowerCase()
+  );
+
+  return normalizePlayerName(matchedPlayer?.name || requestedName);
+}
+
+export function buildHeadToHeadSummaries({
+  gameRecords,
+  profilePlayerName,
+  players,
+}) {
+  const playerList = Array.isArray(players) ? players : [];
+  const resolvedProfileName = resolveProfilePlayerName(
+    profilePlayerName,
+    playerList
+  );
+  if (!resolvedProfileName) return [];
+
+  const summaries = new Map();
+  playerList.forEach((player) => {
+    const name = normalizePlayerName(player?.name);
+    if (!name || name === resolvedProfileName) return;
+    summaries.set(name, {
+      opponentName: name,
+      wins: 0,
+      losses: 0,
+      avatarType: 'Sad',
+    });
+  });
+
+  if (!summaries.size) return [];
+
+  const teamOwnerMap = buildTeamOwnerMap(playerList);
+  sortGamesByRecency(gameRecords).forEach((game) => {
+    const winnerTeam = normalizeTeamAbbrev(game?.wTeam);
+    const loserTeam = normalizeTeamAbbrev(game?.lTeam);
+    if (!winnerTeam || !loserTeam) return;
+
+    const winnerOwner = teamOwnerMap.get(winnerTeam);
+    const loserOwner = teamOwnerMap.get(loserTeam);
+
+    if (!winnerOwner || !loserOwner || winnerOwner === loserOwner) {
+      return;
+    }
+
+    if (winnerOwner === resolvedProfileName) {
+      const summary = summaries.get(loserOwner);
+      if (!summary) return;
+      summary.wins += 1;
+      return;
+    }
+
+    if (loserOwner === resolvedProfileName) {
+      const summary = summaries.get(winnerOwner);
+      if (!summary) return;
+      summary.losses += 1;
+    }
+  });
+
+  return Array.from(summaries.values())
+    .sort((a, b) => a.opponentName.localeCompare(b.opponentName))
+    .map((summary) => ({
+      ...summary,
+      avatarType: getHeadToHeadAvatarType(summary.wins, summary.losses),
+    }));
 }
 
 export function getPlayerProfileTrends(gameRecords, playerTeams) {

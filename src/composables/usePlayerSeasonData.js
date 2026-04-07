@@ -1,10 +1,15 @@
 import { ref, watch, onMounted } from 'vue';
 import { useSeasonStore } from '@/store/seasonStore';
-import { getGameRecords, getPlayerData } from '@/services/dynamodbService';
+import {
+  getAllPlayers,
+  getGameRecords,
+  getPlayerData,
+} from '@/services/dynamodbService';
 
 export function usePlayerSeasonData(playerName) {
   const seasonStore = useSeasonStore();
   const gameRecords = ref([]);
+  const players = ref([]);
   const player = ref(null);
   const loading = ref(false);
   const error = ref(null);
@@ -51,13 +56,32 @@ export function usePlayerSeasonData(playerName) {
     }
   };
 
+  // Function to fetch all players for current season
+  const fetchPlayers = async () => {
+    try {
+      console.log(`Fetching players from ${seasonStore.playersTableName}...`);
+      const playersData = await getAllPlayers({
+        season: seasonStore.currentSeason,
+      });
+      players.value = playersData;
+      console.log(`Loaded ${playersData.length} players`);
+    } catch (err) {
+      console.error('Error fetching players:', err);
+      error.value = err;
+    }
+  };
+
   // Function to fetch all season data
   const fetchSeasonData = async () => {
     loading.value = true;
     error.value = null;
 
     try {
-      await Promise.all([fetchPlayerData(), fetchGameRecords()]);
+      await Promise.all([
+        fetchPlayerData(),
+        fetchGameRecords(),
+        fetchPlayers(),
+      ]);
     } finally {
       loading.value = false;
     }
@@ -81,10 +105,12 @@ export function usePlayerSeasonData(playerName) {
 
   return {
     gameRecords,
+    players,
     player,
     loading,
     error,
     fetchGameRecords,
+    fetchPlayers,
     fetchPlayerData,
     fetchSeasonData,
     currentSeason: seasonStore.currentSeason,

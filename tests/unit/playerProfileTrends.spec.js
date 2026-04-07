@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildHeadToHeadSummaries,
   buildPlayerGameHistory,
   getBestPerformingTeam,
+  getHeadToHeadAvatarType,
   getPlayerProfileTrends,
   getWeakestMatchup,
   sortGamesByRecency,
@@ -123,5 +125,81 @@ describe('playerProfileTrends', () => {
     );
 
     expect(history.map((game) => game.id)).toEqual([2, 1]);
+  });
+
+  it('maps head-to-head avatar types from record differential', () => {
+    expect(getHeadToHeadAvatarType(3, 1)).toBe('Angry');
+    expect(getHeadToHeadAvatarType(1, 3)).toBe('Happy');
+    expect(getHeadToHeadAvatarType(2, 2)).toBe('Sad');
+  });
+
+  it('builds alphabetical head-to-head summaries and excludes mirror/unknown games', () => {
+    const summaries = buildHeadToHeadSummaries({
+      profilePlayerName: 'Ryan',
+      players: [
+        { name: 'Ryan', teams: ['TOR', 'BOS'] },
+        { name: 'Boz', teams: ['DET', 'LAK'] },
+        { name: 'Cooper', teams: ['NYR', 'DAL'] },
+        { name: 'Terry', teams: ['SEA', 'WPG'] },
+      ],
+      gameRecords: [
+        { id: 9, wTeam: 'TOR', lTeam: 'DET' },
+        { id: 8, wTeam: 'NYR', lTeam: 'BOS' },
+        { id: 7, wTeam: 'TOR', lTeam: 'NYR' },
+        { id: 6, wTeam: 'DET', lTeam: 'BOS' },
+        { id: 5, wTeam: 'TOR', lTeam: 'BOS' },
+        { id: 4, wTeam: 'DAL', lTeam: 'SEA' },
+        { id: 3, wTeam: 'WIN', lTeam: 'TOR' },
+        { id: 2, wTeam: 'TOR', lTeam: 'VAN' },
+      ],
+    });
+
+    expect(summaries).toEqual([
+      {
+        opponentName: 'Boz',
+        wins: 1,
+        losses: 1,
+        avatarType: 'Sad',
+      },
+      {
+        opponentName: 'Cooper',
+        wins: 1,
+        losses: 1,
+        avatarType: 'Sad',
+      },
+      {
+        opponentName: 'Terry',
+        wins: 0,
+        losses: 1,
+        avatarType: 'Happy',
+      },
+    ]);
+  });
+
+  it('keeps opponents with no games as 0-0 with Sad avatars', () => {
+    const summaries = buildHeadToHeadSummaries({
+      profilePlayerName: 'Ryan',
+      players: [
+        { name: 'Ryan', teams: ['TOR'] },
+        { name: 'Boz', teams: ['DET'] },
+        { name: 'Cooper', teams: ['SEA'] },
+      ],
+      gameRecords: [{ id: 1, wTeam: 'TOR', lTeam: 'VAN' }],
+    });
+
+    expect(summaries).toEqual([
+      {
+        opponentName: 'Boz',
+        wins: 0,
+        losses: 0,
+        avatarType: 'Sad',
+      },
+      {
+        opponentName: 'Cooper',
+        wins: 0,
+        losses: 0,
+        avatarType: 'Sad',
+      },
+    ]);
   });
 });
