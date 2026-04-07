@@ -129,6 +129,19 @@ VUE_APP_CHANGELOG_URL=<optional-public-changelog-url-used-by-footer-version-link
 - Every issue must be tagged with a release label:
   - `release/x.y` or `release/x.y.z`
 
+#### PR version workflow (required for non-doc PRs)
+
+1. Check the current version:
+   - `node -p "require('./package.json').version"`
+2. Check pending release impact:
+   - `yarn version:status`
+3. Create/update a changeset in the same branch:
+   - `yarn changeset`
+4. For normal AI-authored fixes/maintenance PRs, choose `patch` unless a maintainer explicitly requests `minor` or `major`.
+5. Re-run:
+   - `yarn version:status`
+6. Confirm the PR includes `.changeset/*.md` and shows the expected next patch bump.
+
 ### Public repo safety note
 - `amplify/team-provider-info.json` is required for this Amplify Gen 1 backend build flow.
 - Keep this file limited to Amplify metadata only; never put credentials/secrets in it.

@@ -31,13 +31,15 @@ Example:
 8. Before PR/merge, run the security checklist in `ai/SECURITY.md`.
 9. In every PR description, include related issue links and use closing keywords for completed work (for example: `Closes #18`).
 10. Every issue must carry a release label in the format `release/x.y` or `release/x.y.z`.
-11. Every non-doc code/config PR must include a changeset (`yarn changeset`) matching this SemVer policy:
-   - `major`: new season release
-   - `minor`: new feature
-   - `patch`: bug fix, copy edit, or small maintenance
-   - AI must add/update the changeset in the same branch as the code changes and summarize the full PR scope in that entry.
+11. PR version gate (hard requirement) for every non-doc code/config PR:
+   - Check current app version before creating/updating the PR: `node -p "require('./package.json').version"`.
+   - Run `yarn version:status`.
+   - If no `.changeset/*.md` is present, run `yarn changeset` and create one.
+   - Default to `patch` for AI-authored PRs unless a maintainer explicitly asks for `minor` or `major`.
+   - Re-run `yarn version:status` and confirm the PR bumps exactly the expected next patch version.
+   - Keep the changeset in the same branch as the code changes and summarize the full PR scope in that entry.
    - A PR guard workflow (`Changeset Required`) blocks non-doc PRs that do not include `.changeset/*.md`.
-12. Do not manually bump app versions on feature/fix PRs. Release numbers are generated via the automated "Version Packages" PR.
+12. Do not manually bump `package.json` version on feature/fix PRs. Release numbers are generated via the automated "Version Packages" PR.
 13. Environment policy: local, test, and prod workflows should all use production data/API by default unless explicitly told otherwise for a task.
 
 ## Templates

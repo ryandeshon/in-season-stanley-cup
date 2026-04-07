@@ -62,7 +62,11 @@
                 :image-type="gameOverWinnerAvatarType"
                 :is-game-live="isGameLive"
               />
-              <div class="text-sm px-2" data-test="winner-goal-scorers">
+              <div
+                v-if="isGameLive"
+                class="text-sm px-2"
+                data-test="winner-goal-scorers"
+              >
                 <strong>Goal Scorers:</strong>
                 <template v-if="winnerGoalScorers.length">
                   <div
@@ -82,7 +86,11 @@
                 :image-type="gameOverLoserAvatarType"
                 :is-game-live="isGameLive"
               />
-              <div class="text-sm px-2" data-test="loser-goal-scorers">
+              <div
+                v-if="isGameLive"
+                class="text-sm px-2"
+                data-test="loser-goal-scorers"
+              >
                 <strong>Goal Scorers:</strong>
                 <template v-if="loserGoalScorers.length">
                   <div
@@ -134,7 +142,11 @@
                 :clickable="true"
                 @card-click="handleWinnerSelection('champion')"
               />
-              <div class="text-sm px-2 mt-2" data-test="champion-goal-scorers">
+              <div
+                v-if="isGameLive"
+                class="text-sm px-2 mt-2"
+                data-test="champion-goal-scorers"
+              >
                 <strong>Goal Scorers:</strong>
                 <template v-if="championGoalScorers.length">
                   <div
@@ -169,6 +181,7 @@
                 @card-click="handleWinnerSelection('challenger')"
               />
               <div
+                v-if="isGameLive"
                 class="text-sm px-2 mt-2"
                 data-test="challenger-goal-scorers"
               >
