@@ -15,11 +15,12 @@
 | 2   | DONE        | Implement head-to-head aggregation logic + data loading updates | AI         | Unit tests pass         |
 | 3   | DONE        | Implement PlayerProfile UI section + style + selectors          | AI         | Component tests pass    |
 | 4   | DONE        | Add Cypress coverage for new profile behavior                   | AI         | Cypress spec passes     |
-| 5   | IN_PROGRESS | Add changeset, run security checklist, finalize PR              | AI + Human | Checklist + PR complete |
+| 5   | DONE        | Add changeset, run security checklist, finalize PR              | AI + Human | Checklist + PR complete |
 
 ## Notes
 
 - Issue: `#64`
+- PR: `#65`
 - Branch: `isc-064-head-to-head-avatar-records`
 - Target release: `2.2.0` (minor)
 - Verification run:
