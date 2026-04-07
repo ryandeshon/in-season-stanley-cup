@@ -295,7 +295,7 @@ const {
   loading,
   error,
   currentSeason,
-} = usePlayerSeasonData(props.name);
+} = usePlayerSeasonData(computed(() => props.name));
 
 // Use the player from the composable
 const player = seasonPlayer;

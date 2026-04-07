@@ -43,4 +43,19 @@ describe('In Season Cup - Player Profile', () => {
       .and('have.attr', 'alt')
       .and('contain', 'Happy');
   });
+
+  it('navigates to the clicked opponent profile avatar and refreshes profile data', () => {
+    cy.visit('/player/Ryan');
+    cy.wait('@getPlayers');
+    cy.wait('@getGameRecords');
+
+    cy.get('[data-test="player-profile-head-to-head-row-boz"] a').click();
+
+    cy.url().should('include', '/player/Boz');
+    cy.contains('Title Defenses: 1');
+    cy.get('[data-test="player-profile-head-to-head-row-boz"]').should(
+      'not.exist'
+    );
+    cy.get('[data-test="player-profile-head-to-head-row-ryan"]').should('exist');
+  });
 });
