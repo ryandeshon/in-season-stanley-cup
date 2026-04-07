@@ -46,12 +46,14 @@ function mockSeasonData({
   loading = false,
   error = null,
   player = null,
+  players = [],
   gameRecords = [],
 } = {}) {
   usePlayerSeasonData.mockReturnValue({
     loading: ref(loading),
     error: ref(error),
     player: ref(player),
+    players: ref(players),
     gameRecords: ref(gameRecords),
   });
 }
@@ -120,6 +122,11 @@ describe('PlayerProfile.vue', () => {
         teams: ['TOR'],
         titleDefenses: 0,
       },
+      players: [
+        { name: 'Ryan', teams: ['TOR'] },
+        { name: 'Boz', teams: ['DET'] },
+        { name: 'Cooper', teams: ['SEA'] },
+      ],
       gameRecords: [],
     });
 
@@ -132,6 +139,15 @@ describe('PlayerProfile.vue', () => {
     expect(wrapper.text()).toContain(
       'No trend data available yet for this player.'
     );
+    expect(
+      wrapper.find('[data-test="player-profile-head-to-head-panel"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper.get('[data-test="player-profile-head-to-head-row-boz"]').text()
+    ).toContain('0 - 0');
+    expect(
+      wrapper.get('[data-test="player-profile-head-to-head-row-cooper"]').text()
+    ).toContain('0 - 0');
     expect(wrapper.find('[data-test="player-profile-no-games"]').exists()).toBe(
       true
     );
@@ -144,6 +160,12 @@ describe('PlayerProfile.vue', () => {
         teams: ['TOR', 'BOS'],
         titleDefenses: 2,
       },
+      players: [
+        { name: 'Ryan', teams: ['TOR', 'BOS'] },
+        { name: 'Boz', teams: ['DET', 'LAK'] },
+        { name: 'Cooper', teams: ['NYR', 'DAL'] },
+        { name: 'Terry', teams: ['SEA', 'WPG'] },
+      ],
       gameRecords: [
         { id: 4, wTeam: 'TOR', lTeam: 'NYR' },
         { id: 3, wTeam: 'FLA', lTeam: 'BOS' },
@@ -167,5 +189,50 @@ describe('PlayerProfile.vue', () => {
     expect(
       wrapper.get('[data-test="player-profile-trend-weakest-matchup"]').text()
     ).toContain('FLA (0.0%)');
+  });
+
+  it('renders head-to-head rows in alphabetical order with correct records', async () => {
+    mockSeasonData({
+      player: {
+        name: 'Ryan',
+        teams: ['TOR', 'BOS'],
+        titleDefenses: 2,
+      },
+      players: [
+        { name: 'Ryan', teams: ['TOR', 'BOS'] },
+        { name: 'Boz', teams: ['DET', 'LAK'] },
+        { name: 'Cooper', teams: ['NYR', 'DAL'] },
+        { name: 'Terry', teams: ['SEA', 'WPG'] },
+      ],
+      gameRecords: [
+        { id: 9, wTeam: 'TOR', lTeam: 'DET' },
+        { id: 8, wTeam: 'NYR', lTeam: 'BOS' },
+        { id: 7, wTeam: 'TOR', lTeam: 'NYR' },
+        { id: 6, wTeam: 'DET', lTeam: 'BOS' },
+        { id: 3, wTeam: 'WIN', lTeam: 'TOR' },
+      ],
+    });
+
+    const wrapper = mountProfile();
+    await nextTick();
+
+    const rows = wrapper.findAll(
+      'tr[data-test^="player-profile-head-to-head-row-"]'
+    );
+    expect(rows.map((row) => row.attributes('data-test'))).toEqual([
+      'player-profile-head-to-head-row-boz',
+      'player-profile-head-to-head-row-cooper',
+      'player-profile-head-to-head-row-terry',
+    ]);
+
+    expect(
+      wrapper.get('[data-test="player-profile-head-to-head-row-boz"]').text()
+    ).toContain('1 - 1');
+    expect(
+      wrapper.get('[data-test="player-profile-head-to-head-row-cooper"]').text()
+    ).toContain('1 - 1');
+    expect(
+      wrapper.get('[data-test="player-profile-head-to-head-row-terry"]').text()
+    ).toContain('0 - 1');
   });
 });
