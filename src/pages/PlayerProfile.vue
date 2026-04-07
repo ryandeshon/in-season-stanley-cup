@@ -185,7 +185,7 @@
               <tr
                 v-for="summary in headToHeadRows"
                 :key="summary.opponentName"
-                class="py-2 align-middle"
+                class="head-to-head-row align-middle"
                 :data-test="`player-profile-head-to-head-row-${summary.opponentName.toLowerCase()}`"
               >
                 <td class="text-center">
@@ -512,21 +512,26 @@ watch(
 }
 
 .head-to-head-avatar {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.75rem;
+  height: 4.75rem;
   border-radius: 9999px;
   object-fit: contain;
 }
 
 .head-to-head-avatar-fallback {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.75rem;
+  height: 4.75rem;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   border: 1px solid rgba(107, 114, 128, 0.4);
+}
+
+.profile-records-table :deep(.head-to-head-row td) {
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 .trend-table :deep(table) {
@@ -576,8 +581,8 @@ watch(
 
   .head-to-head-avatar,
   .head-to-head-avatar-fallback {
-    width: 3.25rem;
-    height: 3.25rem;
+    width: 4.5rem;
+    height: 4.5rem;
   }
 }
 </style>
