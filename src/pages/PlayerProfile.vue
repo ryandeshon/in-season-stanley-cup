@@ -114,11 +114,12 @@
           </div>
         </v-card-text>
       </v-card>
-      <div
-        v-if="playersGamesPlayed.length"
-        class="profile-section mt-5 grid gap-5"
-      >
-        <div class="profile-table-shell w-full overflow-x-auto">
+      <div class="profile-section mt-5 grid gap-5">
+        <div
+          v-if="playersGamesPlayed.length"
+          class="profile-table-shell w-full overflow-x-auto"
+          data-test="player-profile-history-panel"
+        >
           <v-table>
             <thead>
               <tr>
@@ -157,13 +158,56 @@
             </tbody>
           </v-table>
         </div>
-        <v-btn
-          v-if="displayedGames.length < playersGamesPlayed.length"
-          @click="loadMore"
+        <p
+          v-else
+          class="profile-section text-sm text-center"
+          data-test="player-profile-no-games"
         >
-          Load More
-        </v-btn>
-        <div class="profile-table-shell w-full overflow-x-auto">
+          No game records yet for this player.
+        </p>
+        <v-btn v-if="canLoadMore" @click="loadMore"> Load More </v-btn>
+        <div
+          class="profile-table-shell w-full overflow-x-auto"
+          data-test="player-profile-head-to-head-panel"
+        >
+          <v-table>
+            <thead>
+              <tr>
+                <th class="text-center">Head-to-Head</th>
+                <th class="text-center">Record</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="summary in headToHeadRows"
+                :key="summary.opponentName"
+                class="py-2 align-middle"
+                :data-test="`player-profile-head-to-head-row-${summary.opponentName.toLowerCase()}`"
+              >
+                <td class="text-center">
+                  <div class="flex justify-center items-center">
+                    <img
+                      v-if="summary.avatarSrc"
+                      :src="summary.avatarSrc"
+                      :alt="`${summary.opponentName} ${summary.avatarType} avatar`"
+                      class="head-to-head-avatar"
+                    />
+                    <div v-else class="head-to-head-avatar-fallback">
+                      {{ summary.opponentName.charAt(0) }}
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  {{ summary.wins }} - {{ summary.losses }}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+        <div
+          class="profile-table-shell w-full overflow-x-auto"
+          data-test="player-profile-team-records-panel"
+        >
           <v-table>
             <thead>
               <tr>
@@ -190,21 +234,15 @@
           </v-table>
         </div>
       </div>
-      <p
-        v-else
-        class="profile-section text-sm mt-5 text-center"
-        data-test="player-profile-no-games"
-      >
-        No game records yet for this player.
-      </p>
     </div>
   </v-container>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, unref } from 'vue';
 import { usePlayerSeasonData } from '@/composables/usePlayerSeasonData';
 import {
+  buildHeadToHeadSummaries,
   buildPlayerGameHistory,
   classifyPlayerGame,
   getPlayerProfileTrends,
@@ -213,18 +251,45 @@ import {
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import cup from '@/assets/in-season-logo-season2.png';
+import bozAngryImageS1 from '@/assets/players/season1/boz-angry.png';
+import bozSadImageS1 from '@/assets/players/season1/boz-sad.png';
+import bozHappyImageS1 from '@/assets/players/season1/boz-happy.png';
+import cooperAngryImageS1 from '@/assets/players/season1/cooper-angry.png';
+import cooperSadImageS1 from '@/assets/players/season1/cooper-sad.png';
+import cooperHappyImageS1 from '@/assets/players/season1/cooper-happy.png';
+import ryanAngryImageS1 from '@/assets/players/season1/ryan-angry.png';
+import ryanSadImageS1 from '@/assets/players/season1/ryan-sad.png';
+import ryanHappyImageS1 from '@/assets/players/season1/ryan-happy.png';
+import terryAngryImageS1 from '@/assets/players/season1/terry-angry.png';
+import terrySadImageS1 from '@/assets/players/season1/terry-sad.png';
+import terryHappyImageS1 from '@/assets/players/season1/terry-happy.png';
+import bozAngryImageS2 from '@/assets/players/season2/boz-angry.png';
+import bozSadImageS2 from '@/assets/players/season2/boz-sad.png';
+import bozHappyImageS2 from '@/assets/players/season2/boz-happy.png';
+import cooperAngryImageS2 from '@/assets/players/season2/cooper-angry.png';
+import cooperSadImageS2 from '@/assets/players/season2/cooper-sad.png';
+import cooperHappyImageS2 from '@/assets/players/season2/cooper-happy.png';
+import ryanAngryImageS2 from '@/assets/players/season2/ryan-angry.png';
+import ryanSadImageS2 from '@/assets/players/season2/ryan-sad.png';
+import ryanHappyImageS2 from '@/assets/players/season2/ryan-happy.png';
+import terryAngryImageS2 from '@/assets/players/season2/terry-angry.png';
+import terrySadImageS2 from '@/assets/players/season2/terry-sad.png';
+import terryHappyImageS2 from '@/assets/players/season2/terry-happy.png';
 
 const props = defineProps(['name']);
 
 const {
   gameRecords,
+  players: seasonPlayers,
   player: seasonPlayer,
   loading,
   error,
+  currentSeason,
 } = usePlayerSeasonData(props.name);
 
 // Use the player from the composable
 const player = seasonPlayer;
+const players = seasonPlayers;
 const playersGamesPlayed = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
@@ -266,6 +331,81 @@ const formatWinPct = (value) => {
 
 const trendSummary = computed(() =>
   getPlayerProfileTrends(playersGamesPlayed.value, player.value?.teams || [])
+);
+
+const headToHeadSummaries = computed(() =>
+  buildHeadToHeadSummaries({
+    gameRecords: gameRecords.value,
+    profilePlayerName: player.value?.name,
+    players: players.value,
+  })
+);
+
+const playerImages = {
+  season1: {
+    Boz: {
+      Happy: bozHappyImageS1,
+      Angry: bozAngryImageS1,
+      Sad: bozSadImageS1,
+    },
+    Terry: {
+      Happy: terryHappyImageS1,
+      Angry: terryAngryImageS1,
+      Sad: terrySadImageS1,
+    },
+    Cooper: {
+      Happy: cooperHappyImageS1,
+      Angry: cooperAngryImageS1,
+      Sad: cooperSadImageS1,
+    },
+    Ryan: {
+      Happy: ryanHappyImageS1,
+      Angry: ryanAngryImageS1,
+      Sad: ryanSadImageS1,
+    },
+  },
+  season2: {
+    Boz: {
+      Happy: bozHappyImageS2,
+      Angry: bozAngryImageS2,
+      Sad: bozSadImageS2,
+    },
+    Terry: {
+      Happy: terryHappyImageS2,
+      Angry: terryAngryImageS2,
+      Sad: terrySadImageS2,
+    },
+    Cooper: {
+      Happy: cooperHappyImageS2,
+      Angry: cooperAngryImageS2,
+      Sad: cooperSadImageS2,
+    },
+    Ryan: {
+      Happy: ryanHappyImageS2,
+      Angry: ryanAngryImageS2,
+      Sad: ryanSadImageS2,
+    },
+  },
+};
+
+const currentSeasonKey = computed(() =>
+  unref(currentSeason) === 'season1' ? 'season1' : 'season2'
+);
+
+const getHeadToHeadAvatar = (opponentName, imageType) =>
+  playerImages[currentSeasonKey.value]?.[opponentName]?.[imageType] || null;
+
+const headToHeadRows = computed(() =>
+  headToHeadSummaries.value.map((summary) => ({
+    ...summary,
+    avatarSrc: getHeadToHeadAvatar(summary.opponentName, summary.avatarType),
+  }))
+);
+
+const canLoadMore = computed(
+  () =>
+    playersGamesPlayed.value.length &&
+    displayedGames.value.length < playersGamesPlayed.value.length
 );
 
 const getResults = (game) => {
@@ -348,6 +488,24 @@ watch(
 .profile-table-shell {
   border-radius: var(--border-radius);
   overflow: hidden;
+}
+
+.head-to-head-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  object-fit: contain;
+}
+
+.head-to-head-avatar-fallback {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border: 1px solid rgba(107, 114, 128, 0.4);
 }
 
 .trend-table :deep(table) {
