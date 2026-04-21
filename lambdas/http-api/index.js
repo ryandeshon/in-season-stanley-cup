@@ -4,19 +4,36 @@ import AWS from 'aws-sdk';
 const dynamoDB = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION || 'us-east-1',
 });
+const cloudFront = AWS.CloudFront
+  ? new AWS.CloudFront({
+      region: process.env.AWS_REGION || 'us-east-1',
+    })
+  : null;
 
 const PLAYERS_TABLE = process.env.PLAYERS_TABLE || 'Players';
 const GAME_RECORDS_TABLE = process.env.GAME_RECORDS_TABLE || 'GameRecords';
 const GAME_OPTIONS_TABLE = process.env.GAME_OPTIONS_TABLE || 'GameOptions';
 const DRAFT_STATE_ID = process.env.DRAFT_STATE_ID || 'draftState';
+const API_CACHE_DISTRIBUTION_ID = process.env.API_CACHE_DISTRIBUTION_ID || null;
+const API_CACHE_INVALIDATION_PATHS = (
+  process.env.API_CACHE_INVALIDATION_PATHS ||
+  '/champion,/gameid,/season/meta,/players,/game-records,/check-status'
+)
+  .split(',')
+  .map((path) => path.trim())
+  .filter(Boolean)
+  .map((path) => (path.startsWith('/') ? path : `/${path}`));
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const CACHE_TTLS = {
   roster: Number(process.env.PLAYERS_CACHE_TTL) || 60 * 60 * 6, // 6 hours
   gameRecords: Number(process.env.GAME_RECORDS_CACHE_TTL) || 60 * 15, // 15 minutes
   playingDay: Number(process.env.PLAYING_DAY_CACHE_TTL) || 60 * 5, // 5 minutes
   nonPlayingDay: Number(process.env.NON_PLAYING_DAY_CACHE_TTL) || 60 * 60 * 24, // 24 hours
+  offseason: Number(process.env.OFFSEASON_CACHE_TTL) || 60 * 60 * 24 * 30, // 30 days
   staleWhileRevalidate: Number(process.env.STALE_WHILE_REVALIDATE) || 60 * 5,
   staleWhileRevalidateLong: Number(process.env.STALE_WHILE_REVALIDATE_LONG) || 60 * 60, // 1 hour
+  staleWhileRevalidateOffseason:
+    Number(process.env.STALE_WHILE_REVALIDATE_OFFSEASON) || 60 * 60 * 24, // 24 hours
   staleIfError: Number(process.env.STALE_IF_ERROR) || 60,
 };
 const ALLOWED_HOSTS = ['inseasoncup.com'];
@@ -513,6 +530,41 @@ async function setGameId(gameID) {
     })
     .promise();
   return res.Attributes?.gameID || gameID;
+}
+
+async function invalidateApiCache(reason = 'manual') {
+  if (!cloudFront || !API_CACHE_DISTRIBUTION_ID) {
+    return null;
+  }
+
+  const paths = API_CACHE_INVALIDATION_PATHS.length
+    ? API_CACHE_INVALIDATION_PATHS
+    : ['/champion', '/gameid', '/season/meta'];
+  const callerReference = `http-api-${reason}-${Date.now()}`;
+
+  try {
+    const result = await cloudFront
+      .createInvalidation({
+        DistributionId: API_CACHE_DISTRIBUTION_ID,
+        InvalidationBatch: {
+          CallerReference: callerReference,
+          Paths: {
+            Quantity: paths.length,
+            Items: paths,
+          },
+        },
+      })
+      .promise();
+    return result?.Invalidation?.Id || null;
+  } catch (error) {
+    console.error('cache invalidation failed', {
+      reason,
+      distributionId: API_CACHE_DISTRIBUTION_ID,
+      paths,
+      error: String(error),
+    });
+    return null;
+  }
 }
 
 async function fetchSchedule(date) {
@@ -1119,13 +1171,23 @@ export const handler = async (event) => {
         return response(event, 404, { error: 'Champion not set in GameOptions' });
       }
 
+      const seasonMeta = getSeasonMeta(seasonContext.seasonId);
       let gameID = opts.activeGameId ?? opts.gameID ?? null;
-      let cacheOptions = {
-        ttlSeconds: CACHE_TTLS.playingDay,
-        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
-        staleIfError: CACHE_TTLS.staleIfError,
-      };
-      if (NHL_API_BASE) {
+      let cacheOptions = seasonMeta.seasonOver
+        ? {
+            ttlSeconds: CACHE_TTLS.offseason,
+            staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateOffseason,
+            staleIfError: CACHE_TTLS.staleIfError,
+          }
+        : {
+            ttlSeconds: CACHE_TTLS.playingDay,
+            staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
+            staleIfError: CACHE_TTLS.staleIfError,
+          };
+      if (seasonMeta.seasonOver) {
+        gameID = null;
+        await setGameId(null);
+      } else if (NHL_API_BASE) {
         try {
           const today = getToday();
           const schedule = await fetchSchedule(today);
@@ -1159,7 +1221,10 @@ export const handler = async (event) => {
 
     if (path === '/gameid' && method === 'GET') {
       const opts = await getGameOptions();
-      const activeGameId = opts.activeGameId ?? opts.gameID ?? null;
+      const seasonMeta = getSeasonMeta(seasonContext.seasonId);
+      const activeGameId = seasonMeta.seasonOver
+        ? null
+        : opts.activeGameId ?? opts.gameID ?? null;
       const hasActiveGame = Boolean(activeGameId);
       return response(
         event,
@@ -1172,8 +1237,12 @@ export const handler = async (event) => {
               staleIfError: CACHE_TTLS.staleIfError,
             }
           : {
-              ttlSeconds: CACHE_TTLS.nonPlayingDay,
-              staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
+              ttlSeconds: seasonMeta.seasonOver
+                ? CACHE_TTLS.offseason
+                : CACHE_TTLS.nonPlayingDay,
+              staleWhileRevalidate: seasonMeta.seasonOver
+                ? CACHE_TTLS.staleWhileRevalidateOffseason
+                : CACHE_TTLS.staleWhileRevalidateLong,
               staleIfError: CACHE_TTLS.staleIfError,
             }
       );
@@ -1195,11 +1264,21 @@ export const handler = async (event) => {
     }
 
     if (path === '/season/meta' && method === 'GET') {
-      return response(event, 200, getSeasonMeta(seasonContext.seasonId), {
-        ttlSeconds: CACHE_TTLS.nonPlayingDay,
-        staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
-        staleIfError: CACHE_TTLS.staleIfError,
-      });
+      const seasonMeta = getSeasonMeta(seasonContext.seasonId);
+      return response(
+        event,
+        200,
+        seasonMeta,
+        {
+          ttlSeconds: seasonMeta.seasonOver
+            ? CACHE_TTLS.offseason
+            : CACHE_TTLS.nonPlayingDay,
+          staleWhileRevalidate: seasonMeta.seasonOver
+            ? CACHE_TTLS.staleWhileRevalidateOffseason
+            : CACHE_TTLS.staleWhileRevalidateLong,
+          staleIfError: CACHE_TTLS.staleIfError,
+        }
+      );
     }
 
     // ---- Draft ----
