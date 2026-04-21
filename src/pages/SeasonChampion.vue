@@ -29,9 +29,6 @@
         class="w-full mb-4"
         @error="handleChampionImageError"
       />
-      <p class="text-2xl font-bold mb-4 text-center">
-        "We're not going to be fucking suck this year!" —Ovechkin
-      </p>
       <div class="grid gap-2 grid-cols-4 md:grid-cols-8">
         <div v-for="team in player.teams" :key="team">
           <TeamLogo :team="team" width="50" height="50" />
