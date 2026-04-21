@@ -1,6 +1,6 @@
 <template>
   <v-container class="max-w-screen-md min-h-32">
-    <template v-if="!player">
+    <template v-if="loading">
       <div class="flex justify-center items-center mt-10">
         <v-progress-circular
           indeterminate
@@ -8,6 +8,9 @@
         ></v-progress-circular>
       </div>
     </template>
+    <v-alert v-else-if="!player" type="warning" variant="tonal">
+      Season champion is not available yet.
+    </v-alert>
     <div v-else class="flex flex-col items-center">
       <div class="text-4xl font-bold uppercase animated-name">
         <span
@@ -20,8 +23,9 @@
         </span>
       </div>
       <img
-        :src="cooperChampionImageRef"
-        alt="Cooper Champion"
+        v-if="championImageSrc"
+        :src="championImageSrc"
+        :alt="`${player.name} Season Champion`"
         class="w-full mb-4"
       />
       <p class="text-2xl font-bold mb-4 text-center">
@@ -37,33 +41,77 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { getPlayerData } from '../services/dynamodbService';
-import { useTheme } from 'vuetify';
+import { computed, onMounted, ref, watch } from 'vue';
+import { getAllPlayers } from '@/services/dynamodbService';
+import { getCurrentChampion } from '@/services/championServices';
+import { useSeasonStore } from '@/store/seasonStore';
+import { selectSeasonChampion } from '@/utilities/seasonChampion';
+import { getPlayerImageUrl } from '@/utilities/assetUrls';
 
-import cooperChampionImage from '@/assets/players/season1/season-champion.png';
 import TeamLogo from '@/components/TeamLogo.vue';
+import season1CooperChampionImage from '@/assets/players/season1/season-champion.png';
+import season2BozChampionImage from '@/assets/players/season2/boz-winner.png';
+import season2CooperChampionImage from '@/assets/players/season2/cooper-winner.png';
 
-const theme = useTheme();
-const isDarkOrLight = ref(theme.global.name.value);
+const seasonStore = useSeasonStore();
+const player = ref(null);
+const loading = ref(true);
 
-watch(
-  () => theme.global.name.value,
-  (newVal) => {
-    isDarkOrLight.value = newVal;
-  },
-  { immediate: true }
+const seasonKey = computed(() =>
+  seasonStore.currentSeason === 'season1' ? 'season1' : 'season2'
 );
 
-const player = ref(null);
-const cooperChampionImageRef = ref(cooperChampionImage);
+const winnerImages = {
+  season1: {
+    Cooper: season1CooperChampionImage,
+  },
+  season2: {
+    Boz: season2BozChampionImage,
+    Cooper: season2CooperChampionImage,
+  },
+};
+
+const championImageSrc = computed(() => {
+  const playerName = player.value?.name;
+  if (!playerName) return null;
+
+  const remoteWinnerImage = getPlayerImageUrl(
+    seasonKey.value,
+    playerName,
+    'Winner'
+  );
+  if (remoteWinnerImage) return remoteWinnerImage;
+
+  return winnerImages[seasonKey.value]?.[playerName] || null;
+});
+
+async function loadSeasonChampion() {
+  loading.value = true;
+  try {
+    const season = seasonKey.value;
+    const [players, currentChampionTeam] = await Promise.all([
+      getAllPlayers({ season }),
+      getCurrentChampion({ season }),
+    ]);
+    player.value = selectSeasonChampion(players, currentChampionTeam);
+  } catch (error) {
+    player.value = null;
+    console.error('Error fetching season champion data:', error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+watch(
+  () => seasonStore.currentSeason,
+  () => {
+    loadSeasonChampion();
+  }
+);
 
 onMounted(async () => {
-  try {
-    player.value = await getPlayerData('Cooper');
-  } catch (error) {
-    console.error('Error fetching player data:', error);
-  }
+  seasonStore.loadSeasonFromStorage();
+  await loadSeasonChampion();
 });
 </script>
 

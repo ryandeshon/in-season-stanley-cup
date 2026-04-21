@@ -18,6 +18,7 @@ const IMAGE_TYPE_MAP = {
   Angry: 'angry',
   Sad: 'sad',
   Anguish: 'anguish',
+  Winner: 'winner',
 };
 
 function buildAssetUrl(path) {
