@@ -53,6 +53,10 @@ import TeamLogo from '@/components/TeamLogo.vue';
 import season1CooperChampionImage from '@/assets/players/season1/season-champion.png';
 import season2BozChampionImage from '@/assets/players/season2/boz-winner.png';
 import season2CooperChampionImage from '@/assets/players/season2/cooper-winner.png';
+import season2BozHappyImage from '@/assets/players/season2/boz-happy.png';
+import season2CooperHappyImage from '@/assets/players/season2/cooper-happy.png';
+import season2RyanHappyImage from '@/assets/players/season2/ryan-happy.png';
+import season2TerryHappyImage from '@/assets/players/season2/terry-happy.png';
 
 const seasonStore = useSeasonStore();
 const player = ref(null);
@@ -73,21 +77,42 @@ const winnerImages = {
   },
 };
 
+const fallbackImages = {
+  season1: {
+    Cooper: season1CooperChampionImage,
+  },
+  season2: {
+    Boz: season2BozHappyImage,
+    Cooper: season2CooperHappyImage,
+    Ryan: season2RyanHappyImage,
+    Terry: season2TerryHappyImage,
+  },
+};
+
 const localWinnerImage = computed(() => {
   const playerName = player.value?.name;
   if (!playerName) return null;
   return winnerImages[seasonKey.value]?.[playerName] || null;
 });
 
-const remoteWinnerImage = computed(() =>
-  getPlayerImageUrl(seasonKey.value, player.value?.name, 'Winner')
-);
+const localFallbackImage = computed(() => {
+  const playerName = player.value?.name;
+  if (!playerName) return null;
+  return fallbackImages[seasonKey.value]?.[playerName] || null;
+});
+
+const hasWinnerArtForPlayer = computed(() => Boolean(localWinnerImage.value));
+
+const remoteWinnerImage = computed(() => {
+  if (!hasWinnerArtForPlayer.value) return null;
+  return getPlayerImageUrl(seasonKey.value, player.value?.name, 'Winner');
+});
 
 const championImageSrc = computed(() => {
   if (!useLocalImageFallback.value && remoteWinnerImage.value) {
     return remoteWinnerImage.value;
   }
-  return localWinnerImage.value;
+  return localWinnerImage.value || localFallbackImage.value;
 });
 
 function handleChampionImageError() {
