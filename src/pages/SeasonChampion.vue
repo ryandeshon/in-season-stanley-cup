@@ -27,6 +27,7 @@
         :src="championImageSrc"
         :alt="`${player.name} Season Champion`"
         class="w-full mb-4"
+        @error="handleChampionImageError"
       />
       <p class="text-2xl font-bold mb-4 text-center">
         "We're not going to be fucking suck this year!" —Ovechkin
@@ -56,6 +57,7 @@ import season2CooperChampionImage from '@/assets/players/season2/cooper-winner.p
 const seasonStore = useSeasonStore();
 const player = ref(null);
 const loading = ref(true);
+const useLocalImageFallback = ref(false);
 
 const seasonKey = computed(() =>
   seasonStore.currentSeason === 'season1' ? 'season1' : 'season2'
@@ -71,19 +73,28 @@ const winnerImages = {
   },
 };
 
-const championImageSrc = computed(() => {
+const localWinnerImage = computed(() => {
   const playerName = player.value?.name;
   if (!playerName) return null;
-
-  const remoteWinnerImage = getPlayerImageUrl(
-    seasonKey.value,
-    playerName,
-    'Winner'
-  );
-  if (remoteWinnerImage) return remoteWinnerImage;
-
   return winnerImages[seasonKey.value]?.[playerName] || null;
 });
+
+const remoteWinnerImage = computed(() =>
+  getPlayerImageUrl(seasonKey.value, player.value?.name, 'Winner')
+);
+
+const championImageSrc = computed(() => {
+  if (!useLocalImageFallback.value && remoteWinnerImage.value) {
+    return remoteWinnerImage.value;
+  }
+  return localWinnerImage.value;
+});
+
+function handleChampionImageError() {
+  if (remoteWinnerImage.value && !useLocalImageFallback.value) {
+    useLocalImageFallback.value = true;
+  }
+}
 
 async function loadSeasonChampion() {
   loading.value = true;
@@ -106,6 +117,13 @@ watch(
   () => seasonStore.currentSeason,
   () => {
     loadSeasonChampion();
+  }
+);
+
+watch(
+  () => [seasonStore.currentSeason, player.value?.name],
+  () => {
+    useLocalImageFallback.value = false;
   }
 );
 
