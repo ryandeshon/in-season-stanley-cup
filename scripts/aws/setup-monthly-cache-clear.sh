@@ -27,6 +27,11 @@ TARGET_ARN="$(aws lambda get-function \
   --profile "$AWS_PROFILE" \
   --query 'Configuration.FunctionArn' \
   --output text)"
+TARGET_JSON="$(jq -cn \
+  --arg arn "$TARGET_ARN" \
+  --arg role "$SCHEDULER_ROLE_ARN" \
+  --arg input "$SCHEDULE_INPUT" \
+  '{Arn:$arn,RoleArn:$role,Input:$input}')"
 
 echo "Ensuring Lambda invoke permission for EventBridge Scheduler..."
 PERMISSION_STATEMENT_ID="allow-eventbridge-scheduler-monthly-cache-clear"
@@ -51,7 +56,7 @@ if aws scheduler get-schedule \
     --group-name "$SCHEDULER_GROUP_NAME" \
     --schedule-expression "$SCHEDULE_EXPRESSION" \
     --flexible-time-window '{"Mode":"OFF"}' \
-    --target "{\"Arn\":\"$TARGET_ARN\",\"RoleArn\":\"$SCHEDULER_ROLE_ARN\",\"Input\":\"$SCHEDULE_INPUT\"}" \
+    --target "$TARGET_JSON" \
     --region "$AWS_REGION" \
     --profile "$AWS_PROFILE" >/dev/null
 else
@@ -61,10 +66,9 @@ else
     --group-name "$SCHEDULER_GROUP_NAME" \
     --schedule-expression "$SCHEDULE_EXPRESSION" \
     --flexible-time-window '{"Mode":"OFF"}' \
-    --target "{\"Arn\":\"$TARGET_ARN\",\"RoleArn\":\"$SCHEDULER_ROLE_ARN\",\"Input\":\"$SCHEDULE_INPUT\"}" \
+    --target "$TARGET_JSON" \
     --region "$AWS_REGION" \
     --profile "$AWS_PROFILE" >/dev/null
 fi
 
 echo "Done. Schedule: $SCHEDULE_NAME ($SCHEDULE_EXPRESSION)"
-
