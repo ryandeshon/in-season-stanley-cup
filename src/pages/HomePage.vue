@@ -381,6 +381,7 @@
       </template>
 
       <ChampionTimeline
+        v-if="!isSeasonOver"
         :entries="championHistory"
         :streak="championStreak"
         :loading="championHistoryLoading"
@@ -590,12 +591,13 @@ const homeErrorMessage = computed(() => {
 
 onMounted(async () => {
   await refreshSeasonMeta();
-  await loadChampionHistory();
 
   if (isSeasonOver.value) {
     loading.value = false;
     return;
   }
+
+  await loadChampionHistory();
 
   try {
     await refreshChampionAndGameState();
