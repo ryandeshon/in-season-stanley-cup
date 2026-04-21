@@ -759,6 +759,10 @@ async function updateDraftState(patch = {}) {
     throw err;
   }
 
+  if (!current.draftStarted && next.draftStarted) {
+    await invalidateApiCache('draft_started');
+  }
+
   return next;
 }
 

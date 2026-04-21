@@ -7,8 +7,29 @@ class DocumentClient {
   }
 }
 
+class CloudFront {
+  constructor() {
+    if (global.__awsCloudFrontMock) {
+      return global.__awsCloudFrontMock;
+    }
+    return {
+      createInvalidation() {
+        return {
+          promise: async () => ({
+            Invalidation: {
+              Id: 'mock-invalidation-id',
+              Status: 'InProgress',
+            },
+          }),
+        };
+      },
+    };
+  }
+}
+
 export default {
   DynamoDB: {
     DocumentClient,
   },
+  CloudFront,
 };

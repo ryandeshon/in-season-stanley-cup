@@ -1,26 +1,29 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { db, resetDb, createConditionalError, clone } = vi.hoisted(() => {
-  const db = { tables: {} };
-  const clone = (value) => JSON.parse(JSON.stringify(value));
+const { db, resetDb, createConditionalError, clone, cloudFrontInvalidations } =
+  vi.hoisted(() => {
+    const db = { tables: {} };
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const cloudFrontInvalidations = [];
 
-  function resetDb() {
-    db.tables = {};
-  }
+    function resetDb() {
+      db.tables = {};
+    }
 
-  function createConditionalError() {
-    const error = new Error('ConditionalCheckFailedException');
-    error.code = 'ConditionalCheckFailedException';
-    return error;
-  }
+    function createConditionalError() {
+      const error = new Error('ConditionalCheckFailedException');
+      error.code = 'ConditionalCheckFailedException';
+      return error;
+    }
 
-  return {
-    db,
-    resetDb,
-    createConditionalError,
-    clone,
-  };
-});
+    return {
+      db,
+      resetDb,
+      createConditionalError,
+      clone,
+      cloudFrontInvalidations,
+    };
+  });
 
 function getTable(tableName) {
   if (!db.tables[tableName]) {
@@ -90,6 +93,22 @@ global.__awsDocumentClientMock = {
   query() {
     return {
       promise: async () => ({ Items: [] }),
+    };
+  },
+};
+
+global.__awsCloudFrontMock = {
+  createInvalidation(params) {
+    return {
+      promise: async () => {
+        cloudFrontInvalidations.push(clone(params));
+        return {
+          Invalidation: {
+            Id: 'test-invalidation-id',
+            Status: 'InProgress',
+          },
+        };
+      },
     };
   },
 };
@@ -197,6 +216,8 @@ async function invoke(path, method = 'GET', options = {}) {
 
 describe('http-api contract behavior', () => {
   beforeAll(async () => {
+    process.env.API_CACHE_DISTRIBUTION_ID = 'DIST_TEST';
+    process.env.API_CACHE_INVALIDATION_PATHS = '/champion,/gameid,/season/meta';
     const mod = await import('../../lambdas/http-api/index.js');
     handler = mod.handler;
   });
@@ -204,6 +225,7 @@ describe('http-api contract behavior', () => {
   beforeEach(() => {
     resetDb();
     vi.clearAllMocks();
+    cloudFrontInvalidations.length = 0;
     delete process.env.ADMIN_API_TOKEN;
   });
 
@@ -497,5 +519,36 @@ describe('http-api contract behavior', () => {
     expect(result.statusCode).toBe(200);
     expect(result.json.currentPicker).toBe(2);
     expect(result.json.version).toBe(2);
+  });
+
+  it('invalidates API cache when draft transitions to started', async () => {
+    const table = getTable('GameOptions');
+    table.draftState = {
+      id: 'draftState',
+      state: {
+        draftStarted: false,
+        pickOrder: [1, 2],
+        currentPicker: 1,
+        currentPickNumber: 1,
+        availableTeams: ['BOS', 'TOR'],
+        version: 0,
+      },
+      updatedAt: '2026-03-01T00:00:00.000Z',
+    };
+
+    const result = await invoke('/draft/state', 'PATCH', {
+      body: {
+        version: 0,
+        draftStarted: true,
+      },
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(result.json.draftStarted).toBe(true);
+    expect(cloudFrontInvalidations).toHaveLength(1);
+    expect(cloudFrontInvalidations[0].DistributionId).toBe('DIST_TEST');
+    expect(cloudFrontInvalidations[0].InvalidationBatch.Paths.Items).toEqual(
+      expect.arrayContaining(['/champion', '/gameid', '/season/meta'])
+    );
   });
 });
