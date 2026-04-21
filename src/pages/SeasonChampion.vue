@@ -52,7 +52,7 @@ import { getPlayerImageUrl } from '@/utilities/assetUrls';
 import TeamLogo from '@/components/TeamLogo.vue';
 import season1CooperChampionImage from '@/assets/players/season1/season-champion.png';
 import season2BozChampionImage from '@/assets/players/season2/boz-winner.png';
-import season2CooperChampionImage from '@/assets/players/season2/cooper-winner.png';
+import season2RyanChampionImage from '@/assets/players/season2/ryan-winner.png';
 import season2BozHappyImage from '@/assets/players/season2/boz-happy.png';
 import season2CooperHappyImage from '@/assets/players/season2/cooper-happy.png';
 import season2RyanHappyImage from '@/assets/players/season2/ryan-happy.png';
@@ -73,7 +73,7 @@ const winnerImages = {
   },
   season2: {
     Boz: season2BozChampionImage,
-    Cooper: season2CooperChampionImage,
+    Ryan: season2RyanChampionImage,
   },
 };
 
