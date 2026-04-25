@@ -1,5 +1,5 @@
 <template>
-  <v-container class="max-w-screen-md min-h-32">
+  <v-container class="min-h-32 px-0">
     <template v-if="loading">
       <div class="flex justify-center items-center mt-10">
         <v-progress-circular
@@ -11,30 +11,13 @@
     <v-alert v-else-if="!player" type="warning" variant="tonal">
       Season champion is not available yet.
     </v-alert>
-    <div v-else class="flex flex-col items-center">
-      <div class="text-4xl font-bold uppercase animated-name">
-        <span
-          v-for="(letter, index) in player.name.split('')"
-          :key="index"
-          class="letter"
-          :style="{ animationDelay: `${index * 0.2}s` }"
-        >
-          {{ letter }}
-        </span>
-      </div>
-      <img
-        v-if="championImageSrc"
-        :src="championImageSrc"
-        :alt="`${player.name} Season Champion`"
-        class="w-full mb-4"
-        @error="handleChampionImageError"
-      />
-      <div class="grid gap-2 grid-cols-4 md:grid-cols-8">
-        <div v-for="team in player.teams" :key="team">
-          <TeamLogo :team="team" width="50" height="50" />
-        </div>
-      </div>
-    </div>
+    <SeasonChampionFlash
+      v-else
+      :player="player"
+      :champion-image-src="championImageSrc"
+      quote="Suck It Nerds"
+      @image-error="handleChampionImageError"
+    />
   </v-container>
 </template>
 
@@ -46,10 +29,10 @@ import { useSeasonStore } from '@/store/seasonStore';
 import { selectSeasonChampion } from '@/utilities/seasonChampion';
 import { getPlayerImageUrl } from '@/utilities/assetUrls';
 
-import TeamLogo from '@/components/TeamLogo.vue';
+import SeasonChampionFlash from '@/components/SeasonChampionFlash.vue';
 import season1CooperChampionImage from '@/assets/players/season1/season-champion.png';
 import season2BozChampionImage from '@/assets/players/season2/boz-winner.png';
-import season2RyanChampionImage from '@/assets/players/season2/ryan-winner.png';
+import season2RyanChampionImage from '@/assets/players/season2/ryan-winner.webp';
 import season2BozHappyImage from '@/assets/players/season2/boz-happy.png';
 import season2CooperHappyImage from '@/assets/players/season2/cooper-happy.png';
 import season2RyanHappyImage from '@/assets/players/season2/ryan-happy.png';
@@ -154,22 +137,3 @@ onMounted(async () => {
   await loadSeasonChampion();
 });
 </script>
-
-<style scoped>
-.animated-name {
-  font-family: var(--font-heading);
-}
-.animated-name .letter {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeInUp 0.5s forwards;
-}
-
-@keyframes fadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
