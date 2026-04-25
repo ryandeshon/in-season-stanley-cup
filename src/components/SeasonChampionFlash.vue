@@ -1,28 +1,15 @@
 <template>
   <div
-    ref="rootRef"
     class="flash-page"
     :class="{ 'is-reduced-motion': reducedMotion }"
     data-test="season-champion-flash"
   >
     <div ref="stageRef" class="flash-stage">
       <section class="flash-hero" data-test="season-champion-flash-hero">
-        <div class="flash-rink-bg" :style="backgroundMotionStyle"></div>
-        <div class="flash-rink-ice" :style="iceMotionStyle"></div>
+        <div class="flash-rink-bg" :style="backgroundStaticStyle"></div>
+        <div class="flash-rink-ice"></div>
 
         <div class="flash-content">
-          <p class="flash-kicker">Season Champion</p>
-          <h2 class="flash-name">
-            <span
-              v-for="(letter, index) in championNameLetters"
-              :key="`${letter}-${index}`"
-              class="flash-name-letter"
-              :style="nameLetterStyle(index)"
-            >
-              {{ letter === ' ' ? '\u00A0' : letter }}
-            </span>
-          </h2>
-
           <div class="flash-image-wrap" :style="imageMotionStyle">
             <img
               v-if="championImageSrc"
@@ -32,38 +19,28 @@
               data-test="season-champion-flash-image"
               @error="emit('image-error')"
             />
+
+            <div
+              class="flash-speech-bubble"
+              :class="{ 'is-visible': bubbleVisible }"
+              data-test="season-champion-flash-bubble"
+            >
+              <p class="flash-speech-bubble-text">{{ quote }}</p>
+            </div>
           </div>
         </div>
       </section>
     </div>
 
-    <section
-      ref="revealRef"
-      class="flash-reveal"
-      :class="{ 'is-visible': revealVisible || reducedMotion }"
-      data-test="season-champion-flash-reveal"
-    >
-      <p
-        class="flash-quote"
-        :class="{ 'is-live': quoteLive }"
-        data-test="season-champion-flash-quote"
+    <div class="flash-team-bar">
+      <div
+        v-for="team in championTeams"
+        :key="team"
+        class="flash-team-bar-item"
       >
-        <span
-          v-for="(char, index) in quoteCharacters"
-          :key="`quote-${index}`"
-          class="flash-quote-letter"
-          :style="quoteLetterStyle(index)"
-        >
-          {{ char === ' ' ? '\u00A0' : char }}
-        </span>
-      </p>
-
-      <div class="flash-team-grid">
-        <div v-for="team in championTeams" :key="team" class="flash-team-item">
-          <TeamLogo :team="team" width="58" height="58" />
-        </div>
+        <TeamLogo :team="team" width="32" height="32" />
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
@@ -88,33 +65,24 @@ const props = defineProps({
 });
 const emit = defineEmits(['image-error']);
 
-const rootRef = ref(null);
 const stageRef = ref(null);
-const revealRef = ref(null);
 const reducedMotion = ref(false);
-const revealVisible = ref(false);
 const scrollProgress = ref(0);
 
 let mediaQueryList = null;
 let motionChangeHandler = null;
-let intersectionObserver = null;
 let scrollTicking = false;
 
 const championName = computed(() => props.player?.name || 'Champion');
-const championNameLetters = computed(() => Array.from(championName.value));
 const championTeams = computed(() =>
   Array.isArray(props.player?.teams) ? props.player.teams : []
 );
-const quoteCharacters = computed(() => Array.from(props.quote || ''));
 const canAnimate = computed(() => !reducedMotion.value);
 const normalizedProgress = computed(() =>
   Math.max(0, Math.min(scrollProgress.value, 1))
 );
-const quoteLive = computed(
-  () =>
-    revealVisible.value ||
-    reducedMotion.value ||
-    normalizedProgress.value > 0.38
+const bubbleVisible = computed(
+  () => reducedMotion.value || normalizedProgress.value >= 0.92
 );
 
 const imageMotionStyle = computed(() => {
@@ -131,41 +99,9 @@ const imageMotionStyle = computed(() => {
   };
 });
 
-const backgroundMotionStyle = computed(() => {
-  const baseStyle = {
-    backgroundImage: `url(${seasonChampionRinkBackground})`,
-  };
-  if (!canAnimate.value) return baseStyle;
-  return {
-    ...baseStyle,
-    transform: `translate3d(0, ${normalizedProgress.value * -38}px, 0)`,
-  };
-});
-
-const iceMotionStyle = computed(() => {
-  if (!canAnimate.value) return {};
-  return {
-    transform: `translate3d(0, ${normalizedProgress.value * -14}px, 0)`,
-  };
-});
-
-function nameLetterStyle(index) {
-  if (!canAnimate.value) {
-    return {};
-  }
-  return {
-    animationDelay: `${index * 50}ms`,
-  };
-}
-
-function quoteLetterStyle(index) {
-  if (!canAnimate.value) {
-    return {};
-  }
-  return {
-    animationDelay: `${200 + index * 30}ms`,
-  };
-}
+const backgroundStaticStyle = computed(() => ({
+  backgroundImage: `url(${seasonChampionRinkBackground})`,
+}));
 
 function updateScrollProgress() {
   if (!stageRef.value || reducedMotion.value) {
@@ -207,33 +143,8 @@ function setupReducedMotion() {
   mediaQueryList.addEventListener('change', motionChangeHandler);
 }
 
-function setupRevealObserver() {
-  if (
-    typeof window === 'undefined' ||
-    !window.IntersectionObserver ||
-    !revealRef.value
-  ) {
-    revealVisible.value = true;
-    return;
-  }
-
-  intersectionObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          revealVisible.value = true;
-        }
-      });
-    },
-    { threshold: 0.3 }
-  );
-
-  intersectionObserver.observe(revealRef.value);
-}
-
 onMounted(() => {
   setupReducedMotion();
-  setupRevealObserver();
   updateScrollProgress();
   window.addEventListener('scroll', onScrollOrResize, { passive: true });
   window.addEventListener('resize', onScrollOrResize);
@@ -245,10 +156,6 @@ onBeforeUnmount(() => {
 
   if (mediaQueryList && motionChangeHandler) {
     mediaQueryList.removeEventListener('change', motionChangeHandler);
-  }
-
-  if (intersectionObserver) {
-    intersectionObserver.disconnect();
   }
 });
 </script>
@@ -280,11 +187,10 @@ onBeforeUnmount(() => {
 
 .flash-rink-bg {
   position: absolute;
-  inset: -10% 0 0;
+  inset: 0;
   background-position: center center;
   background-repeat: no-repeat;
   background-size: cover;
-  transition: transform 120ms linear;
 }
 
 .flash-rink-ice {
@@ -298,7 +204,6 @@ onBeforeUnmount(() => {
     rgba(245, 252, 255, 0.1) 100%
   );
   mix-blend-mode: multiply;
-  transition: transform 120ms linear;
 }
 
 .flash-content {
@@ -306,103 +211,92 @@ onBeforeUnmount(() => {
   z-index: 1;
   display: grid;
   place-items: center;
-  gap: 0.65rem;
-  width: min(94vw, 980px);
-  padding: 1.2rem 1rem;
-}
-
-.flash-kicker {
-  margin: 0;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: #0b4f79;
-}
-
-.flash-name {
-  margin: 0;
-  text-transform: uppercase;
-  font-size: clamp(2.2rem, 10vw, 5.6rem);
-  line-height: 0.95;
-  color: #12344d;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.7);
-}
-
-.flash-name-letter {
-  display: inline-block;
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  animation: name-pop 450ms ease-out forwards;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .flash-image-wrap {
-  width: min(80vw, 750px);
+  position: relative;
+  width: min(90vw, 850px);
   transition: transform 120ms linear;
 }
 
 .flash-image {
   width: 100%;
-  max-height: 74vh;
+  max-height: 85vh;
   object-fit: contain;
   filter: drop-shadow(0 12px 20px rgba(36, 80, 117, 0.24));
 }
 
-.flash-reveal {
-  position: relative;
+.flash-speech-bubble {
+  position: absolute;
+  top: -0.5rem;
+  right: -1rem;
   z-index: 2;
-  width: min(92vw, 900px);
-  margin: -9vh auto 0;
-  padding: 0 0 2rem;
-  text-align: center;
-  opacity: 0;
-  transform: translate3d(0, 40px, 0);
-  transition:
-    opacity 380ms ease,
-    transform 380ms ease;
-}
-
-.flash-reveal.is-visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-.flash-quote {
-  margin: 0 0 1rem;
-  font-size: clamp(2rem, 8vw, 5rem);
-  line-height: 0.95;
+  background: #fff;
+  color: #15202b;
+  border-radius: 1.2rem;
+  padding: 0.6rem 1.2rem;
+  font-size: clamp(1rem, 3.5vw, 1.6rem);
   font-weight: 700;
   text-transform: uppercase;
-  color: #ffeb6b;
-  text-shadow:
-    2px 2px 0 #000,
-    0 0 10px rgba(255, 235, 107, 0.24);
-}
-
-.flash-quote-letter {
-  display: inline-block;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   opacity: 0;
-  transform: translate3d(0, 10px, 0);
+  transform: scale(0.7) translate3d(0, 10px, 0);
+  transition:
+    opacity 350ms ease,
+    transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
 }
 
-.flash-quote.is-live .flash-quote-letter {
-  animation: quote-rise 280ms ease-out forwards;
+.flash-speech-bubble.is-visible {
+  opacity: 1;
+  transform: scale(1) translate3d(0, 0, 0);
+  pointer-events: auto;
 }
 
-.flash-quote.is-live {
-  animation: quote-float 3.2s ease-in-out infinite;
+.flash-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 24px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 12px solid #fff;
 }
 
-.flash-team-grid {
+.flash-speech-bubble-text {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.flash-team-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
 }
 
-.flash-team-item {
+.flash-team-bar-item {
   display: grid;
   place-items: center;
+  pointer-events: auto;
 }
 
 .is-reduced-motion .flash-stage {
@@ -415,16 +309,10 @@ onBeforeUnmount(() => {
   padding-top: 1rem;
 }
 
-.is-reduced-motion .flash-name-letter,
-.is-reduced-motion .flash-quote.is-live,
-.is-reduced-motion .flash-quote.is-live .flash-quote-letter {
-  animation: none !important;
-}
-
-.is-reduced-motion .flash-reveal {
+.is-reduced-motion .flash-speech-bubble {
   opacity: 1;
   transform: none;
-  margin-top: 0.8rem;
+  transition: none;
 }
 
 @media (max-width: 700px) {
@@ -432,8 +320,15 @@ onBeforeUnmount(() => {
     height: 165vh;
   }
 
-  .flash-reveal {
-    margin-top: -7vh;
+  .flash-speech-bubble {
+    right: 0;
+    font-size: clamp(0.85rem, 3vw, 1.2rem);
+    padding: 0.4rem 0.8rem;
+  }
+
+  .flash-team-bar {
+    gap: 0.3rem;
+    padding: 0.25rem 0.4rem;
   }
 }
 
@@ -445,33 +340,6 @@ onBeforeUnmount(() => {
   .flash-hero {
     position: relative;
     min-height: auto;
-  }
-}
-
-@keyframes name-pop {
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes quote-rise {
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes quote-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate3d(0, -3px, 0) rotate(0.3deg);
-  }
-  75% {
-    transform: translate3d(0, 3px, 0) rotate(-0.3deg);
   }
 }
 </style>

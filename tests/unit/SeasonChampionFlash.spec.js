@@ -45,7 +45,7 @@ describe('SeasonChampionFlash.vue', () => {
     window.matchMedia = originalMatchMedia;
   });
 
-  it('renders champion image and animated quote text', async () => {
+  it('renders champion image and speech bubble', async () => {
     window.matchMedia = createMatchMediaMock(false);
 
     const wrapper = mountFlash();
@@ -58,10 +58,7 @@ describe('SeasonChampionFlash.vue', () => {
     const image = wrapper.get('[data-test="season-champion-flash-image"]');
     expect(image.attributes('src')).toContain('ryan-winner.webp');
     expect(
-      wrapper
-        .get('[data-test="season-champion-flash-quote"]')
-        .text()
-        .replace(/\u00a0/g, ' ')
+      wrapper.get('[data-test="season-champion-flash-bubble"]').text()
     ).toBe('Suck It Nerds');
   });
 
@@ -81,5 +78,9 @@ describe('SeasonChampionFlash.vue', () => {
     expect(wrapper.get('.flash-image-wrap').attributes('style')).toContain(
       'transform: none;'
     );
+
+    // Speech bubble should be visible in reduced motion mode
+    const bubble = wrapper.get('[data-test="season-champion-flash-bubble"]');
+    expect(bubble.classes()).toContain('is-visible');
   });
 });
