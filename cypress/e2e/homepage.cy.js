@@ -285,13 +285,18 @@ describe('In Season Cup - Homepage', () => {
       cy.mockApiScenario('season-over');
     });
 
-    it('shows the season-over homepage branch and still renders timeline', () => {
+    it('shows the season-over homepage branch with flashy champion experience', () => {
       cy.visit('/');
-      cy.wait(['@getSeasonMeta', '@getChampionHistory']);
+      cy.wait(['@getSeasonMeta', '@getChampion', '@getPlayers']);
       cy.contains('h1', 'In Season Cup Champion');
       cy.contains("What's Next").should('not.exist');
-      cy.get('[data-test="champion-timeline"]').should('exist');
-      cy.get('[data-test="champion-history-empty"]').should('exist');
+      cy.get('[data-test="champion-timeline"]').should('not.exist');
+      cy.get('[data-test="season-champion-flash"]').should('exist');
+      cy.get('[data-test="season-champion-flash-image"]').should('exist');
+      cy.get('[data-test="season-champion-flash-quote"]').should(
+        'contain',
+        'Suck It Nerds'
+      );
     });
   });
 

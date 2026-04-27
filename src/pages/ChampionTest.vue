@@ -1,5 +1,5 @@
 <template>
-  <v-container class="min-h-32 px-0">
+  <div>
     <template v-if="loading">
       <div class="flex justify-center items-center mt-10">
         <v-progress-circular
@@ -18,7 +18,7 @@
       quote="Suck It Nerds"
       @image-error="handleChampionImageError"
     />
-  </v-container>
+  </div>
 </template>
 
 <script setup>

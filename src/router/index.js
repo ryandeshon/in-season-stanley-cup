@@ -6,6 +6,7 @@ import PlayerProfile from '../pages/PlayerProfile.vue';
 import GamePage from '../pages/GamePage.vue';
 import DraftPage from '../pages/DraftPage.vue';
 import DraftAdminPage from '../pages/DraftAdminPage.vue';
+import ChampionTest from '../pages/ChampionTest.vue';
 
 const routes = [
   { path: '/', component: HomePage },
@@ -33,6 +34,11 @@ const routes = [
     path: '/draft/admin',
     name: 'DraftAdminPage',
     component: DraftAdminPage,
+  },
+  {
+    path: '/champion-test',
+    name: 'ChampionTest',
+    component: ChampionTest,
   },
 ];
 
