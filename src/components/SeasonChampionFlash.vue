@@ -186,16 +186,18 @@ onBeforeUnmount(() => {
 }
 
 .flash-rink-bg {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 0;
   background-position: center center;
   background-repeat: no-repeat;
   background-size: cover;
 }
 
 .flash-rink-ice {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(
     180deg,
     rgba(5, 20, 34, 0.38) 0%,
@@ -207,18 +209,19 @@ onBeforeUnmount(() => {
 }
 
 .flash-content {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
   padding: 0;
 }
 
 .flash-image-wrap {
   position: relative;
   width: min(90vw, 850px);
+  margin-bottom: 20vh;
   transition: transform 120ms linear;
 }
 
@@ -271,6 +274,7 @@ onBeforeUnmount(() => {
 .flash-speech-bubble-text {
   margin: 0;
   white-space: nowrap;
+  font-family: 'Homer Simpson Revised', 'Comic Sans MS', cursive;
 }
 
 .flash-team-bar {
@@ -278,17 +282,19 @@ onBeforeUnmount(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 10;
+  height: 20vh;
+  z-index: 100;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.35rem 0.5rem;
+  gap: 0.6rem;
+  padding: 0 0.5rem 5rem;
   background: linear-gradient(
     0deg,
-    rgba(0, 0, 0, 0.45) 0%,
-    rgba(0, 0, 0, 0) 100%
+    rgba(21, 32, 43, 0.95) 0%,
+    rgba(21, 32, 43, 0.7) 40%,
+    rgba(21, 32, 43, 0) 100%
   );
   pointer-events: none;
 }
