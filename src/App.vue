@@ -9,7 +9,7 @@
     </v-main>
 
     <!-- Footer -->
-    <v-footer app color="primary">
+    <v-footer app color="primary" :style="{ zIndex: 2000 }">
       <span class="mx-auto"
         >© {{ new Date().getFullYear() }} In Season Cup |
         <a

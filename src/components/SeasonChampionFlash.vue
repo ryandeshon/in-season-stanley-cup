@@ -25,7 +25,12 @@
               :class="{ 'is-visible': bubbleVisible }"
               data-test="season-champion-flash-bubble"
             >
-              <p class="flash-speech-bubble-text">{{ quote }}</p>
+              <p
+                class="flash-speech-bubble-text"
+                data-test="season-champion-flash-quote"
+              >
+                {{ quote }}
+              </p>
             </div>
           </div>
         </div>
@@ -38,7 +43,7 @@
         :key="team"
         class="flash-team-bar-item"
       >
-        <TeamLogo :team="team" width="32" height="32" />
+        <TeamLogo :team="team" width="64" height="64" />
       </div>
     </div>
   </div>
@@ -279,17 +284,17 @@ onBeforeUnmount(() => {
 
 .flash-team-bar {
   position: fixed;
-  bottom: 0;
+  bottom: 40px;
   left: 0;
   right: 0;
   height: 20vh;
-  z-index: 100;
+  z-index: 1010;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  flex-wrap: nowrap;
   gap: 0.6rem;
-  padding: 0 0.5rem 5rem;
+  padding: 1.5rem 1rem 0;
   background: linear-gradient(
     0deg,
     rgba(21, 32, 43, 0.95) 0%,
@@ -333,8 +338,13 @@ onBeforeUnmount(() => {
   }
 
   .flash-team-bar {
-    gap: 0.3rem;
-    padding: 0.25rem 0.4rem;
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: center;
+    justify-items: center;
+    align-content: start;
+    gap: 0.4rem;
+    padding: 1rem 0.5rem 0;
   }
 }
 
