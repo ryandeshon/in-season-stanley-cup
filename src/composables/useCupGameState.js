@@ -369,10 +369,13 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
 
     try {
       const seasonMeta = await getSeasonMeta(withSeasonOptions(options));
+      console.log('[useCupGameState] Season meta response:', seasonMeta);
       isSeasonOver.value = Boolean(seasonMeta?.seasonOver);
+      console.log('[useCupGameState] isSeasonOver set to:', isSeasonOver.value);
       seasonMetaWarning.value = '';
       return seasonMeta;
     } catch (error) {
+      console.log('[useCupGameState] Season meta error:', error);
       isSeasonOver.value = false;
       if (shouldUseContractFallback(error)) {
         if (!hasSessionWarning(SEASON_META_CONTRACT_WARNING_KEY)) {

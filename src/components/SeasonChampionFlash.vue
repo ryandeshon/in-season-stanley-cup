@@ -225,14 +225,14 @@ onBeforeUnmount(() => {
 
 .flash-image-wrap {
   position: relative;
-  width: min(90vw, 850px);
+  width: min(75vw, 550px);
   margin-bottom: 20vh;
   transition: transform 120ms linear;
 }
 
 .flash-image {
   width: 100%;
-  max-height: 85vh;
+  max-height: 65vh;
   object-fit: contain;
   filter: drop-shadow(0 12px 20px rgba(36, 80, 117, 0.24));
 }
@@ -329,6 +329,14 @@ onBeforeUnmount(() => {
 @media (max-width: 700px) {
   .flash-stage {
     height: 165vh;
+  }
+
+  .flash-image-wrap {
+    width: min(85vw, 450px);
+  }
+
+  .flash-image {
+    max-height: 55vh;
   }
 
   .flash-speech-bubble {
