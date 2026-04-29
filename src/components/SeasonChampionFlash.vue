@@ -17,6 +17,7 @@
               :alt="`${championName} raising the cup`"
               class="flash-image"
               data-test="season-champion-flash-image"
+              @click="playWoohoo"
               @error="emit('image-error')"
             />
 
@@ -53,6 +54,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import seasonChampionRinkBackground from '@/assets/backgrounds/season-champion-rink.png';
+import woohooSound from '@/assets/sounds/woohoo_success.mp3';
 
 const props = defineProps({
   player: {
@@ -77,6 +79,7 @@ const scrollProgress = ref(0);
 let mediaQueryList = null;
 let motionChangeHandler = null;
 let scrollTicking = false;
+let audioElement = null;
 
 const championName = computed(() => props.player?.name || 'Champion');
 const championTeams = computed(() =>
@@ -146,6 +149,16 @@ function setupReducedMotion() {
   };
 
   mediaQueryList.addEventListener('change', motionChangeHandler);
+}
+
+function playWoohoo() {
+  if (!audioElement) {
+    audioElement = new Audio(woohooSound);
+  }
+  audioElement.currentTime = 0;
+  audioElement.play().catch((error) => {
+    console.warn('Could not play woohoo sound:', error);
+  });
 }
 
 onMounted(() => {
@@ -225,16 +238,26 @@ onBeforeUnmount(() => {
 
 .flash-image-wrap {
   position: relative;
-  width: min(90vw, 850px);
+  width: min(75vw, 550px);
   margin-bottom: 20vh;
   transition: transform 120ms linear;
 }
 
 .flash-image {
   width: 100%;
-  max-height: 85vh;
+  max-height: 65vh;
   object-fit: contain;
   filter: drop-shadow(0 12px 20px rgba(36, 80, 117, 0.24));
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.flash-image:hover {
+  transform: scale(1.02);
+}
+
+.flash-image:active {
+  transform: scale(0.98);
 }
 
 .flash-speech-bubble {
@@ -329,6 +352,14 @@ onBeforeUnmount(() => {
 @media (max-width: 700px) {
   .flash-stage {
     height: 165vh;
+  }
+
+  .flash-image-wrap {
+    width: min(85vw, 450px);
+  }
+
+  .flash-image {
+    max-height: 55vh;
   }
 
   .flash-speech-bubble {
