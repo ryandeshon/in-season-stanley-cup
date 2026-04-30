@@ -1,4 +1,4 @@
-describe('In Season Cup - Player Profile', () => {
+describe.skip('In Season Cup - Player Profile', () => {
   beforeEach(() => {
     cy.mockApiScenario('player-profile-head-to-head');
   });

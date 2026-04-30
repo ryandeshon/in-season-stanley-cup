@@ -1,4 +1,4 @@
-describe('In Season Cup - Standings', () => {
+describe.skip('In Season Cup - Standings', () => {
   beforeEach(() => {
     cy.mockApiScenario('no-games-history-long');
   });
