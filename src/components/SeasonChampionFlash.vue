@@ -262,8 +262,8 @@ onBeforeUnmount(() => {
 
 .flash-speech-bubble {
   position: absolute;
-  top: 3rem;
-  right: -1rem;
+  top: 5rem;
+  right: 2rem;
   z-index: 2;
   background: #fff;
   color: #15202b;
@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
   content: '';
   position: absolute;
   bottom: -10px;
-  left: 24px;
+  left: 15px;
   width: 0;
   height: 0;
   border-left: 10px solid transparent;
@@ -363,7 +363,6 @@ onBeforeUnmount(() => {
   }
 
   .flash-speech-bubble {
-    right: 0;
     font-size: clamp(0.85rem, 3vw, 1.2rem);
     padding: 0.4rem 0.8rem;
   }
