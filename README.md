@@ -96,7 +96,6 @@ VUE_APP_CHANGELOG_URL=<optional-public-changelog-url-used-by-footer-version-link
 - Asset and API caching guidance (CloudFront + S3 + Lambda headers) lives in `docs/caching.md`.
 - AWS rollout details, resource IDs, verification commands, and rollback steps live in `docs/aws-cache-rollout-runbook.md`.
 - Image migration rollout (player/team images to S3 + CloudFront) lives in `docs/assets-image-migration-runbook.md`.
-- Season closeout + offseason cache automation steps live in `docs/season-closeout-runbook.md`.
 - Vue build output already emits hashed filenames; serve built assets from an edge cache (e.g., CloudFront) with long-lived `Cache-Control` headers and short TTLs for HTML.
 
 ### AI workflow and security
@@ -303,10 +302,6 @@ NHL_API_BASE
 NHL_TEAMS
 DEFAULT_SEASON
 ADMIN_API_TOKEN
-API_CACHE_DISTRIBUTION_ID
-API_CACHE_INVALIDATION_PATHS
-OFFSEASON_CACHE_TTL
-STALE_WHILE_REVALIDATE_OFFSEASON
 PLAYERS_TABLE_SEASON1
 GAME_RECORDS_TABLE_SEASON1
 PLAYERS_TABLE_SEASON2
@@ -396,10 +391,6 @@ Optional broadcaster:
     - `Handler error`
     - `decision":"watching_too_long"`
   - Creates matching CloudWatch alarms in namespace `InSeason/Checker`.
-- Optional monthly offseason cache clear:
-  - Lambda: `lambdas/monthly-cache-clear/index.js`
-  - Scheduler helper: `scripts/aws/setup-monthly-cache-clear.sh`
-  - Runbook: `docs/season-closeout-runbook.md`
 
 ## NHL API usage
 
