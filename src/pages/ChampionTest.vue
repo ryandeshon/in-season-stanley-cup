@@ -109,18 +109,7 @@ async function loadSeasonChampion() {
       getAllPlayers({ season }),
       getCurrentChampion({ season }),
     ]);
-    console.log('[SeasonChampion] API Base:', process.env.VUE_APP_API_BASE);
-    console.log(
-      '[SeasonChampion] Players:',
-      players.map((p) => ({
-        name: p.name,
-        titleDefenses: p.titleDefenses,
-        teams: p.teams,
-      }))
-    );
-    console.log('[SeasonChampion] Current champion team:', currentChampionTeam);
     player.value = selectSeasonChampion(players, currentChampionTeam);
-    console.log('[SeasonChampion] Selected champion:', player.value?.name);
   } catch (error) {
     player.value = null;
     console.error('Error fetching season champion data:', error);

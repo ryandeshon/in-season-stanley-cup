@@ -1,98 +1,101 @@
 // Helpers for consistent API stubbing across scenarios
-Cypress.Commands.add('mockApiScenario', (fixtureName = 'cup-day-multiple-games') => {
-  cy.fixture(fixtureName).then((data) => {
-    const {
-      championResponse,
-      championStatus = 200,
-      gameIdResponse,
-      gameIdStatus = 200,
-      seasonMetaResponse = {
-        seasonId: 'season2',
-        seasonOver: false,
-        regularSeasonEnd: null,
-        playoffsStart: null,
-      },
-      seasonMetaStatus = 200,
-      championHistoryResponse = {
-        seasonId: 'season2',
-        limit: 6,
-        history: [],
-      },
-      championHistoryStatus = 200,
-      playersResponse = [],
-      gameRecordsResponse = [],
-      gameInfoResponse = {},
-      gameInfoStatus = 200,
-      scheduleResponse = { gameWeek: [] },
-      scheduleStatus = 200,
-    } = data;
+Cypress.Commands.add(
+  'mockApiScenario',
+  (fixtureName = 'cup-day-multiple-games') => {
+    cy.fixture(fixtureName).then((data) => {
+      const {
+        championResponse,
+        championStatus = 200,
+        gameIdResponse,
+        gameIdStatus = 200,
+        seasonMetaResponse = {
+          seasonId: 'season2',
+          seasonOver: false,
+          regularSeasonEnd: null,
+          playoffsStart: null,
+        },
+        seasonMetaStatus = 200,
+        championHistoryResponse = {
+          seasonId: 'season2',
+          limit: 6,
+          history: [],
+        },
+        championHistoryStatus = 200,
+        playersResponse = [],
+        gameRecordsResponse = [],
+        gameInfoResponse = {},
+        gameInfoStatus = 200,
+        scheduleResponse = { gameWeek: [] },
+        scheduleStatus = 200,
+      } = data;
 
-    cy.intercept('GET', '**/champion*', {
-      statusCode: championStatus,
-      body: championResponse,
-    }).as('getChampion');
+      cy.intercept('GET', '**/api/champion', {
+        statusCode: championStatus,
+        body: championResponse,
+      }).as('getChampion');
 
-    cy.intercept('GET', '**/gameid*', {
-      statusCode: gameIdStatus,
-      body: gameIdResponse,
-    }).as('getGameId');
+      cy.intercept('GET', '**/api/gameid', {
+        statusCode: gameIdStatus,
+        body: gameIdResponse,
+      }).as('getGameId');
 
-    cy.intercept('GET', '**/season/meta*', {
-      statusCode: seasonMetaStatus,
-      body: seasonMetaResponse,
-    }).as('getSeasonMeta');
+      cy.intercept('GET', '**/api/season/meta', {
+        statusCode: seasonMetaStatus,
+        body: seasonMetaResponse,
+      }).as('getSeasonMeta');
 
-    cy.intercept('GET', '**/champion/history*', {
-      statusCode: championHistoryStatus,
-      body: championHistoryResponse,
-    }).as('getChampionHistory');
+      cy.intercept('GET', '**/api/champion/history', {
+        statusCode: championHistoryStatus,
+        body: championHistoryResponse,
+      }).as('getChampionHistory');
 
-    cy.intercept('GET', '**/players*', (req) => {
-      const url = new URL(req.url);
-      const pathParts = url.pathname.split('/').filter(Boolean);
-      const playersIndex = pathParts.lastIndexOf('players');
-      const requestedPlayerName =
-        playersIndex >= 0 && pathParts.length > playersIndex + 1
-          ? decodeURIComponent(pathParts[playersIndex + 1])
-          : null;
+      cy.intercept('GET', '**/api/players*', (req) => {
+        const url = new URL(req.url);
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        const playersIndex = pathParts.lastIndexOf('players');
+        const requestedPlayerName =
+          playersIndex >= 0 && pathParts.length > playersIndex + 1
+            ? decodeURIComponent(pathParts[playersIndex + 1])
+            : null;
 
-      if (requestedPlayerName) {
-        const matchedPlayer = playersResponse.find(
-          (player) =>
-            String(player?.name || '').toLowerCase() ===
-            requestedPlayerName.toLowerCase()
-        );
+        if (requestedPlayerName) {
+          const matchedPlayer = playersResponse.find(
+            (player) =>
+              String(player?.name || '').toLowerCase() ===
+              requestedPlayerName.toLowerCase()
+          );
+          req.reply({
+            statusCode: 200,
+            body: matchedPlayer || null,
+          });
+          return;
+        }
+
         req.reply({
           statusCode: 200,
-          body: matchedPlayer || null,
+          body: playersResponse,
         });
-        return;
-      }
+      }).as('getPlayers');
 
-      req.reply({
+      cy.intercept('GET', '**/api/game-records*', {
         statusCode: 200,
-        body: playersResponse,
-      });
-    }).as('getPlayers');
+        body: gameRecordsResponse,
+      }).as('getGameRecords');
 
-    cy.intercept('GET', '**/game-records*', {
-      statusCode: 200,
-      body: gameRecordsResponse,
-    }).as('getGameRecords');
+      cy.intercept('GET', '**/nhl/gamecenter/**/boxscore', (req) => {
+        req.reply({
+          statusCode: gameInfoStatus,
+          body: gameInfoResponse,
+        });
+      }).as('getGameInfo');
 
-    cy.intercept('GET', '**/gamecenter/**/boxscore', (req) => {
-      req.reply({
-        statusCode: gameInfoStatus,
-        body: gameInfoResponse,
-      });
-    }).as('getGameInfo');
-
-    cy.intercept('GET', '**/schedule/**', {
-      statusCode: scheduleStatus,
-      body: scheduleResponse,
-    }).as('getSchedule');
-  });
-});
+      cy.intercept('GET', '**/nhl/schedule/**', {
+        statusCode: scheduleStatus,
+        body: scheduleResponse,
+      }).as('getSchedule');
+    });
+  }
+);
 
 Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
   cy.fixture(fixtureName).then((data) => {
@@ -124,19 +127,19 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       return new Date(Date.now() + seconds * 1000).toISOString();
     }
 
-    cy.intercept('GET', '**/players*', {
+    cy.intercept('GET', '**/api/players*', {
       statusCode: 200,
       body: players,
     }).as('getDraftPlayers');
 
-    cy.intercept('GET', '**/draft/state*', (req) => {
+    cy.intercept('GET', '**/api/draft/state*', (req) => {
       req.reply({
         statusCode: 200,
         body: state,
       });
     }).as('getDraftState');
 
-    cy.intercept('PATCH', '**/draft/state*', (req) => {
+    cy.intercept('PATCH', '**/api/draft/state*', (req) => {
       const expectedVersion = Number(req.body?.version);
       if (!Number.isInteger(expectedVersion)) {
         req.reply({
@@ -171,7 +174,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('patchDraftState');
 
-    cy.intercept('POST', '**/draft/pick*', (req) => {
+    cy.intercept('POST', '**/api/draft/pick*', (req) => {
       const expectedVersion = Number(req.body?.version);
       const playerId = Number(req.body?.playerId);
       const team = String(req.body?.team || '')
@@ -240,7 +243,9 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
         (entry) => Number(entry) === pickerId
       );
       const nextPicker =
-        currentIndex >= 0 ? pickOrder[(currentIndex + 1) % pickOrder.length] : null;
+        currentIndex >= 0
+          ? pickOrder[(currentIndex + 1) % pickOrder.length]
+          : null;
       const pickNumber = Number(state.currentPickNumber || 1);
 
       state = {
@@ -261,7 +266,8 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       };
       state.autoPickDeadlineAt = nextAutoPickDeadline(state);
 
-      const player = players.find((entry) => Number(entry.id) === playerId) || null;
+      const player =
+        players.find((entry) => Number(entry.id) === playerId) || null;
       req.reply({
         statusCode: 200,
         body: {
@@ -272,7 +278,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('pickDraftTeam');
 
-    cy.intercept('POST', '**/draft/undo-last-pick*', (req) => {
+    cy.intercept('POST', '**/api/draft/undo-last-pick*', (req) => {
       const expectedVersion = Number(req.body?.version);
       if (!Number.isInteger(expectedVersion)) {
         req.reply({
@@ -294,7 +300,9 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
         return;
       }
 
-      const history = Array.isArray(state.pickHistory) ? [...state.pickHistory] : [];
+      const history = Array.isArray(state.pickHistory)
+        ? [...state.pickHistory]
+        : [];
       if (!history.length) {
         req.reply({
           statusCode: 400,
@@ -335,7 +343,8 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       };
       state.autoPickDeadlineAt = nextAutoPickDeadline(state);
 
-      const player = players.find((entry) => Number(entry.id) === playerId) || null;
+      const player =
+        players.find((entry) => Number(entry.id) === playerId) || null;
       req.reply({
         statusCode: 200,
         body: {
@@ -346,7 +355,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('undoDraftPick');
 
-    cy.intercept('POST', '**/draft/select-team*', (req) => {
+    cy.intercept('POST', '**/api/draft/select-team*', (req) => {
       const playerId = Number(req.body?.playerId);
       const team = req.body?.team;
       players = players.map((player) => {
@@ -370,7 +379,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('selectDraftTeam');
 
-    cy.intercept('POST', '**/players/reset-teams*', () => {
+    cy.intercept('POST', '**/api/players/reset-teams*', () => {
       players = players.map((player) => ({
         ...player,
         teams: [],
