@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
 
 .flash-speech-bubble {
   position: absolute;
-  top: -0.5rem;
+  top: 3rem;
   right: -1rem;
   z-index: 2;
   background: #fff;
