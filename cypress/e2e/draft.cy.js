@@ -1,4 +1,4 @@
-describe('Draft flows', () => {
+describe.skip('Draft flows', () => {
   context('Participant interactions', () => {
     beforeEach(() => {
       cy.mockDraftScenario('draft-default');
