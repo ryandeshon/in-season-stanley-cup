@@ -66,6 +66,12 @@ PLAYERS_SCAN_JSON="$(aws dynamodb scan \
   --profile "$AWS_PROFILE" \
   --output json)"
 
+# Champion selection logic - MUST STAY IN SYNC with src/utilities/seasonChampion.js
+# Tie-breaking order:
+# 1. Find player(s) with maximum title defenses
+# 2. If tie, prefer player who owns the current champion team
+# 3. If still tied, sort alphabetically by name
+# Any changes to this logic should be reflected in both files
 WINNER_JSON="$(jq -c --arg champion "$CURRENT_CHAMPION_TEAM" '
   def attr_str($a): ($a.S // "");
   def attr_num($a): ((($a.N // $a.S // "0") | tonumber?) // 0);

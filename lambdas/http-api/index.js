@@ -532,6 +532,22 @@ async function setGameId(gameID) {
   return res.Attributes?.gameID || gameID;
 }
 
+/**
+ * Invalidates CloudFront API cache for configured paths
+ *
+ * Triggers cache refresh across all CloudFront edge locations for the specified
+ * distribution. This forces fresh data to be fetched from origin on the next request.
+ *
+ * @param {string} reason - Reason for invalidation (used in caller reference for tracking/logging)
+ * @returns {Promise<string|null>} - CloudFront invalidation ID or null if not configured
+ *
+ * @example
+ * // Invalidate cache when draft starts
+ * await invalidateApiCache('draft_started');
+ *
+ * @note CloudFront free tier includes 1000 invalidation paths/month
+ *       Additional paths cost $0.005 per path
+ */
 async function invalidateApiCache(reason = 'manual') {
   if (!cloudFront || !API_CACHE_DISTRIBUTION_ID) {
     return null;
