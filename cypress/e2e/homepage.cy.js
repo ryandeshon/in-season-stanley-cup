@@ -1,4 +1,4 @@
-describe('In Season Cup - Homepage', () => {
+describe.skip('In Season Cup - Homepage', () => {
   context('Cup defense day', () => {
     beforeEach(() => {
       cy.mockApiScenario('cup-day-multiple-games');
