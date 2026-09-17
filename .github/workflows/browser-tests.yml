@@ -1,0 +1,35 @@
+name: Browser Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile --network-timeout 600000
+      - name: Run browser tests with conflicting inherited configuration
+        run: yarn test:e2e
+        env:
+          VUE_APP_API_BASE: https://ci-override.invalid/stage
+          VUE_APP_NHL_API_URL: https://ci-override.invalid/nhl
+          VUE_APP_WEB_SOCKET_URL: wss://ci-override.invalid/socket
+          VUE_APP_ENABLE_SEASON_CONTRACTS: 'false'
+          CYPRESS_requireFullSuite: 'true'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-test-results
+          path: |
+            cypress/screenshots
+            cypress/results
+          if-no-files-found: warn

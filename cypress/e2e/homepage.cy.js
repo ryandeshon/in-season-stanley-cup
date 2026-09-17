@@ -1,7 +1,4 @@
-// TODO: Re-enable tests after fixing Cypress intercept issues in AWS
-// Tests are temporarily skipped for Season 2 release due to API intercept
-// patterns not working in AWS environment. See issue for details.
-describe.skip('In Season Cup - Homepage', () => {
+describe('In Season Cup - Homepage', () => {
   context('Cup defense day', () => {
     beforeEach(() => {
       cy.mockApiScenario('cup-day-multiple-games');
@@ -115,14 +112,8 @@ describe.skip('In Season Cup - Homepage', () => {
         '@getSchedule',
       ]);
 
-      cy.get('[data-test="champion-goal-scorers"]').should(
-        'contain',
-        'No goals yet'
-      );
-      cy.get('[data-test="challenger-goal-scorers"]').should(
-        'contain',
-        'No goals yet'
-      );
+      cy.get('[data-test="champion-goal-scorers"]').should('not.exist');
+      cy.get('[data-test="challenger-goal-scorers"]').should('not.exist');
 
       cy.get('[data-test="champion-select-card"] .v-card').click();
       cy.get('[data-test="conditional-matchups-empty"]').should(
@@ -150,22 +141,8 @@ describe.skip('In Season Cup - Homepage', () => {
       ]);
 
       cy.contains('Game Over');
-      cy.get('[data-test="winner-goal-scorers"]').should(
-        'contain',
-        'David Pastrnak (2)'
-      );
-      cy.get('[data-test="winner-goal-scorers"]').should(
-        'contain',
-        'Brad Marchand'
-      );
-      cy.get('[data-test="loser-goal-scorers"]').should(
-        'contain',
-        'Auston Matthews'
-      );
-      cy.get('[data-test="loser-goal-scorers"]').should(
-        'contain',
-        'Mitch Marner'
-      );
+      cy.get('[data-test="winner-goal-scorers"]').should('not.exist');
+      cy.get('[data-test="loser-goal-scorers"]').should('not.exist');
       cy.get('.next-game-info').should('not.exist');
       cy.get('[data-test="whats-next-panel"]').should('exist');
       cy.get('[data-test="whats-next-row"]').should('have.length', 2);

@@ -1,7 +1,6 @@
-// TODO: Re-enable tests after fixing Cypress intercept issues in AWS
-// Tests are temporarily skipped for Season 2 release due to API intercept
-// patterns not working in AWS environment. See issue for details.
-describe.skip('Draft flows', () => {
+import { apiRoute } from '../support/routes';
+
+describe('Draft flows', () => {
   context('Participant interactions', () => {
     beforeEach(() => {
       cy.mockDraftScenario('draft-default');
@@ -22,7 +21,7 @@ describe.skip('Draft flows', () => {
     });
 
     it('shows a conflict message when draft version is stale', () => {
-      cy.intercept('POST', '**/draft/pick*', {
+      cy.intercept(apiRoute('POST', '/draft/pick'), {
         statusCode: 409,
         body: {
           error: 'Draft state version conflict',
@@ -66,9 +65,7 @@ describe.skip('Draft flows', () => {
       cy.contains('Disconnected. Trying to reconnect...').should('exist');
 
       cy.get('[data-test="draft-admin-start"]').click();
-      cy.wait('@patchDraftState')
-        .its('request.body.version')
-        .should('eq', 3);
+      cy.wait('@patchDraftState').its('request.body.version').should('eq', 3);
       cy.get('[data-test="draft-admin-snackbar"]').should(
         'contain',
         'Draft started successfully.'
