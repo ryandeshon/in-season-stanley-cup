@@ -11,3 +11,6 @@
 - ART FOLLOW-UP: aligned emotion/pose artwork and full-body transparent animation
   atlases. Supplied concept sheets are not production sprites. Review uses approved
   portraits and localized CSS finishers as the guide's progressive fallback.
+
+- [x] Add opt-in hosted sample-data mode with browser-local persistence and Reset.
+- [x] Add production-build Cypress coverage for sample goals, owner reloads, story navigation and rejected writes.

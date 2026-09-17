@@ -180,6 +180,10 @@ describe('Draft safety and recovery', () => {
     cy.mockDraftScenario('draft-default');
     cy.visit('/draft/admin');
     cy.wait(['@getDraftPlayers', '@getDraftState']);
+    cy.get('[data-test="draft-admin-autopick-countdown"]').should(
+      'contain',
+      '00:01'
+    );
     cy.tick(1000);
     cy.wait('@pickDraftTeam').its('request.body.version').should('eq', 7);
     cy.wait('@getDraftState');

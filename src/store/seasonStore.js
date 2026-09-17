@@ -1,3 +1,7 @@
+import { hostedPreview } from '@/utilities/previewConfig';
+const seasonStorageKey = hostedPreview
+  ? 'arcadePreviewSeason'
+  : 'selectedSeason';
 import { defineStore } from 'pinia';
 import { apiRequest } from '@/services/apiClient';
 const legacySeasons = [
@@ -45,10 +49,10 @@ export const useSeasonStore = defineStore('season', {
     setSeason(season) {
       if (!this.seasons.some((s) => s.id === season)) return;
       this.currentSeason = season;
-      localStorage.setItem('selectedSeason', season);
+      localStorage.setItem(seasonStorageKey, season);
     },
     loadSeasonFromStorage() {
-      const stored = localStorage.getItem('selectedSeason');
+      const stored = localStorage.getItem(seasonStorageKey);
       if (this.seasons.some((s) => s.id === stored))
         this.currentSeason = stored;
     },

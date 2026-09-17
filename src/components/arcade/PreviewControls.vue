@@ -1,7 +1,7 @@
 <template>
   <aside class="preview-controls" aria-label="Design preview controls">
     <strong>DESIGN PREVIEW · SAMPLE DATA</strong
-    ><span>Changes stay in local memory. Reset restores the fixture.</span>
+    ><span>Sample data only. Reset restores the fixture.</span>
     <div>
       <label
         >Left owner
@@ -26,6 +26,7 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
+import { previewBase } from '@/utilities/previewConfig';
 const names = ['Ryan', 'Cooper', 'Boz', 'Terry'];
 const left = ref('Ryan'),
   right = ref('Cooper'),
@@ -41,7 +42,7 @@ const actions = [
 ];
 async function send(action, extra = {}) {
   try {
-    const response = await fetch('http://localhost:8091/preview', {
+    const response = await fetch(`${previewBase}/preview`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...extra }),
@@ -60,7 +61,7 @@ async function send(action, extra = {}) {
 }
 onMounted(async () => {
   try {
-    const response = await fetch('http://localhost:8091/api/players');
+    const response = await fetch(`${previewBase}/api/players`);
     if (!response.ok) throw Error('Preview owners unavailable');
     const players = await response.json();
     left.value = players.find((p) => p.teams.includes('BOS'))?.name || 'Ryan';

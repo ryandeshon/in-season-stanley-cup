@@ -45,6 +45,10 @@ applications:
               else
                 npm run build
               fi
+            - |
+              if [ "${VUE_APP_HOSTED_ARCADE_PREVIEW:-false}" = "true" ]; then
+                ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" yarn test:hosted-preview
+              fi
       artifacts:
         baseDirectory: dist
         files:

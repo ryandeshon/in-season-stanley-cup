@@ -472,6 +472,7 @@ import { useLiveGameFeed } from '@/composables/useLiveGameFeed';
 import { useUpcomingMatchups } from '@/composables/useUpcomingMatchups';
 import { useChampionTimeline } from '@/composables/useChampionTimeline';
 import { useSeasonStore } from '@/store/seasonStore';
+import { previewEnabled, hostedPreview } from '@/utilities/previewConfig';
 import ArcadeArena from '@/components/arcade/ArcadeArena.vue';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
@@ -627,7 +628,8 @@ const {
 const arenaSuspended = computed(
   () =>
     Boolean(homeError.value) ||
-    (Boolean(process.env.VUE_APP_WEB_SOCKET_URL) &&
+    (!hostedPreview &&
+      Boolean(process.env.VUE_APP_WEB_SOCKET_URL) &&
       liveGameFeed.isDisconnected.value)
 );
 
@@ -667,9 +669,7 @@ const homeErrorMessage = computed(() => {
   return '';
 });
 
-const preview =
-  process.env.NODE_ENV === 'development' &&
-  process.env.VUE_APP_ARCADE_PREVIEW === 'true';
+const preview = previewEnabled;
 const previewRefresh = () => getGameInfo(cupGameId.value);
 onBeforeUnmount(() => {
   if (preview)

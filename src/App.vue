@@ -39,11 +39,10 @@ import { defineAsyncComponent, watch, computed, onMounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useTheme as useVuetifyTheme } from 'vuetify';
 import { useSeasonStore } from '@/store/seasonStore';
+import { previewEnabled } from '@/utilities/previewConfig';
 import NavigationBar from '@/components/NavigationBar.vue';
 
-const preview =
-  process.env.NODE_ENV === 'development' &&
-  process.env.VUE_APP_ARCADE_PREVIEW === 'true';
+const preview = previewEnabled;
 const PreviewControls = preview
   ? defineAsyncComponent(
       () => import('@/components/arcade/PreviewControls.vue')

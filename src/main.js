@@ -1,3 +1,4 @@
+import { hostedPreview } from '@/utilities/previewConfig';
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
@@ -22,9 +23,19 @@ const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const themeStore = useThemeStore();
 // Access the season store and load from localStorage
 const seasonStore = useSeasonStore();
-seasonStore.loadCatalog().then(() => {
+async function bootstrap() {
+  if (hostedPreview) {
+    const { registerPreviewWorker } = await import('@/preview/register');
+    await registerPreviewWorker();
+  }
+  await seasonStore.loadCatalog();
   app.use(router);
   app.mount('#app');
+}
+bootstrap().catch(() => {
+  document.getElementById('app').textContent = hostedPreview
+    ? 'The preview could not start. Please reload or use a browser with service workers enabled.'
+    : 'The app could not start. Please reload to try again.';
 });
 
 if (prefersDarkScheme.matches) {

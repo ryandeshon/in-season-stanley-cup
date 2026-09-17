@@ -133,6 +133,7 @@ const app = spawn(
     env: {
       ...process.env,
       NODE_ENV: 'development',
+      VUE_APP_HOSTED_ARCADE_PREVIEW: 'false',
       VUE_APP_API_BASE: 'http://localhost:8091/api',
       VUE_APP_NHL_API_URL: 'http://localhost:8091/nhl',
       VUE_APP_WEB_SOCKET_URL: '',
