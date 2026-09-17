@@ -10,6 +10,7 @@ import ChampionTest from '../pages/ChampionTest.vue';
 
 const routes = [
   { path: '/', component: HomePage },
+  { path: '/story', component: () => import('../pages/StoryPage.vue') },
   { path: '/standings', component: StandingsPage },
   { path: '/about', component: AboutPage },
   {

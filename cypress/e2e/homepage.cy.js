@@ -1,7 +1,6 @@
-// TODO: Re-enable tests after fixing Cypress intercept issues in AWS
-// Tests are temporarily skipped for Season 2 release due to API intercept
-// patterns not working in AWS environment. See issue for details.
-describe.skip('In Season Cup - Homepage', () => {
+import { apiRoute, nhlRoute } from '../support/routes';
+
+describe('In Season Cup - Homepage', () => {
   context('Cup defense day', () => {
     beforeEach(() => {
       cy.mockApiScenario('cup-day-multiple-games');
@@ -115,14 +114,8 @@ describe.skip('In Season Cup - Homepage', () => {
         '@getSchedule',
       ]);
 
-      cy.get('[data-test="champion-goal-scorers"]').should(
-        'contain',
-        'No goals yet'
-      );
-      cy.get('[data-test="challenger-goal-scorers"]').should(
-        'contain',
-        'No goals yet'
-      );
+      cy.get('[data-test="champion-goal-scorers"]').should('not.exist');
+      cy.get('[data-test="challenger-goal-scorers"]').should('not.exist');
 
       cy.get('[data-test="champion-select-card"] .v-card').click();
       cy.get('[data-test="conditional-matchups-empty"]').should(
@@ -150,22 +143,8 @@ describe.skip('In Season Cup - Homepage', () => {
       ]);
 
       cy.contains('Game Over');
-      cy.get('[data-test="winner-goal-scorers"]').should(
-        'contain',
-        'David Pastrnak (2)'
-      );
-      cy.get('[data-test="winner-goal-scorers"]').should(
-        'contain',
-        'Brad Marchand'
-      );
-      cy.get('[data-test="loser-goal-scorers"]').should(
-        'contain',
-        'Auston Matthews'
-      );
-      cy.get('[data-test="loser-goal-scorers"]').should(
-        'contain',
-        'Mitch Marner'
-      );
+      cy.get('[data-test="winner-goal-scorers"]').should('not.exist');
+      cy.get('[data-test="loser-goal-scorers"]').should('not.exist');
       cy.get('.next-game-info').should('not.exist');
       cy.get('[data-test="whats-next-panel"]').should('exist');
       cy.get('[data-test="whats-next-row"]').should('have.length', 2);
@@ -324,5 +303,47 @@ describe.skip('In Season Cup - Homepage', () => {
       );
       cy.get('.v-progress-circular').should('not.exist');
     });
+  });
+});
+
+describe('Home recovery and pregame', () => {
+  it('shows scheduled game information before puck drop', () => {
+    cy.mockApiScenario('cup-day-multiple-games');
+    cy.fixture('cup-day-multiple-games').then((data) => {
+      cy.intercept(nhlRoute('/gamecenter/**/boxscore'), {
+        ...data.gameInfoResponse,
+        gameState: 'FUT',
+      }).as('pregame');
+    });
+    cy.visit('/');
+    cy.wait('@pregame');
+    cy.contains('Game Information').should('be.visible');
+    cy.contains('Time Remaining').should('not.exist');
+    cy.get('[data-test="view-game-details-link"]').should('exist');
+  });
+  it('clears a status error on visibility refresh after service recovery', () => {
+    cy.mockApiScenario('cup-day-multiple-games');
+    let unavailable = true;
+    cy.intercept(apiRoute('GET', '/champion'), (req) => {
+      req.reply(
+        unavailable
+          ? { statusCode: 503, body: { error: 'Unavailable' } }
+          : { body: { champion: 'BOS' } }
+      );
+    }).as('recoverChampion');
+    cy.visit('/');
+    cy.get('[data-test="home-warning"]').should('contain', 'Unable to refresh');
+    cy.then(() => {
+      unavailable = false;
+    });
+    cy.document().then((doc) => {
+      Object.defineProperty(doc, 'visibilityState', {
+        configurable: true,
+        value: 'visible',
+      });
+      doc.dispatchEvent(new Event('visibilitychange'));
+    });
+    cy.get('[data-test="home-warning"]').should('not.exist');
+    cy.get('[data-test="champion-select-card"]').should('contain', 'Ryan');
   });
 });

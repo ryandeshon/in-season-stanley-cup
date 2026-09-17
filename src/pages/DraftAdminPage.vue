@@ -1,300 +1,323 @@
 <template>
-  <transition name="fade">
-    <v-alert
-      v-if="isDisconnected"
-      type="warning"
-      class="fixed m-auto w-full text-center mb-4 z-50"
-    >
-      Disconnected. Trying to reconnect...
-    </v-alert>
-  </transition>
-  <v-snackbar
-    v-model="snackbar.visible"
-    :color="snackbar.color"
-    location="top"
-    timeout="3500"
-    data-test="draft-admin-snackbar"
+  <v-alert
+    v-if="!seasonStore.canDraft"
+    type="info"
+    data-test="draft-season-read-only"
+    >{{ seasonStore.seasonDisplayName }} is read-only. View its rosters and
+    results in Standings.</v-alert
   >
-    {{ snackbar.message }}
-  </v-snackbar>
-
-  <v-container class="max-w-screen-lg">
-    <v-alert
-      v-if="loadError && !isLoading"
-      type="error"
-      class="mb-4"
-      data-test="draft-admin-load-error"
+  <template v-else>
+    <transition name="fade">
+      <v-alert
+        v-if="isDisconnected"
+        type="warning"
+        class="fixed m-auto w-full text-center mb-4 z-50"
+      >
+        Disconnected. Trying to reconnect...
+      </v-alert>
+    </transition>
+    <v-snackbar
+      v-model="snackbar.visible"
+      :color="snackbar.color"
+      location="top"
+      timeout="3500"
+      data-test="draft-admin-snackbar"
     >
-      {{ loadError }}
-    </v-alert>
-    <template v-if="isLoading">
-      <div class="flex justify-center items-center mt-10">
-        <v-progress-circular indeterminate color="primary" />
-      </div>
-    </template>
-    <template v-else>
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold mb-4">Draft Admin Panel</h1>
-        <p class="text-lg mb-8">Administrative tools for managing the draft</p>
-      </div>
+      {{ snackbar.message }}
+    </v-snackbar>
 
-      <v-row justify="center" class="mb-8">
-        <v-col cols="12" md="8">
-          <v-card class="pa-6">
-            <v-card-title class="text-xl font-bold mb-4">
-              Draft Controls
-            </v-card-title>
+    <v-container class="max-w-screen-lg">
+      <v-text-field
+        v-if="seasonStore.storageVersion === 'v2'"
+        v-model="adminToken"
+        type="password"
+        label="Admin token"
+        hint="Required for admin changes. Kept only while this page is open."
+        persistent-hint
+        autocomplete="off"
+      />
+      <v-alert
+        v-if="loadError && !isLoading"
+        type="error"
+        class="mb-4"
+        data-test="draft-admin-load-error"
+      >
+        {{ loadError }}
+      </v-alert>
+      <template v-if="isLoading">
+        <div class="flex justify-center items-center mt-10">
+          <v-progress-circular indeterminate color="primary" />
+        </div>
+      </template>
+      <template v-else>
+        <div class="text-center mb-8">
+          <h1 class="text-4xl font-bold mb-4">Draft Admin Panel</h1>
+          <p class="text-lg mb-8">
+            Administrative tools for managing the draft
+          </p>
+        </div>
 
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold mb-2">Draft Status</h3>
-              <v-chip
-                :color="draftState?.draftStarted ? 'success' : 'warning'"
-                class="mr-2"
-              >
-                {{ draftState?.draftStarted ? 'In Progress' : 'Not Started' }}
-              </v-chip>
-              <v-chip
-                :color="isDraftLocked ? 'warning' : 'success'"
-                class="mr-2"
-              >
-                {{ isDraftLocked ? 'Locked' : 'Unlocked' }}
-              </v-chip>
-              <v-chip v-if="currentPicker" color="primary">
-                Current Pick: {{ currentPicker.name }}
-              </v-chip>
-              <v-chip
-                v-if="showAutoPickCountdown"
-                color="primary"
-                class="ml-2"
-                data-test="draft-admin-autopick-countdown"
-              >
-                Auto-pick in {{ autoPickCountdownLabel }}
-              </v-chip>
-            </div>
+        <v-row justify="center" class="mb-8">
+          <v-col cols="12" md="8">
+            <v-card class="pa-6">
+              <v-card-title class="text-xl font-bold mb-4">
+                Draft Controls
+              </v-card-title>
 
-            <v-row class="mb-4" justify="center">
-              <v-col cols="12" sm="6" md="3" class="text-center">
-                <v-btn
-                  @click="startDraft"
-                  color="success"
-                  size="large"
-                  :disabled="draftState?.draftStarted"
-                  data-test="draft-admin-start"
-                  block
-                >
-                  Start Draft
-                </v-btn>
-              </v-col>
-              <v-col cols="12" sm="6" md="3" class="text-center">
-                <v-btn
-                  @click="advanceDraft"
-                  color="primary"
-                  size="large"
-                  :disabled="
-                    !draftState?.draftStarted || isDraftOver || isDraftLocked
-                  "
-                  data-test="draft-admin-advance"
-                  block
-                >
-                  Advance Draft
-                </v-btn>
-              </v-col>
-              <v-col cols="12" sm="6" md="3" class="text-center">
-                <v-btn
-                  @click="undoLastPick"
-                  color="secondary"
-                  size="large"
-                  :disabled="!canUndoLastPick"
-                  data-test="draft-admin-undo"
-                  block
-                >
-                  Undo Last Pick
-                </v-btn>
-              </v-col>
-              <v-col cols="12" sm="6" md="3" class="text-center">
-                <v-btn
-                  @click="toggleDraftLock"
-                  :color="isDraftLocked ? 'warning' : 'info'"
-                  size="large"
-                  :disabled="!draftState?.draftStarted"
-                  data-test="draft-admin-lock-toggle"
-                  block
-                >
-                  {{ isDraftLocked ? 'Unlock Draft' : 'Lock Draft' }}
-                </v-btn>
-              </v-col>
-            </v-row>
-            <v-row class="mb-4" justify="center">
-              <v-col cols="12" sm="8" md="6" class="text-center">
-                <v-btn
-                  @click="openResetDialog"
-                  color="error"
-                  size="large"
-                  data-test="draft-admin-reset"
-                  block
-                >
-                  Reset Draft
-                </v-btn>
-              </v-col>
-            </v-row>
-
-            <v-divider class="my-4" />
-            <h3 class="text-lg font-semibold mb-2">Auto-pick Countdown</h3>
-            <v-row align="center" class="mb-2">
-              <v-col cols="12" md="4">
-                <v-switch
-                  v-model="autoPickEnabledControl"
-                  color="primary"
-                  hide-details
-                  inset
-                  label="Enable Auto-pick"
-                  data-test="draft-admin-autopick-enabled"
-                />
-              </v-col>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  v-model.number="autoPickSecondsControl"
-                  type="number"
-                  min="5"
-                  max="600"
-                  label="Countdown (seconds)"
-                  density="comfortable"
-                  :disabled="!autoPickEnabledControl"
-                  data-test="draft-admin-autopick-seconds"
-                />
-              </v-col>
-              <v-col cols="12" md="4" class="text-center">
-                <v-btn
-                  color="primary"
-                  :disabled="!draftState"
-                  data-test="draft-admin-autopick-save"
-                  @click="saveAutoPickConfig"
-                  block
-                >
-                  Save Countdown
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <v-row justify="center" class="mb-8">
-        <v-col cols="12" md="8">
-          <v-card class="pa-6">
-            <v-card-title class="text-xl font-bold mb-4">
-              Draft Progress
-            </v-card-title>
-
-            <div v-if="draftState?.draftStarted">
-              <p class="mb-4">
-                <strong>Pick Number:</strong>
-                {{ draftState.currentPickNumber || 0 }}
-              </p>
-              <p class="mb-4">
-                <strong>Teams Remaining:</strong> {{ availableTeams.length }}
-              </p>
-
-              <h4 class="text-lg font-semibold mb-2">Pick Order:</h4>
-              <v-chip-group column>
+              <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-2">Draft Status</h3>
                 <v-chip
-                  v-for="(playerId, index) in draftState.pickOrder"
-                  :key="playerId"
-                  :color="playerId === currentPickerId ? 'primary' : 'default'"
-                  :variant="
-                    playerId === currentPickerId ? 'elevated' : 'outlined'
-                  "
+                  :color="draftState?.draftStarted ? 'success' : 'warning'"
+                  class="mr-2"
                 >
-                  {{ index + 1 }}. {{ getPlayerName(playerId) }}
+                  {{ draftState?.draftStarted ? 'In Progress' : 'Not Started' }}
                 </v-chip>
-              </v-chip-group>
-            </div>
-            <div v-else>
-              <p>Draft has not been started yet.</p>
-            </div>
-          </v-card>
-        </v-col>
-      </v-row>
+                <v-chip
+                  :color="isDraftLocked ? 'warning' : 'success'"
+                  class="mr-2"
+                >
+                  {{ isDraftLocked ? 'Locked' : 'Unlocked' }}
+                </v-chip>
+                <v-chip v-if="currentPicker" color="primary">
+                  Current Pick: {{ currentPicker.name }}
+                </v-chip>
+                <v-chip
+                  v-if="showAutoPickCountdown"
+                  color="primary"
+                  class="ml-2"
+                  data-test="draft-admin-autopick-countdown"
+                >
+                  Auto-pick in {{ autoPickCountdownLabel }}
+                </v-chip>
+              </div>
 
-      <v-row justify="center">
-        <v-col cols="12" md="10">
-          <v-card class="pa-6">
-            <v-card-title class="text-xl font-bold mb-4">
-              Current Player Status
-            </v-card-title>
-
-            <v-row dense>
-              <v-col
-                v-for="player in orderedPlayers"
-                :key="player.playerId"
-                cols="12"
-                sm="6"
-                md="3"
-                class="text-center"
-              >
-                <PlayerCard
-                  :player="player"
-                  image-type="Happy"
-                  :show-team-logo="false"
-                  class="border-4"
-                  :class="{
-                    'border-success': currentPickerId === player.id,
-                    'border-warning': player.teams?.length === 0,
-                  }"
-                />
-                <div class="text-caption my-2 font-italic">
-                  Selected Teams ({{ player.teams?.length || 0 }}):
-                </div>
-                <v-row justify="center" dense>
-                  <v-col
-                    v-for="team in player.teams"
-                    :key="team"
-                    cols="3"
-                    class="d-flex justify-center"
+              <v-row class="mb-4" justify="center">
+                <v-col cols="12" sm="6" md="3" class="text-center">
+                  <v-btn
+                    @click="startDraft"
+                    color="success"
+                    size="large"
+                    :disabled="draftState?.draftStarted"
+                    data-test="draft-admin-start"
+                    block
                   >
-                    <TeamLogo :team="team" />
-                  </v-col>
-                </v-row>
-              </v-col>
-            </v-row>
-          </v-card>
-        </v-col>
-      </v-row>
-    </template>
+                    Start Draft
+                  </v-btn>
+                </v-col>
+                <v-col cols="12" sm="6" md="3" class="text-center">
+                  <v-btn
+                    @click="advanceDraft"
+                    color="primary"
+                    size="large"
+                    :disabled="
+                      !draftState?.draftStarted || isDraftOver || isDraftLocked
+                    "
+                    data-test="draft-admin-advance"
+                    block
+                  >
+                    Advance Draft
+                  </v-btn>
+                </v-col>
+                <v-col cols="12" sm="6" md="3" class="text-center">
+                  <v-btn
+                    @click="undoLastPick"
+                    color="secondary"
+                    size="large"
+                    :disabled="!canUndoLastPick"
+                    data-test="draft-admin-undo"
+                    block
+                  >
+                    Undo Last Pick
+                  </v-btn>
+                </v-col>
+                <v-col cols="12" sm="6" md="3" class="text-center">
+                  <v-btn
+                    @click="toggleDraftLock"
+                    :color="isDraftLocked ? 'warning' : 'info'"
+                    size="large"
+                    :disabled="!draftState?.draftStarted"
+                    data-test="draft-admin-lock-toggle"
+                    block
+                  >
+                    {{ isDraftLocked ? 'Unlock Draft' : 'Lock Draft' }}
+                  </v-btn>
+                </v-col>
+              </v-row>
+              <v-row class="mb-4" justify="center">
+                <v-col cols="12" sm="8" md="6" class="text-center">
+                  <v-btn
+                    @click="openResetDialog"
+                    color="error"
+                    size="large"
+                    data-test="draft-admin-reset"
+                    block
+                  >
+                    Reset Draft
+                  </v-btn>
+                </v-col>
+              </v-row>
 
-    <v-dialog
-      v-model="resetDialogVisible"
-      max-width="480"
-      data-test="draft-admin-reset-dialog"
-    >
-      <v-card>
-        <v-card-title class="text-h6">Reset Draft?</v-card-title>
-        <v-card-text>
-          This will clear all drafted teams and reset draft state.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            data-test="draft-admin-reset-cancel"
-            @click="resetDialogVisible = false"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="error"
-            data-test="draft-admin-reset-confirm"
-            @click="confirmResetTeams"
-          >
-            Reset
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-  </v-container>
+              <v-divider class="my-4" />
+              <h3 class="text-lg font-semibold mb-2">Auto-pick Countdown</h3>
+              <v-row align="center" class="mb-2">
+                <v-col cols="12" md="4">
+                  <v-switch
+                    v-model="autoPickEnabledControl"
+                    color="primary"
+                    hide-details
+                    inset
+                    label="Enable Auto-pick"
+                    data-test="draft-admin-autopick-enabled"
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model.number="autoPickSecondsControl"
+                    type="number"
+                    min="5"
+                    max="600"
+                    label="Countdown (seconds)"
+                    density="comfortable"
+                    :disabled="!autoPickEnabledControl"
+                    data-test="draft-admin-autopick-seconds"
+                  />
+                </v-col>
+                <v-col cols="12" md="4" class="text-center">
+                  <v-btn
+                    color="primary"
+                    :disabled="!draftState"
+                    data-test="draft-admin-autopick-save"
+                    @click="saveAutoPickConfig"
+                    block
+                  >
+                    Save Countdown
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row justify="center" class="mb-8">
+          <v-col cols="12" md="8">
+            <v-card class="pa-6">
+              <v-card-title class="text-xl font-bold mb-4">
+                Draft Progress
+              </v-card-title>
+
+              <div v-if="draftState?.draftStarted">
+                <p class="mb-4">
+                  <strong>Pick Number:</strong>
+                  {{ draftState.currentPickNumber || 0 }}
+                </p>
+                <p class="mb-4">
+                  <strong>Teams Remaining:</strong> {{ availableTeams.length }}
+                </p>
+
+                <h4 class="text-lg font-semibold mb-2">Pick Order:</h4>
+                <v-chip-group column>
+                  <v-chip
+                    v-for="(playerId, index) in draftState.pickOrder"
+                    :key="playerId"
+                    :color="
+                      playerId === currentPickerId ? 'primary' : 'default'
+                    "
+                    :variant="
+                      playerId === currentPickerId ? 'elevated' : 'outlined'
+                    "
+                  >
+                    {{ index + 1 }}. {{ getPlayerName(playerId) }}
+                  </v-chip>
+                </v-chip-group>
+              </div>
+              <div v-else>
+                <p>Draft has not been started yet.</p>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row justify="center">
+          <v-col cols="12" md="10">
+            <v-card class="pa-6">
+              <v-card-title class="text-xl font-bold mb-4">
+                Current Player Status
+              </v-card-title>
+
+              <v-row dense>
+                <v-col
+                  v-for="player in orderedPlayers"
+                  :key="player.playerId"
+                  cols="12"
+                  sm="6"
+                  md="3"
+                  class="text-center"
+                >
+                  <PlayerCard
+                    :player="player"
+                    image-type="Happy"
+                    :show-team-logo="false"
+                    class="border-4"
+                    :class="{
+                      'border-success': currentPickerId === player.id,
+                      'border-warning': player.teams?.length === 0,
+                    }"
+                  />
+                  <div class="text-caption my-2 font-italic">
+                    Selected Teams ({{ player.teams?.length || 0 }}):
+                  </div>
+                  <v-row justify="center" dense>
+                    <v-col
+                      v-for="team in player.teams"
+                      :key="team"
+                      cols="3"
+                      class="d-flex justify-center"
+                    >
+                      <TeamLogo :team="team" />
+                    </v-col>
+                  </v-row>
+                </v-col>
+              </v-row>
+            </v-card>
+          </v-col>
+        </v-row>
+      </template>
+
+      <v-dialog
+        v-model="resetDialogVisible"
+        max-width="480"
+        data-test="draft-admin-reset-dialog"
+      >
+        <v-card>
+          <v-card-title class="text-h6">Reset Draft?</v-card-title>
+          <v-card-text>
+            This will clear all drafted teams and reset draft state.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn
+              variant="text"
+              data-test="draft-admin-reset-cancel"
+              @click="resetDialogVisible = false"
+            >
+              Cancel
+            </v-btn>
+            <v-btn
+              color="error"
+              data-test="draft-admin-reset-confirm"
+              @click="confirmResetTeams"
+            >
+              Reset
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </v-container>
+  </template>
 </template>
 
 <script setup>
+import { useDraftCountdown } from '@/composables/useDraftCountdown';
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import {
   getDraftPlayers,
@@ -303,9 +326,14 @@ import {
   undoLastDraftPick,
   updateDraftState,
   resetAllPlayerTeams,
+  setDraftAdminToken,
 } from '../services/dynamodbService';
 import { ApiClientError } from '@/services/apiClient';
 import { sendSocketMessage } from '@/services/socketClient';
+import {
+  requireDraftVersion,
+  canApplyDraftState,
+} from '@/utilities/draftVersion';
 import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import { useSeasonStore } from '@/store/seasonStore';
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -315,6 +343,9 @@ const isLoading = ref(true);
 const loadError = ref('');
 const resetDialogVisible = ref(false);
 const seasonStore = useSeasonStore();
+const adminToken = ref('');
+watch(adminToken, setDraftAdminToken);
+onBeforeUnmount(() => setDraftAdminToken(''));
 const snackbar = ref({
   visible: false,
   message: '',
@@ -334,8 +365,6 @@ const currentPickerId = ref('');
 const draftState = ref(null);
 const availableTeams = ref([]);
 const isDraftOver = ref(false);
-const nowMs = ref(Date.now());
-let countdownIntervalId = null;
 const autoPickEnabledControl = ref(false);
 const autoPickSecondsControl = ref(60);
 const autoPickInFlight = ref(false);
@@ -384,29 +413,11 @@ const canUndoLastPick = computed(() =>
   Boolean(draftState.value?.pickHistory?.length)
 );
 
-const autoPickSecondsRemaining = computed(() => {
-  if (!draftState.value?.autoPickEnabled) return null;
-  const deadlineAt = Date.parse(draftState.value.autoPickDeadlineAt || '');
-  if (!Number.isFinite(deadlineAt)) return null;
-  return Math.max(0, Math.ceil((deadlineAt - nowMs.value) / 1000));
-});
-
-const showAutoPickCountdown = computed(
-  () =>
-    Boolean(draftState.value?.draftStarted) &&
-    !isDraftOver.value &&
-    autoPickSecondsRemaining.value !== null
-);
-
-const autoPickCountdownLabel = computed(() => {
-  const remaining = autoPickSecondsRemaining.value;
-  if (remaining === null) return '--:--';
-  const minutes = Math.floor(remaining / 60)
-    .toString()
-    .padStart(2, '0');
-  const seconds = (remaining % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
-});
+const {
+  autoPickSecondsRemaining,
+  showAutoPickCountdown,
+  autoPickCountdownLabel,
+} = useDraftCountdown(draftState, isDraftOver);
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
@@ -417,14 +428,20 @@ const orderedPlayers = computed(() => {
 });
 
 const { isDisconnected } = useDraftRealtime({
+  onRefresh: () => loadInitialData({ showLoading: false }),
   onDraftUpdate(payload) {
+    if (!seasonStore.canDraft) return;
+    if (seasonStore.storageVersion === 'v2') {
+      loadInitialData({ showLoading: false });
+      return;
+    }
     applyDraftStateToView(payload || draftState.value);
     loadInitialData({ showLoading: false, skipDraftState: true });
   },
 });
 
 function applyDraftStateToView(stateData) {
-  if (!stateData) return;
+  if (!canApplyDraftState(draftState.value, stateData)) return;
   const previousVersion = Number(draftState.value?.version);
   const nextVersion = Number(stateData.version);
   if (previousVersion !== nextVersion) {
@@ -432,7 +449,7 @@ function applyDraftStateToView(stateData) {
   }
   draftState.value = stateData;
   availableTeams.value = stateData.availableTeams || [];
-  currentPickerId.value = stateData.currentPicker || '';
+  currentPickerId.value = stateData.currentPicker ?? '';
   autoPickEnabledControl.value = Boolean(stateData.autoPickEnabled);
   autoPickSecondsControl.value = Number.isInteger(
     Number(stateData.autoPickSeconds)
@@ -442,10 +459,7 @@ function applyDraftStateToView(stateData) {
 }
 
 async function patchDraftStateWithVersion(patch) {
-  const currentVersion = Number(draftState.value?.version);
-  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-    throw new Error('Draft state version is unavailable. Refresh and retry.');
-  }
+  const currentVersion = requireDraftVersion(draftState.value);
 
   try {
     const updatedState = await updateDraftState(
@@ -479,6 +493,7 @@ function normalizeAutoPickSeconds(value) {
 }
 
 async function loadInitialData(options = {}) {
+  if (!seasonStore.canDraft) return;
   const { showLoading = true, skipDraftState = false } = options;
   if (showLoading) {
     isLoading.value = true;
@@ -490,6 +505,7 @@ async function loadInitialData(options = {}) {
         ? Promise.resolve(draftState.value)
         : getDraftState({ season: seasonStore.currentSeason }),
     ]);
+    if (!canApplyDraftState(draftState.value, stateData)) return;
     allPlayersData.value = playersData || [];
     applyDraftStateToView(stateData);
     loadError.value = '';
@@ -517,16 +533,6 @@ watch(autoPickSecondsRemaining, (remainingSeconds) => {
 
 onMounted(() => {
   loadInitialData();
-  countdownIntervalId = window.setInterval(() => {
-    nowMs.value = Date.now();
-  }, 1000);
-});
-
-onBeforeUnmount(() => {
-  if (countdownIntervalId) {
-    window.clearInterval(countdownIntervalId);
-    countdownIntervalId = null;
-  }
 });
 
 function getPlayerName(playerId) {
@@ -600,10 +606,7 @@ async function advanceDraft(options = {}) {
       return;
     }
 
-    const currentVersion = Number(draftState.value?.version);
-    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-      throw new Error('Draft state version is unavailable. Refresh and retry.');
-    }
+    const currentVersion = requireDraftVersion(draftState.value);
 
     const randomTeamIndex = Math.floor(
       Math.random() * availableTeams.value.length
@@ -771,16 +774,21 @@ function openResetDialog() {
 
 async function confirmResetTeams() {
   try {
-    await resetAllPlayerTeams({ season: seasonStore.currentSeason });
-    const updatedState = await patchDraftStateWithVersion({
-      draftStarted: false,
-      pickOrder: [],
-      currentPicker: null,
-      currentPickNumber: 0,
-      availableTeams: [...nhlTeams.value],
-      pickHistory: [],
-      isLocked: false,
+    const result = await resetAllPlayerTeams({
+      season: seasonStore.currentSeason,
+      version: draftState.value.version,
     });
+    const updatedState =
+      result.state ||
+      (await patchDraftStateWithVersion({
+        draftStarted: false,
+        pickOrder: [],
+        currentPicker: null,
+        currentPickNumber: 0,
+        availableTeams: [...nhlTeams.value],
+        pickHistory: [],
+        isLocked: false,
+      }));
     if (!updatedState) {
       return;
     }

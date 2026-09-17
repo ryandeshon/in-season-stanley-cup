@@ -13,10 +13,8 @@ import '@/assets/_variables.css';
 import '@/assets/style.css';
 
 const app = createApp(App);
-app.use(router);
 app.use(vuetify);
 app.use(createPinia());
-app.mount('#app');
 
 // Detect system theme
 const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
@@ -24,7 +22,10 @@ const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const themeStore = useThemeStore();
 // Access the season store and load from localStorage
 const seasonStore = useSeasonStore();
-seasonStore.loadSeasonFromStorage();
+seasonStore.loadCatalog().then(() => {
+  app.use(router);
+  app.mount('#app');
+});
 
 if (prefersDarkScheme.matches) {
   themeStore.isDarkTheme = true; // Update the store state

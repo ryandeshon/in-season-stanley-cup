@@ -7,7 +7,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      'aws-sdk': path.resolve(__dirname, 'tests/unit/mocks/aws-sdk.js'),
     },
   },
   test: {

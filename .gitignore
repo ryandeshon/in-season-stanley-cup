@@ -31,6 +31,7 @@ ai/private/
 # Testing directories and files
 cypress/screenshots
 cypress/videos
+cypress/results
 .cache/
 
 #amplify-do-not-edit-begin

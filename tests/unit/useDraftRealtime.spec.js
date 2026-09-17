@@ -1,5 +1,5 @@
 import { nextTick } from 'vue';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/socketClient', async () => {
   const { ref } = await import('vue');
@@ -28,10 +28,29 @@ import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import { mountComposable } from './helpers/mountComposable';
 
 describe('useDraftRealtime', () => {
+  afterEach(() => vi.useRealTimers());
   beforeEach(() => {
     vi.clearAllMocks();
     __socketState.isConnected.value = true;
     __socketState.lastMessage.value = null;
+  });
+
+  it('polls while disconnected, refreshes on reconnect and stops on unmount', async () => {
+    vi.useFakeTimers();
+    __socketState.isConnected.value = false;
+    const onRefresh = vi.fn().mockResolvedValue();
+    const mounted = await mountComposable(() =>
+      useDraftRealtime({ onRefresh })
+    );
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    __socketState.isConnected.value = true;
+    await nextTick();
+    expect(onRefresh).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(onRefresh).toHaveBeenCalledTimes(2);
+    await mounted.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('initializes socket on mount and tracks disconnect state', async () => {

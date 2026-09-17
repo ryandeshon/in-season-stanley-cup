@@ -1,4 +1,4 @@
-import { nextTick } from 'vue';
+import { nextTick, ref } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClientError } from '@/services/apiClient';
 
@@ -57,6 +57,27 @@ describe('useCupGameState', () => {
     return players[teamAbbrev];
   }
 
+  it('keeps polling invalid finals and never assigns a winner from a tie', async () => {
+    const state = useCupGameState({ findPlayerByTeam });
+    await state.refreshChampionAndGameState();
+    const onGameOver = vi.fn();
+    state.setLifecycleHandlers({ onGameOver });
+    const game = {
+      id: '2024021111',
+      gameState: 'FINAL',
+      homeTeam: { abbrev: 'TOR', score: 2 },
+      awayTeam: { abbrev: 'BOS', score: 2 },
+    };
+    state.applyGameUpdate(game);
+    expect(state.isGameOver.value).toBe(false);
+    expect(state.todaysWinner.value).toEqual({});
+    expect(onGameOver).not.toHaveBeenCalled();
+    state.applyGameUpdate({ ...game, homeTeam: { abbrev: 'TOR', score: 3 } });
+    expect(state.isGameOver.value).toBe(true);
+    expect(state.todaysWinner.value.abbrev).toBe('TOR');
+    expect(onGameOver).toHaveBeenCalledTimes(1);
+  });
+
   it('refreshes champion and game ids', async () => {
     const state = useCupGameState({ findPlayerByTeam });
     await state.refreshChampionAndGameState();
@@ -66,6 +87,46 @@ describe('useCupGameState', () => {
     expect(state.cupGameId.value).toBe('2024021111');
     expect(state.selectedGameId.value).toBe('2024021111');
     expect(state.homeError.value).toBe('');
+  });
+
+  it('loads game details after recovering from an initial status failure', async () => {
+    getCurrentChampion.mockRejectedValueOnce(new Error('offline'));
+    nhlApi.getGameInfo.mockResolvedValue({
+      data: {
+        id: '2024021111',
+        gameState: 'LIVE',
+        homeTeam: { abbrev: 'TOR', score: 1 },
+        awayTeam: { abbrev: 'BOS', score: 0 },
+      },
+    });
+    const state = useCupGameState({ findPlayerByTeam });
+    await state.refreshChampionAndGameState();
+    expect(state.homeError.value).toContain('Unable to refresh');
+    await state.refreshChampionAndGameState();
+    expect(nhlApi.getGameInfo).toHaveBeenCalledWith('2024021111');
+    expect(state.isGameToday.value).toBe(true);
+    expect(state.homeError.value).toBe('');
+  });
+
+  it('refreshes ownership after a roster change without another NHL response', async () => {
+    const owners = ref({ TOR: { name: 'Ryan' }, BOS: { name: 'Cooper' } });
+    const state = useCupGameState({
+      findPlayerByTeam: (team) => owners.value[team],
+    });
+    state.currentChampion.value = 'TOR';
+    state.applyGameUpdate({
+      gameState: 'LIVE',
+      homeTeam: { abbrev: 'TOR', score: 1 },
+      awayTeam: { abbrev: 'BOS', score: 0 },
+    });
+    expect(state.playerChampion.value.name).toBe('Ryan');
+    owners.value = {};
+    await nextTick();
+    expect(state.playerChampion.value.name).toBeUndefined();
+    owners.value = { TOR: { name: 'Terry' }, BOS: { name: 'Boz' } };
+    await nextTick();
+    expect(state.playerChampion.value.name).toBe('Terry');
+    expect(state.playerChallenger.value.name).toBe('Boz');
   });
 
   it('uses season metadata to drive season-over state', async () => {

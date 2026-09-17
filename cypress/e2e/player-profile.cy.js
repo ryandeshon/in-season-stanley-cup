@@ -1,7 +1,4 @@
-// TODO: Re-enable tests after fixing Cypress intercept issues in AWS
-// Tests are temporarily skipped for Season 2 release due to API intercept
-// patterns not working in AWS environment. See issue for details.
-describe.skip('In Season Cup - Player Profile', () => {
+describe('In Season Cup - Player Profile', () => {
   beforeEach(() => {
     cy.mockApiScenario('player-profile-head-to-head');
   });
@@ -59,6 +56,8 @@ describe.skip('In Season Cup - Player Profile', () => {
     cy.get('[data-test="player-profile-head-to-head-row-boz"]').should(
       'not.exist'
     );
-    cy.get('[data-test="player-profile-head-to-head-row-ryan"]').should('exist');
+    cy.get('[data-test="player-profile-head-to-head-row-ryan"]').should(
+      'exist'
+    );
   });
 });

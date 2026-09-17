@@ -5,11 +5,20 @@
 
     <!-- Main Content -->
     <v-main>
-      <router-view></router-view>
+      <PreviewControls v-if="preview" />
+      <v-alert v-if="seasonStore.catalogError" type="error">{{
+        seasonStore.catalogError
+      }}</v-alert>
+      <router-view v-else :key="seasonStore.currentSeason"></router-view>
     </v-main>
 
     <!-- Footer -->
-    <v-footer app color="primary" :style="{ zIndex: 2000 }">
+    <v-footer
+      :key="seasonStore.currentSeason"
+      :app="seasonStore.currentSeason !== 'season3'"
+      color="primary"
+      :style="{ zIndex: 2000 }"
+    >
       <span class="mx-auto"
         >© {{ new Date().getFullYear() }} In Season Cup |
         <a
@@ -26,12 +35,20 @@
 </template>
 
 <script setup>
-import { watch, computed, onMounted } from 'vue';
+import { defineAsyncComponent, watch, computed, onMounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useTheme as useVuetifyTheme } from 'vuetify';
 import { useSeasonStore } from '@/store/seasonStore';
 import NavigationBar from '@/components/NavigationBar.vue';
 
+const preview =
+  process.env.NODE_ENV === 'development' &&
+  process.env.VUE_APP_ARCADE_PREVIEW === 'true';
+const PreviewControls = preview
+  ? defineAsyncComponent(
+      () => import('@/components/arcade/PreviewControls.vue')
+    )
+  : null;
 const appVersion = process.env.VUE_APP_VERSION || 'dev';
 const changelogUrl =
   process.env.VUE_APP_CHANGELOG_URL ||
@@ -49,6 +66,7 @@ onMounted(() => {
 const currentThemeName = computed(() => {
   // Ensure we have valid values before computing theme name
   const seasonValue = seasonStore.currentSeason || 'season2';
+  if (seasonValue === 'season3') return 'season3-dark';
   const season = seasonValue === 'season1' ? 'season1' : 'season2';
   const mode = isDarkTheme.value ? 'dark' : 'light';
   const themeName = `${season}-${mode}`;
@@ -94,6 +112,7 @@ watch(
 /* Import CSS files from the assets folder */
 @import '@/assets/_variables.css';
 @import '@/assets/style.css';
+@import '@/assets/arcade.css';
 
 .app-version-link {
   color: inherit;

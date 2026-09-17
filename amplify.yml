@@ -7,8 +7,8 @@ applications:
           commands:
             - |
               if command -v nvm >/dev/null 2>&1; then
-                nvm install 20
-                nvm use 20
+                nvm install 22
+                nvm use 22
               else
                 echo "nvm not available; using existing Node $(node -v)"
               fi
@@ -19,7 +19,7 @@ applications:
                 npm ci
               fi
             - |
-              if [ "$AWS_BRANCH" = "test" ]; then
+              if [ "$AWS_BRANCH" = "test" ] || [ "${RUN_BROWSER_TESTS:-false}" = "true" ]; then
                 echo "Installing Cypress binary for branch $AWS_BRANCH"
                 ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" npx cypress install
                 ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" npx cypress verify
@@ -29,10 +29,10 @@ applications:
         build:
           commands:
             - |
-              if [ "$AWS_BRANCH" = "test" ]; then
+              if [ "$AWS_BRANCH" = "test" ] || [ "${RUN_BROWSER_TESTS:-false}" = "true" ]; then
                 echo "Running Cypress end-to-end tests for branch $AWS_BRANCH"
                 if command -v yarn >/dev/null 2>&1; then
-                  ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" yarn test:e2e
+                  ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" CYPRESS_requireFullSuite=true yarn test:e2e
                 else
                   ELECTRON_RUN_AS_NODE= CYPRESS_CACHE_FOLDER="$PWD/.cache/Cypress" npm run test:e2e
                 fi

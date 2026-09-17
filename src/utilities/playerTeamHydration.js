@@ -66,18 +66,26 @@ function getFallbackTeams(player) {
   return Array.isArray(byNameTeams) ? byNameTeams : [];
 }
 
-export function hydratePlayerTeam(player) {
+export function hydratePlayerTeam(player, season) {
   if (!player || typeof player !== 'object') return player;
 
+  player = {
+    ...player,
+    ...(player.id !== null &&
+    player.id !== undefined &&
+    Number.isFinite(Number(player.id))
+      ? { id: Number(player.id) }
+      : {}),
+  };
   const apiTeams = normalizeTeams(player.teams);
-  if (apiTeams.length > 0) {
+  if (Array.isArray(player.teams) || season !== 'season1') {
     return { ...player, teams: apiTeams };
   }
 
   return { ...player, teams: getFallbackTeams(player) };
 }
 
-export function hydratePlayerTeams(players) {
+export function hydratePlayerTeams(players, season) {
   if (!Array.isArray(players)) return [];
-  return players.map((player) => hydratePlayerTeam(player));
+  return players.map((player) => hydratePlayerTeam(player, season));
 }

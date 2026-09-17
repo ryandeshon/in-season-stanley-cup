@@ -1,10 +1,11 @@
 {
   "name": "in-season-stanley-cup",
-  "version": "2.3.1",
+  "version": "2.4.1",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "cy:serve": "vue-cli-service serve --mode cypress --port 8080",
+    "preview:arcade": "node scripts/preview/arcade.cjs",
+    "cy:serve": "node scripts/test/serve-cypress.cjs",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "lint:fix": "vue-cli-service lint --fix",
@@ -13,12 +14,16 @@
     "assets:optimize": "bash ./scripts/assets/optimize-images.sh",
     "assets:upload": "bash ./scripts/assets/upload-assets.sh",
     "assets:bootstrap": "bash ./scripts/assets/bootstrap-assets-infra.sh",
-    "test:e2e": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
-    "test:e2e:open": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
+    "test:e2e": "ELECTRON_RUN_AS_NODE= start-server-and-test \"yarn cy:serve\" http://localhost:8080 \"cypress run\"",
+    "test:e2e:open": "ELECTRON_RUN_AS_NODE= start-server-and-test \"yarn cy:serve\" http://localhost:8080 \"cypress open\"",
     "security:audit": "bash ./scripts/security-scan.sh",
     "changeset": "changeset",
     "version:prepare": "changeset version",
-    "version:status": "changeset status --verbose"
+    "version:status": "changeset status --verbose",
+    "test:checker": "node --test lambdas/check-game/index.test.cjs",
+    "test:backend": "node --test tests/backend/*.test.cjs lambdas/check-game/index.test.cjs",
+    "test:integration": "node --test tests/integration/*.test.cjs",
+    "package:lambdas": "node scripts/aws/package-lambdas.cjs"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
@@ -33,6 +38,8 @@
     "vuetify": "^3.7.0-beta.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1134.0",
+    "@aws-sdk/lib-dynamodb": "^3.1134.0",
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
     "@changesets/cli": "^2.29.6",

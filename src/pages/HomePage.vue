@@ -1,12 +1,23 @@
 <template>
-  <v-container class="max-w-[570px] min-h-32">
+  <v-container
+    class="max-w-[570px] min-h-32"
+    :class="{ 'arcade-home': arcade }"
+  >
+    <div v-if="arcade" class="page-eyebrow">
+      SEASON 03 <span> / </span> ONE CUP. FOUR CONTENDERS.
+    </div>
     <h1
       class="text-4xl font-bold mb-4"
       :class="{ 'text-center': isSeasonOver }"
       data-test="home-title"
     >
-      In Season Cup <span v-if="isSeasonOver">Champion</span>
+      {{ arcade ? 'The Black Rink' : 'In Season Cup' }}
+      <span v-if="isSeasonOver">Champion</span>
     </h1>
+    <p v-if="arcade" class="page-deck">
+      Every defense writes the next chapter.
+      <router-link to="/story">Watch the story ↗</router-link>
+    </p>
     <v-alert
       v-if="homeErrorMessage"
       type="warning"
@@ -28,10 +39,63 @@
 
     <template v-else>
       <SeasonChampion v-if="isSeasonOver" />
+      <p v-if="isSeasonOver && !arcade" class="text-center my-6">
+        <router-link to="/story"
+          >Enter the Black Rink · Watch the Season 3 prologue ↗</router-link
+        >
+      </p>
 
       <template v-else>
+        <ArcadeArena
+          v-if="arcade && (isGameToday || isGameOver) && todaysGame?.id"
+          :game="todaysGame"
+          :left-player="playerChampion"
+          :right-player="playerChallenger"
+          :left-team="playerChampion?.championTeam"
+          :right-team="playerChallenger?.challengerTeam"
+          :season="seasonStore.currentSeason"
+          :clock="clockTime"
+          :period="period"
+          :start-time="localStartTime"
+          :selected-role="selectedWinnerRole"
+          :suspended="arenaSuspended"
+          :left-emotion="championAvatarType"
+          :right-emotion="challengerAvatarType"
+          @select="handleWinnerSelection"
+        />
+        <div v-if="arcade && isGameLive" class="arcade-scorers">
+          <div data-test="champion-goal-scorers">
+            <strong
+              >{{ playerChampion?.championTeam?.abbrev }} goal scorers</strong
+            >
+            <p v-for="scorer in championGoalScorers" :key="scorer.name">
+              {{ formatGoalScorerLabel(scorer) }}
+            </p>
+            <p v-if="!championGoalScorers.length">No goals yet</p>
+          </div>
+          <div data-test="challenger-goal-scorers">
+            <strong
+              >{{ playerChallenger?.challengerTeam?.abbrev }} goal
+              scorers</strong
+            >
+            <p v-for="scorer in challengerGoalScorers" :key="scorer.name">
+              {{ formatGoalScorerLabel(scorer) }}
+            </p>
+            <p v-if="!challengerGoalScorers.length">No goals yet</p>
+          </div>
+        </div>
+        <p
+          v-if="
+            ['FINAL', 'OFF'].includes(todaysGame?.gameState) &&
+            !arcade &&
+            !todaysWinner?.abbrev
+          "
+          role="status"
+        >
+          Final result awaiting confirmed scores.
+        </p>
         <!-- Winner for tonight -->
-        <template v-if="isGameOver">
+        <template v-if="isGameOver && !arcade && todaysWinner?.abbrev">
           <div class="grid gap-4 grid-cols-2 justify-center items-start my-4">
             <div class="text-center">
               <h2 class="text-xl font-bold mb-2">Champion</h2>
@@ -108,109 +172,114 @@
 
         <!-- Game day -->
         <template v-else-if="isGameToday">
-          <div v-if="isGameLive" class="text-center">
-            <div>
-              Period: {{ todaysGame.clock.inIntermission ? 'INT' : period }}
-            </div>
-            <div>Time Remaining: {{ clockTime }}</div>
-          </div>
-          <div v-else class="text-center">
-            <h3 class="text-xl font-bold">Game Information</h3>
-            <p>{{ localStartTime }}</p>
-          </div>
-          <div v-if="isMirrorMatch" class="text-center">
-            <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
-          </div>
-          <div
-            class="flex flex-row gap-4 justify-center items-center w-full my-4"
-          >
-            <div
-              class="rounded-lg p-1 transition-colors"
-              :class="{
-                'cursor-pointer hover:bg-black/5': true,
-                'bg-black/10': selectedWinnerRole === 'champion',
-              }"
-              data-test="champion-select-card"
-            >
-              <div class="text-center font-bold text-xl mb-2">Champion</div>
-              <PlayerCard
-                :player="playerChampion"
-                :team="playerChampion.championTeam"
-                :image-type="championAvatarType"
-                :is-game-live="isGameLive"
-                :is-champion="true"
-                :clickable="true"
-                @card-click="handleWinnerSelection('champion')"
-              />
-              <div
-                v-if="isGameLive"
-                class="text-sm px-2 mt-2"
-                data-test="champion-goal-scorers"
-              >
-                <strong>Goal Scorers:</strong>
-                <template v-if="championGoalScorers.length">
-                  <div
-                    v-for="scorer in championGoalScorers"
-                    :key="`champion-${scorer.name}`"
-                  >
-                    {{ formatGoalScorerLabel(scorer) }}
-                  </div>
-                </template>
-                <div v-else>No goals yet</div>
+          <template v-if="!arcade">
+            <div v-if="isGameLive" class="text-center">
+              <div>
+                Period: {{ todaysGame.clock.inIntermission ? 'INT' : period }}
               </div>
+              <div>Time Remaining: {{ clockTime }}</div>
             </div>
-            <div class="flex justify-center items-center">
-              <strong>VS</strong>
+            <div v-else class="text-center">
+              <h3 class="text-xl font-bold">Game Information</h3>
+              <p>{{ localStartTime }}</p>
+            </div>
+            <div v-if="isMirrorMatch" class="text-center">
+              <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
             </div>
             <div
-              class="rounded-lg p-1 transition-colors"
-              :class="{
-                'cursor-pointer hover:bg-black/5': true,
-                'bg-black/10': selectedWinnerRole === 'challenger',
-              }"
-              data-test="challenger-select-card"
+              class="flex flex-row gap-4 justify-center items-center w-full my-4"
             >
-              <div class="text-center font-bold text-xl mb-2">Challenger</div>
-              <PlayerCard
-                :player="playerChallenger"
-                :team="playerChallenger.challengerTeam"
-                :image-type="challengerAvatarType"
-                :is-game-live="isGameLive"
-                :is-mirror-match="isMirrorMatch"
-                :clickable="true"
-                @card-click="handleWinnerSelection('challenger')"
-              />
               <div
-                v-if="isGameLive"
-                class="text-sm px-2 mt-2"
-                data-test="challenger-goal-scorers"
+                class="rounded-lg p-1 transition-colors"
+                :class="{
+                  'cursor-pointer hover:bg-black/5': true,
+                  'bg-black/10': selectedWinnerRole === 'champion',
+                }"
+                data-test="champion-select-card"
               >
-                <strong>Goal Scorers:</strong>
-                <template v-if="challengerGoalScorers.length">
-                  <div
-                    v-for="scorer in challengerGoalScorers"
-                    :key="`challenger-${scorer.name}`"
-                  >
-                    {{ formatGoalScorerLabel(scorer) }}
-                  </div>
-                </template>
-                <div v-else>No goals yet</div>
+                <div class="text-center font-bold text-xl mb-2">Champion</div>
+                <PlayerCard
+                  :player="playerChampion"
+                  :team="playerChampion.championTeam"
+                  :image-type="championAvatarType"
+                  :is-game-live="isGameLive"
+                  :is-champion="true"
+                  :clickable="true"
+                  @card-click="handleWinnerSelection('champion')"
+                />
+                <div
+                  v-if="isGameLive"
+                  class="text-sm px-2 mt-2"
+                  data-test="champion-goal-scorers"
+                >
+                  <strong>Goal Scorers:</strong>
+                  <template v-if="championGoalScorers.length">
+                    <div
+                      v-for="scorer in championGoalScorers"
+                      :key="`champion-${scorer.name}`"
+                    >
+                      {{ formatGoalScorerLabel(scorer) }}
+                    </div>
+                  </template>
+                  <div v-else>No goals yet</div>
+                </div>
+              </div>
+              <div class="flex justify-center items-center">
+                <strong>VS</strong>
+              </div>
+              <div
+                class="rounded-lg p-1 transition-colors"
+                :class="{
+                  'cursor-pointer hover:bg-black/5': true,
+                  'bg-black/10': selectedWinnerRole === 'challenger',
+                }"
+                data-test="challenger-select-card"
+              >
+                <div class="text-center font-bold text-xl mb-2">Challenger</div>
+                <PlayerCard
+                  :player="playerChallenger"
+                  :team="playerChallenger.challengerTeam"
+                  :image-type="challengerAvatarType"
+                  :is-game-live="isGameLive"
+                  :is-mirror-match="isMirrorMatch"
+                  :clickable="true"
+                  @card-click="handleWinnerSelection('challenger')"
+                />
+                <div
+                  v-if="isGameLive"
+                  class="text-sm px-2 mt-2"
+                  data-test="challenger-goal-scorers"
+                >
+                  <strong>Goal Scorers:</strong>
+                  <template v-if="challengerGoalScorers.length">
+                    <div
+                      v-for="scorer in challengerGoalScorers"
+                      :key="`challenger-${scorer.name}`"
+                    >
+                      {{ formatGoalScorerLabel(scorer) }}
+                    </div>
+                  </template>
+                  <div v-else>No goals yet</div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="text-center mb-4">
-            <router-link
-              :to="`/game/${todaysGame.id}`"
-              class="text-blue-500 underline"
-              data-test="view-game-details-link"
-              >View Game Details</router-link
-            >
-          </div>
+            <div class="text-center mb-4">
+              <router-link
+                :to="`/game/${todaysGame.id}`"
+                class="text-blue-500 underline"
+                data-test="view-game-details-link"
+                >View Game Details</router-link
+              >
+            </div>
+          </template>
           <div
-            v-if="selectedWinnerRole"
+            v-if="selectedWinnerRole && !isGameOver"
             class="text-center mb-4"
             data-test="conditional-matchups-section"
           >
+            <span v-if="arcade" class="preview-badge"
+              >PREVIEW · POSSIBLE NEXT DEFENSE</span
+            >
             <h2 class="text-xl font-bold">{{ conditionalMatchupsHeading }}</h2>
             <template v-if="conditionalMatchupsLoading">
               <div class="flex justify-center items-center mt-4 h-20">
@@ -396,13 +465,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, onBeforeUnmount } from 'vue';
 import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { useCupGameState } from '@/composables/useCupGameState';
 import { useLiveGameFeed } from '@/composables/useLiveGameFeed';
 import { useUpcomingMatchups } from '@/composables/useUpcomingMatchups';
 import { useChampionTimeline } from '@/composables/useChampionTimeline';
 import { useSeasonStore } from '@/store/seasonStore';
+import ArcadeArena from '@/components/arcade/ArcadeArena.vue';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import ChampionTimeline from '@/components/ChampionTimeline.vue';
@@ -411,6 +481,7 @@ import SeasonChampion from '@/pages/SeasonChampion.vue';
 const { players: allPlayersData, error: seasonDataError } =
   useCurrentSeasonData();
 const seasonStore = useSeasonStore();
+const arcade = computed(() => seasonStore.currentSeason === 'season3');
 
 const playersList = computed(() =>
   Array.isArray(allPlayersData.value) ? allPlayersData.value : []
@@ -553,6 +624,13 @@ const {
   setupVisibilityRefresh,
 } = liveGameFeed;
 
+const arenaSuspended = computed(
+  () =>
+    Boolean(homeError.value) ||
+    (Boolean(process.env.VUE_APP_WEB_SOCKET_URL) &&
+      liveGameFeed.isDisconnected.value)
+);
+
 setLifecycleHandlers({
   onChampionNotPlaying: ({ currentChampionAbbrev, gameData }) => {
     resetConditionalMatchups();
@@ -589,7 +667,17 @@ const homeErrorMessage = computed(() => {
   return '';
 });
 
+const preview =
+  process.env.NODE_ENV === 'development' &&
+  process.env.VUE_APP_ARCADE_PREVIEW === 'true';
+const previewRefresh = () => getGameInfo(cupGameId.value);
+onBeforeUnmount(() => {
+  if (preview)
+    window.removeEventListener('arcade-preview-refresh', previewRefresh);
+});
 onMounted(async () => {
+  if (preview)
+    window.addEventListener('arcade-preview-refresh', previewRefresh);
   await refreshSeasonMeta();
 
   if (isSeasonOver.value) {

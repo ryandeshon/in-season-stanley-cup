@@ -20,6 +20,17 @@
       Player profile is not available.
     </v-alert>
     <div v-else class="w-full flex flex-col justify-center items-center my-4">
+      <section
+        v-if="currentSeason === 'season3' && characters[player.name]"
+        class="arcade-dossier profile-section"
+      >
+        <img :src="characters[player.name].portrait" alt="" />
+        <div>
+          <span class="eyebrow">CHARACTER DOSSIER · FICTIONAL LORE</span>
+          <h2>{{ characters[player.name].title }}</h2>
+          <p>{{ characters[player.name].lore }}</p>
+        </div>
+      </section>
       <v-card class="profile-section pb-3">
         <v-card-text class="flex flex-col justify-center items-center">
           <PlayerCard
@@ -260,6 +271,7 @@ import {
 
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
+import { characters } from '@/utilities/arcadeAssets';
 import cup from '@/assets/in-season-logo-season2.png';
 import bozAngryImageS1 from '@/assets/players/season1/boz-angry.png';
 import bozSadImageS1 from '@/assets/players/season1/boz-sad.png';
@@ -403,7 +415,9 @@ const currentSeasonKey = computed(() =>
 );
 
 const getHeadToHeadAvatar = (opponentName, imageType) =>
-  playerImages[currentSeasonKey.value]?.[opponentName]?.[imageType] || null;
+  unref(currentSeason) === 'season3'
+    ? characters[opponentName]?.portrait
+    : playerImages[currentSeasonKey.value]?.[opponentName]?.[imageType] || null;
 
 const headToHeadRows = computed(() =>
   headToHeadSummaries.value.map((summary) => ({

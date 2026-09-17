@@ -51,6 +51,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useTheme } from '@/composables/useTheme';
+import { characters, isArcadeSeason } from '@/utilities/arcadeAssets';
 import { useSeasonStore } from '@/store/seasonStore';
 import { getPlayerImageUrl } from '@/utilities/assetUrls';
 
@@ -193,17 +194,21 @@ const imagesSeason2 = {
 };
 
 const getLocalImage = (playerName, type) => {
+  if (isArcadeSeason(seasonStore.currentSeason))
+    return characters[playerName]?.portrait || null;
   const images =
     seasonStore.currentSeason === 'season1' ? imagesSeason1 : imagesSeason2;
   return images[playerName]?.[type] || null;
 };
 
 const remoteImageUrl = computed(() =>
-  getPlayerImageUrl(
-    seasonStore.currentSeason,
-    props.player?.name,
-    props.imageType
-  )
+  isArcadeSeason(seasonStore.currentSeason)
+    ? null
+    : getPlayerImageUrl(
+        seasonStore.currentSeason,
+        props.player?.name,
+        props.imageType
+      )
 );
 
 const resolvedImageSrc = computed(() => {
