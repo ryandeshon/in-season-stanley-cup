@@ -62,7 +62,9 @@ separately.
 - Lint (including explicit CommonJS checks), production build and Lambda package
   verification pass. Packages contain 11 HTTP and 9 checker runtime files.
 - GitHub CI: [live PR checks](https://github.com/ryandeshon/in-season-stanley-cup/pull/75/checks)
-  run browser, unit/backend, persistence, changeset and security workflows.
+  run browser, unit/backend/persistence, changeset and security workflows.
+  Persistence and packaging are part of the already-required `unit-tests` job;
+  the existing branch protection remains unchanged.
 - Local runtime: Node 25; CI runtime: Node 22. No Lambda runtime deployment test
   has been performed.
 

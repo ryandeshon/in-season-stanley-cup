@@ -20,7 +20,7 @@ least 29 tests and rejects pending/skipped tests.
 ## Persistence tests
 
 Run DynamoDB Local on localhost:8000, then `yarn test:integration`. GitHub's
-Persistence Tests workflow supplies an isolated DynamoDB Local service, with no
+required `unit-tests` job supplies an isolated DynamoDB Local service, with no
 AWS credentials. Tests require `jq` and `bash` for the existing closeout script.
 
 For an explicitly authorized AWS rehearsal with synthetic data:
