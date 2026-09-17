@@ -61,6 +61,21 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe('reusable arena choreography', () => {
+  it('labels an unconfirmed final without awarding a winner or showing invalid scores', async () => {
+    const { wrapper, game } = mountArena();
+    const final = {
+      ...game,
+      gameState: 'FINAL',
+      homeTeam: { abbrev: 'BOS', score: -1 },
+    };
+    await wrapper.setProps({ game: final, leftTeam: final.homeTeam });
+    expect(wrapper.find('.arena-status').text()).toBe('FINAL');
+    expect(wrapper.find('.hud-score').text()).toContain(
+      'AWAITING CONFIRMATION'
+    );
+    expect(wrapper.find('.hud-score strong').text()).toContain('—');
+    expect(wrapper.find('.victory-heading').exists()).toBe(false);
+  });
   it.each(pairings)(
     '%s / %s scores from %s with correct effect and receiver',
     async (left, right, side) => {

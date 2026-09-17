@@ -50,7 +50,7 @@ export const livePoseManifest = Object.fromEntries(
       launch: { x: 0.8, y: 0.5 },
       impact: { x: 0.5, y: 0.45 },
       body: { x: 0.15, y: 0.1, width: 0.7, height: 0.85 },
-      facing: name === 'Ryan' ? 'left' : 'right',
+      facing: ['Ryan', 'Terry'].includes(name) ? 'left' : 'right',
       scale: 1,
       usesPortraitFallback: true,
     },

@@ -6,7 +6,7 @@
 - DONE: conservative results, final playback latch, corrections, motion/audio controls.
 - DONE: standings/profile/game/draft styling and optional three-scene prologue.
 - DONE: isolated in-memory review preview and desktop/mobile visual inspection.
-- DONE: local lint/build, 129 unit, 36 Cypress and 25 backend tests; patch changeset.
+- DONE: local lint/build, 130 unit, 36 Cypress and 25 backend tests; patch changeset.
 - REVIEW: draft PR and CI database integration (DynamoDB Local unavailable on host).
 - ART FOLLOW-UP: aligned emotion/pose artwork and full-body transparent animation
   atlases. Supplied concept sheets are not production sprites. Review uses approved

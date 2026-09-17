@@ -14,7 +14,7 @@
       ><span class="arena-status"
         ><i :class="{ live: live }"></i
         >{{
-          result
+          final
             ? 'FINAL'
             : live
               ? game.clock?.inIntermission
@@ -37,9 +37,11 @@
         ><small>{{
           result
             ? 'FINAL SCORE'
-            : live
-              ? `PERIOD ${period || '—'} · ${clock}`
-              : 'FACEOFF'
+            : final
+              ? 'AWAITING CONFIRMATION'
+              : live
+                ? `PERIOD ${period || '—'} · ${clock}`
+                : 'FACEOFF'
         }}</small>
       </div>
       <div class="hud-team right">
@@ -240,7 +242,7 @@ const selected = computed(() =>
       : ''
 );
 const displayScore = (team) =>
-  Number.isInteger(team?.score) ? team.score : '—';
+  Number.isInteger(team?.score) && team.score >= 0 ? team.score : '—';
 const art = (player) => livePoseManifest[player?.name]?.ready;
 const shouldFlip = (side) =>
   (livePoseManifest[side.player?.name]?.facing || 'right') !==

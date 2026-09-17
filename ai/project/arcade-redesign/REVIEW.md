@@ -49,7 +49,7 @@ catalog. The story is available without forcing an intro or activating a season.
 
 ## Validation
 
-Local lint, production build, 129 unit tests, 36 Cypress tests and 25 backend tests
+Local lint, production build, 130 unit tests, 36 Cypress tests and 25 backend tests
 pass. All 12 cross-character pairings are exercised from both attack directions.
 The persistence suite requires DynamoDB Local; the repository CI provides that
 service. The security scanner reports the same three baseline documentation/
