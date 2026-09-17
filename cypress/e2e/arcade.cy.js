@@ -25,6 +25,30 @@ describe('Season 3 arcade review', () => {
   it('keeps score, preview selection, profile links and game details usable', () => {
     setup();
     cy.get('.hud-score').should('contain', '2').and('contain', '1');
+    cy.get('[data-test="home-title"]').should('not.exist');
+    cy.get('.arcade-navigation').should('not.exist');
+    cy.get('.fighter-foot').first().scrollIntoView();
+    cy.get('.fighter-foot img')
+      .first()
+      .should('have.attr', 'src')
+      .and('include', 'assets.nhle.com/logos/nhl/svg/BOS_');
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.contains('.v-list-item', /Light Mode|Dark Mode/).click();
+    cy.get('body')
+      .invoke('attr', 'data-mode')
+      .then((mode) => {
+        cy.get('.v-application').should(
+          'have.class',
+          `v-theme--season3-${mode}`
+        );
+        cy.contains('.v-list-item', /Light Mode|Dark Mode/).click();
+        cy.get('body').should(
+          'have.attr',
+          'data-mode',
+          mode === 'light' ? 'dark' : 'light'
+        );
+      });
+    cy.get('[data-test="navigation-menu"]').click();
     cy.get('.quiet-control')
       .contains('Sound off')
       .should('have.attr', 'aria-pressed', 'false');
@@ -91,14 +115,20 @@ describe('Season 3 arcade review', () => {
   });
   it('provides optional scroll, timed, pause, chapter and skip story controls', () => {
     setup();
-    cy.contains('a', 'Watch the story').click();
-    cy.get('.story-scene:visible').should('have.length', 3);
-    cy.contains('button', 'Play · 60 seconds').click();
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.contains('.v-list-item', 'The Black Rink story').click();
     cy.get('.story-scene:visible').should('have.length', 1);
-    cy.contains('button', 'Pause').click();
+    cy.get('.story-scene').should('contain', 'Ryan claimed the championship');
+    cy.get('.br-controls').scrollIntoView();
+    cy.contains('button', 'Play intro').click({ scrollBehavior: false });
+    cy.get('.story-scene:visible').should('have.length', 1);
+    cy.contains('button', 'Pause').click({ scrollBehavior: false });
     cy.contains('button', 'Resume').should('be.visible');
-    cy.contains('button', '03 · The trap').click();
-    cy.get('.story-scene:visible').should('contain', 'The trap');
+    cy.contains('button', 'III · The trap').click();
+    cy.get('.story-scene:visible').should('contain', 'The gates close');
+    cy.get('[aria-label="Story time in seconds"]').should('have.value', '40');
+    cy.scrollTo(0, 0);
+    cy.get('.story-scene').should('contain', 'Ryan claimed the championship');
     cy.screenshot('arcade-story', { capture: 'fullPage' });
     cy.contains('a', 'Skip to the arena').click();
     cy.get('[data-test="arcade-arena"]').should('be.visible');

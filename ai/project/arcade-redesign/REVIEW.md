@@ -59,3 +59,7 @@ size warnings remain. The patch changeset resolves to version 2.4.2.
 ## Authorized Test deployment
 
 Following review, the user requested hosting the interactive sample-data preview on Test. Enable `VUE_APP_HOSTED_ARCADE_PREVIEW=true` only for Test. The preview defaults to Season 3 independently of saved live-season preferences. Use the preview toolbar to change scores and owners; Reset restores sample state in this browser. These actions never update the database. Production remains unchanged. The hosted production bundle has an additional Cypress gate, alongside the full existing browser suite.
+
+## Follow-up design notes
+
+Home now starts at the faceoff. The dropdown contains all navigation links and light/dark mode; selecting a route closes it. Season 3 uses official NHL team marks, including larger logos under the portraits. The dark arena retains the dark-background logo variants in both app themes. The story matches the supplied prologue-v2 scroll preview with the stone console, pinned scroll progression, camera motion and optional typewriter playback. See EFFECTS-RESEARCH.md for the PixiJS recommendation and original Mortal Kombat media sources; those media files are not included in this update.

@@ -68,6 +68,19 @@ export default createVuetify({
   theme: {
     defaultTheme: 'season2-light',
     themes: {
+      'season3-light': {
+        dark: false,
+        colors: {
+          background: '#e8e9e3',
+          surface: '#f4f4ee',
+          primary: '#344c38',
+          secondary: '#4c6147',
+          error: '#a42626',
+          info: '#1e5480',
+          success: '#24603b',
+          warning: '#755814',
+        },
+      },
       'season3-dark': {
         dark: true,
         colors: {

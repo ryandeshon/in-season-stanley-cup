@@ -3,21 +3,14 @@
     class="max-w-[570px] min-h-32"
     :class="{ 'arcade-home': arcade }"
   >
-    <div v-if="arcade" class="page-eyebrow">
-      SEASON 03 <span> / </span> ONE CUP. FOUR CONTENDERS.
-    </div>
     <h1
+      v-if="!arcade"
       class="text-4xl font-bold mb-4"
       :class="{ 'text-center': isSeasonOver }"
       data-test="home-title"
     >
-      {{ arcade ? 'The Black Rink' : 'In Season Cup' }}
-      <span v-if="isSeasonOver">Champion</span>
+      In Season Cup <span v-if="isSeasonOver">Champion</span>
     </h1>
-    <p v-if="arcade" class="page-deck">
-      Every defense writes the next chapter.
-      <router-link to="/story">Watch the story ↗</router-link>
-    </p>
     <v-alert
       v-if="homeErrorMessage"
       type="warning"

@@ -23,3 +23,5 @@ for review after the implementation and screenshots.
 ## Hosted Test preview
 
 The Test branch may opt into `VUE_APP_HOSTED_ARCADE_PREVIEW=true`. A same-origin service worker serves sample API responses; API clients and NHL requests use only that worker, sockets and analytics are disabled. Unknown requests fail closed. Sample scores and owner choices persist in browser Cache Storage; Reset restores the fixture. This mode requires HTTPS (or localhost) and service workers. Real season records are not read or changed.
+
+The follow-up review removes the Season 3 homepage intro and duplicate navigation, restores light/dark selection, and replaces Season 3 team artwork with official NHL logos. Story presentation follows the supplied prologue-v2 scroll demo, with one pinned scene driven by scroll or a 60-second timeline; pause, full text, scrub, chapters and skip remain available.

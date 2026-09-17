@@ -26,6 +26,10 @@ describe('Hosted arcade preview isolation', () => {
       },
       { statusCode: 204, body: '' }
     );
+    cy.intercept('GET', 'https://assets.nhle.com/logos/**', {
+      headers: { 'content-type': 'image/svg+xml' },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"/>',
+    });
     cy.visit('/', {
       onBeforeLoad(win) {
         win.localStorage.setItem('selectedSeason', 'season2');
@@ -46,10 +50,13 @@ describe('Hosted arcade preview isolation', () => {
     cy.contains('button', 'Shutout final').click();
     cy.get('[data-test="flawless-victory"]').should('be.visible');
     cy.get('.victory-heading').should('contain', 'Boz');
-    cy.contains('a', 'Watch the story').click();
-    cy.contains('h1', 'The Black Rink').should('be.visible');
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.contains('.v-list-item', 'The Black Rink story').click();
+    cy.get('.story-console').should('be.visible');
+    cy.location('pathname').should('eq', '/story');
     cy.reload();
-    cy.contains('h1', 'The Black Rink').should('be.visible');
+    cy.get('.story-console').should('be.visible');
+    cy.location('pathname').should('eq', '/story');
     cy.window().then(async (win) => {
       const unknown = await win.fetch('/__arcade-preview/api/not-a-fixture');
       expect(unknown.status).to.eq(404);
