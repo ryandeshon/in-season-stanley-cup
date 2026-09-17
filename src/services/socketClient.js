@@ -15,7 +15,10 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
     return null;
   }
 
-  if (socket.value && socket.value.readyState === WebSocket.OPEN)
+  if (
+    socket.value &&
+    [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.value.readyState)
+  )
     return socket.value;
 
   socket.value = new WebSocket(process.env.VUE_APP_WEB_SOCKET_URL);
@@ -73,7 +76,16 @@ export function sendSocketMessage(action, payload) {
 }
 
 export function closeSocket() {
+  clearTimeout(reconnectTimeout);
+  reconnectTimeout = null;
+  reconnectAttempts = 0;
+  lastMessage.value = null;
+  isConnected.value = false;
   if (socket.value) {
+    socket.value.onopen = null;
+    socket.value.onclose = null;
+    socket.value.onmessage = null;
+    socket.value.onerror = null;
     socket.value.close();
     socket.value = null;
     isConnected.value = false;

@@ -340,6 +340,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
         getCurrentChampion(seasonOptions),
         getGameId(seasonOptions),
       ]);
+      const recovering = Boolean(homeError.value);
       homeError.value = '';
       currentChampion.value = champion;
       gameID.value = activeGameId;
@@ -347,6 +348,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       if (!selectedGameId.value || options?.forceGameSelectionReset) {
         selectedGameId.value = activeGameId;
       }
+      if (recovering && activeGameId) await getGameInfo(activeGameId);
     } catch (error) {
       homeError.value =
         'Unable to refresh champion/game status right now. Retrying automatically.';
@@ -428,19 +430,16 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     const championTeam = championIsHome ? homeTeam : awayTeam;
     const challengerTeam = championIsHome ? awayTeam : homeTeam;
 
-    const championPlayer =
-      resolvePlayerByTeam(championTeam?.abbrev) || playerChampion.value || {};
+    const championPlayer = resolvePlayerByTeam(championTeam?.abbrev) || {};
 
-    const challengerPlayer =
-      resolvePlayerByTeam(challengerTeam?.abbrev) ||
-      playerChallenger.value ||
-      {};
+    const challengerPlayer = resolvePlayerByTeam(challengerTeam?.abbrev) || {};
 
     playerChampion.value = { ...championPlayer, championTeam };
     playerChallenger.value = { ...challengerPlayer, challengerTeam };
 
     isMirrorMatch.value =
-      playerChampion.value?.name === playerChallenger.value?.name;
+      Boolean(playerChampion.value?.name) &&
+      playerChampion.value.name === playerChallenger.value?.name;
 
     return true;
   }
@@ -526,6 +525,23 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       player: resolvePlayerByTeam(loserTeam.abbrev),
     };
   }
+
+  // Ownership changes when the selected season's roster arrives, even if the
+  // NHL game itself has not changed. Never retain owners from the previous roster.
+  watch(
+    () => [
+      resolvePlayerByTeam(todaysGame.value.homeTeam?.abbrev),
+      resolvePlayerByTeam(todaysGame.value.awayTeam?.abbrev),
+      resolvePlayerByTeam(currentChampion.value),
+    ],
+    () => {
+      if (!getTeamsInfo()) {
+        playerChampion.value = resolvePlayerByTeam(currentChampion.value) || {};
+        playerChallenger.value = {};
+      }
+      if (isGameOver.value) setGameOutcome(todaysGame.value);
+    }
+  );
 
   onBeforeUnmount(() => {
     Object.values(goalTimers.value).forEach((timer) => {

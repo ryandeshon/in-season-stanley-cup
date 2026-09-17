@@ -209,7 +209,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useDraftCountdown } from '@/composables/useDraftCountdown';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   getDraftPlayers,
@@ -218,6 +219,10 @@ import {
 } from '../services/dynamodbService';
 import { ApiClientError } from '@/services/apiClient';
 import { sendSocketMessage } from '@/services/socketClient';
+import {
+  requireDraftVersion,
+  canApplyDraftState,
+} from '@/utilities/draftVersion';
 import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import { useSeasonStore } from '@/store/seasonStore';
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -265,8 +270,6 @@ const draftState = ref(null);
 const availableTeams = ref([]);
 const isYourTurn = ref(false);
 const isDraftOver = ref(false);
-const nowMs = ref(Date.now());
-let countdownIntervalId = null;
 const nhlTeams = ref([
   'ANA',
   'BOS',
@@ -308,31 +311,13 @@ const currentPicker = computed(() =>
 
 const isDraftLocked = computed(() => Boolean(draftState.value?.isLocked));
 
-const autoPickSecondsRemaining = computed(() => {
-  if (!draftState.value?.autoPickEnabled) return null;
-  const deadlineAt = Date.parse(draftState.value.autoPickDeadlineAt || '');
-  if (!Number.isFinite(deadlineAt)) return null;
-  return Math.max(0, Math.ceil((deadlineAt - nowMs.value) / 1000));
-});
-
-const showAutoPickCountdown = computed(
-  () =>
-    Boolean(draftState.value?.draftStarted) &&
-    !isDraftOver.value &&
-    autoPickSecondsRemaining.value !== null
+const { showAutoPickCountdown, autoPickCountdownLabel } = useDraftCountdown(
+  draftState,
+  isDraftOver
 );
 
-const autoPickCountdownLabel = computed(() => {
-  const remaining = autoPickSecondsRemaining.value;
-  if (remaining === null) return '--:--';
-  const minutes = Math.floor(remaining / 60)
-    .toString()
-    .padStart(2, '0');
-  const seconds = (remaining % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
-});
-
 const { isDisconnected } = useDraftRealtime({
+  onRefresh: () => loadInitialData({ showLoading: false }),
   onDraftUpdate(payload) {
     applyDraftStateToView(payload || draftState.value);
     syncCurrentPlayer();
@@ -356,7 +341,7 @@ function syncCurrentPlayer() {
 }
 
 function applyDraftStateToView(stateData) {
-  if (!stateData) return;
+  if (!canApplyDraftState(draftState.value, stateData)) return;
   draftState.value = stateData;
   availableTeams.value = stateData.availableTeams || [];
   currentPickerId.value = stateData.currentPicker || '';
@@ -375,6 +360,7 @@ async function loadInitialData(options = {}) {
         ? Promise.resolve(draftState.value)
         : getDraftState({ season: seasonStore.currentSeason }),
     ]);
+    if (!canApplyDraftState(draftState.value, stateData)) return;
     allPlayersData.value = playersData || [];
     applyDraftStateToView(stateData);
 
@@ -425,16 +411,6 @@ watch(
 
 onMounted(() => {
   loadInitialData();
-  countdownIntervalId = window.setInterval(() => {
-    nowMs.value = Date.now();
-  }, 1000);
-});
-
-onBeforeUnmount(() => {
-  if (countdownIntervalId) {
-    window.clearInterval(countdownIntervalId);
-    countdownIntervalId = null;
-  }
 });
 
 // Team selection logic (only when it's player's turn)
@@ -461,10 +437,7 @@ async function selectTeam(team) {
   }
 
   try {
-    const currentVersion = Number(draftState.value?.version);
-    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-      throw new Error('Draft state version is unavailable. Refresh and retry.');
-    }
+    const currentVersion = requireDraftVersion(draftState.value);
 
     const result = await makeDraftPick(
       currentPlayer.value.id,
