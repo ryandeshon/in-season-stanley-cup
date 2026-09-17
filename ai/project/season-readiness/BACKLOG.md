@@ -20,6 +20,6 @@
 Related: #71 (browser testing), #28 (multi-season), #30 (Lambda modules), #29/#36 (admin auth), #31 (assets), #53 (player login), closed PR #51 (prior migration work).
 
 Phase 1 was merged in #73. Phase 2 is implemented on
-`isc-030-phase2-behavior-refactors`; verification/review checkpoint is being
-prepared. Production-data inventory, rollover, and visual redesign remain in
+`isc-030-phase2-behavior-refactors`; local verification is complete and draft PR #75 is open for the
+phase review. See PHASE-2-REVIEW.md and the PR checks for CI results. Production-data inventory, rollover, and visual redesign remain in
 Phases 3 and 4. The original WIP is untouched.

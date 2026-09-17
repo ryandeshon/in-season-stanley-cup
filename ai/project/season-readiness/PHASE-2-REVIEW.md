@@ -1,5 +1,7 @@
 # Phase 2 review checkpoint
 
+Review: [draft PR #75](https://github.com/ryandeshon/in-season-stanley-cup/pull/75).
+
 Phase 1 was merged in #73. Phase 2 is based on that merge and addresses #30 plus
 the behavior-coverage/refactoring portion of the season-readiness plan. Stop here
 for user review before Phase 3. The user is preparing the Phase 4 visual guide
@@ -59,7 +61,8 @@ separately.
 - Cypress: 29/29 pass across five suites; no pending/skipped tests.
 - Lint (including explicit CommonJS checks), production build and Lambda package
   verification pass. Packages contain 11 HTTP and 9 checker runtime files.
-- GitHub CI: pending the draft PR run.
+- GitHub CI: [live PR checks](https://github.com/ryandeshon/in-season-stanley-cup/pull/75/checks)
+  run browser, unit/backend, persistence, changeset and security workflows.
 - Local runtime: Node 25; CI runtime: Node 22. No Lambda runtime deployment test
   has been performed.
 

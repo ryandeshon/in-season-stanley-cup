@@ -1,6 +1,6 @@
 # Season readiness: refactoring, reliable tests, historical data, redesign
 
-Status: approved September 17, 2026; Phase 1 merged (#73); Phase 2 implementation in review preparation. Stop for user review after each phase. Phase 4 design guide will be prepared by the user in another chat.
+Status: approved September 17, 2026; Phase 1 merged (#73); Phase 2 implemented in draft PR #75; awaiting phase review. Stop for user review after each phase. Phase 4 design guide will be prepared by the user in another chat.
 
 ## Objective and sequence
 

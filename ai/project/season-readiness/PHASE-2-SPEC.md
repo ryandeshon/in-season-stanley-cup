@@ -25,4 +25,4 @@ Do not deploy Lambda changes or alter production tables. Stop for Phase 2 review
 - DONE: characterize checker partial failures and isolate scheduler/persistence.
 - DONE: verify transactions/retries with disposable DynamoDB tables.
 - DONE: expand browser behavior cases; document Phase 3 contract gaps.
-- IN_PROGRESS: verify release artifacts and prepare draft PR/review checkpoint.
+- DONE: verify release artifacts and prepare draft PR/review checkpoint (#75).
