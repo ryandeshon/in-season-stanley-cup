@@ -2,6 +2,7 @@
 // Existing legacy records are never guessed/repaired here: reconcile them in rollover.
 function createFinalization({
   dynamoDB,
+  env,
   TABLE_NAME,
   PARTITION_KEY,
   PLAYERS_TABLE,
@@ -38,6 +39,8 @@ function createFinalization({
       ).Item;
     if (await existing()) return { applied: false };
     const playerId = await findPlayerWithTeam(wTeam);
+    if (env?.SEASON_STORAGE === 'v2' && playerId == null)
+      throw new Error('No season owner for winning team');
     const timestamp = new Date().toISOString();
     const TransactItems = [
       {
@@ -95,6 +98,16 @@ function createFinalization({
           ConditionExpression:
             'attribute_exists(id) AND contains(teams, :team)',
           ExpressionAttributeValues: { ':zero': 0, ':inc': 1, ':team': wTeam },
+        },
+      });
+    if (env?.SEASON_STORAGE === 'v2')
+      TransactItems.push({
+        Update: {
+          TableName: env.PLAYER_LIFETIME_TABLE,
+          Key: { id: String(playerId) },
+          UpdateExpression: 'SET totalDefenses = totalDefenses + :one',
+          ConditionExpression: 'attribute_exists(id)',
+          ExpressionAttributeValues: { ':one': 1 },
         },
       });
     try {

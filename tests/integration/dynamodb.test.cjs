@@ -460,7 +460,7 @@ test('real closeout script is dry-safe and concurrent reruns award one champions
         })
         .promise()
     ).Item;
-  const run = (dry) =>
+  const run = (dry, overrides = {}) =>
     execFile(
       'bash',
       [path.resolve(__dirname, '../../scripts/aws/closeout-season.sh')],
@@ -472,11 +472,16 @@ test('real closeout script is dry-safe and concurrent reruns award one champions
           CLOSEOUT_TEST_CONFIG: configPath,
           DRY_RUN: String(dry),
           SEASON_ID: 'season2',
+          ...overrides,
         },
       }
     );
   try {
     await seedGame(9999);
+    await assert.rejects(
+      run(false, { CLOSEOUT_TEST_STORAGE: 'v2' }),
+      (error) => error.stdout.includes('refusing legacy closeout')
+    );
     await run(true);
     assert.equal((await readPlayer()).championships, 2);
     await assert.rejects(fs.access(configPath));

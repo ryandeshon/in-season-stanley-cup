@@ -32,7 +32,12 @@ export function createDraftRules({
   function shouldDisableAutoPick(state) {
     if (!state.autoPickEnabled) return true;
     if (!state.draftStarted) return true;
-    if (!state.currentPicker) return true;
+    if (
+      state.currentPicker === null ||
+      state.currentPicker === undefined ||
+      state.currentPicker === ''
+    )
+      return true;
     if (state.isLocked) return true;
     if (
       !Array.isArray(state.availableTeams) ||

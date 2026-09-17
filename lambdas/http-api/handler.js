@@ -1,3 +1,4 @@
+import storage from '../shared/season-storage.cjs';
 import { createConfig } from './config.js';
 import {
   DraftStateValidationError,
@@ -10,7 +11,12 @@ import { createRepository } from './repository.js';
 import { createSchedule } from './schedule.js';
 import { createDraftService } from './draft-service.js';
 
-export function createHttpHandler({ dynamoDB, https, env = process.env }) {
+function createLegacyHandler({
+  dynamoDB,
+  https,
+  env = process.env,
+  season = null,
+}) {
   const context = {
     ...createConfig(env),
     env,
@@ -37,7 +43,7 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
     getPlayerByName,
     getQueryParams,
     getSeasonContext,
-    getSeasonMeta,
+    getSeasonMeta: legacySeasonMeta,
     getToday,
     isAuthorized,
     listChampionHistory,
@@ -48,18 +54,50 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
     parseBody,
     parseHistoryLimit,
     resetTeams,
+    resetDraft,
     response,
-    setGameId,
     undoLastDraftPick,
     updateDraftState,
     updatePlayerTeams,
   } = context;
+  const getSeasonMeta = (id) =>
+    season
+      ? {
+          ...season,
+          seasonId: season.id,
+          seasonOver: season.status === 'archived',
+        }
+      : legacySeasonMeta(id);
   const handler = async (event) => {
     const path = normalizePath(event);
     const method = getMethod(event);
     const seasonContext = getSeasonContext(event);
 
     if (method === 'OPTIONS') return response(event, 204, {});
+    async function readSeasonOptions() {
+      if (
+        !season &&
+        seasonContext.seasonId !== (env.DEFAULT_SEASON || 'season2')
+      ) {
+        const records = await listGameRecords(seasonContext.gameRecordsTable);
+        const latest = records.sort((a, b) => Number(b.id) - Number(a.id))[0];
+        return {
+          champion: latest?.wTeam || null,
+          checkStatus: 'archived',
+          processedGameId: latest?.id || null,
+        };
+      }
+      const opts = await getGameOptions();
+      if (season && season.status !== 'active')
+        return {
+          ...opts,
+          gameID: null,
+          activeGameId: null,
+          nextCheckAt: null,
+          checkStatus: season.status,
+        };
+      return opts;
+    }
 
     try {
       if (seasonContext.hasInvalidSeasonQuery) {
@@ -69,6 +107,29 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
         });
       }
 
+      if (path === '/seasons' && method === 'GET') {
+        return response(event, 200, {
+          defaultSeason: env.DEFAULT_SEASON || 'season2',
+          seasons: ['season1', 'season2'].map((id) => ({
+            ...getSeasonMeta(id),
+            id,
+            label: `Season ${id.slice(6)}`,
+            status:
+              id === 'season1' || getSeasonMeta(id).seasonOver
+                ? 'archived'
+                : 'active',
+          })),
+        });
+      }
+      if (
+        ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) &&
+        (season
+          ? season.status !== 'preseason' || !season.writersEnabled
+          : seasonContext.seasonId !== (env.DEFAULT_SEASON || 'season2') ||
+            getSeasonMeta(seasonContext.seasonId).seasonOver)
+      ) {
+        return response(event, 423, { error: 'This season is read-only' });
+      }
       // ---- Players ----
       if (path === '/players' && method === 'GET') {
         return response(
@@ -76,9 +137,13 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
           200,
           await listPlayers(seasonContext.playersTable),
           {
-            ttlSeconds: CACHE_TTLS.roster,
-            staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
-            staleIfError: CACHE_TTLS.staleIfError,
+            ttlSeconds: season?.status === 'preseason' ? 0 : CACHE_TTLS.roster,
+            staleWhileRevalidate:
+              season?.status === 'preseason'
+                ? 0
+                : CACHE_TTLS.staleWhileRevalidateLong,
+            staleIfError:
+              season?.status === 'preseason' ? 0 : CACHE_TTLS.staleIfError,
           }
         );
       }
@@ -96,10 +161,28 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
         if (!isAuthorized(event)) {
           return response(event, 401, { error: 'Unauthorized' });
         }
+        if (season) {
+          const result = await resetDraft({
+            version: parseBody(event.body).version,
+            playersTable: seasonContext.playersTable,
+          });
+          return response(event, 200, result);
+        }
         await resetTeams(seasonContext.playersTable);
         return response(event, 200, { ok: true });
       }
 
+      if (
+        season &&
+        (path === '/draft/select-team' ||
+          (path.startsWith('/players/') &&
+            method !== 'GET' &&
+            path !== '/players/reset-teams'))
+      ) {
+        return response(event, 409, {
+          error: 'Use the versioned draft endpoints to change rosters',
+        });
+      }
       const teamPatchMatch = path.match(/^\/players\/([^/]+)\/teams$/);
       if (teamPatchMatch && method === 'PATCH') {
         if (!isAuthorized(event)) {
@@ -164,9 +247,9 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
 
       // ---- Champion + game id ----
       if (path === '/champion' && method === 'GET') {
-        const opts = await getGameOptions();
+        const opts = await readSeasonOptions();
         const champion = opts.champion;
-        if (!champion) {
+        if (!champion && season?.status !== 'preseason') {
           return response(event, 404, {
             error: 'Champion not set in GameOptions',
           });
@@ -178,13 +261,19 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
           staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidate,
           staleIfError: CACHE_TTLS.staleIfError,
         };
-        if (NHL_API_BASE) {
+        if (
+          NHL_API_BASE &&
+          champion &&
+          (season
+            ? season.status === 'active'
+            : !getSeasonMeta(seasonContext.seasonId).seasonOver) &&
+          seasonContext.seasonId === (env.DEFAULT_SEASON || 'season2')
+        ) {
           try {
             const today = getToday();
             const schedule = await fetchSchedule(today);
             const found = findChampionGame(schedule, champion, today);
             gameID = found || null;
-            await setGameId(gameID);
             cacheOptions =
               found === null
                 ? {
@@ -216,7 +305,7 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
       }
 
       if (path === '/gameid' && method === 'GET') {
-        const opts = await getGameOptions();
+        const opts = await readSeasonOptions();
         const activeGameId = opts.activeGameId ?? opts.gameID ?? null;
         const hasActiveGame = Boolean(activeGameId);
         return response(
@@ -242,7 +331,7 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
       }
 
       if (path === '/check-status' && method === 'GET') {
-        const opts = await getGameOptions();
+        const opts = await readSeasonOptions();
         return response(event, 200, {
           seasonId: seasonContext.seasonId,
           champion: opts.champion ?? null,
@@ -256,16 +345,23 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
         });
       }
 
-      if (path === '/season/meta' && method === 'GET') {
-        return response(event, 200, getSeasonMeta(seasonContext.seasonId), {
-          ttlSeconds: CACHE_TTLS.nonPlayingDay,
-          staleWhileRevalidate: CACHE_TTLS.staleWhileRevalidateLong,
-          staleIfError: CACHE_TTLS.staleIfError,
-        });
-      }
+      if (path === '/season/meta' && method === 'GET')
+        return response(event, 200, getSeasonMeta(seasonContext.seasonId));
 
       // ---- Draft ----
       if (path === '/draft/state' && method === 'GET') {
+        if (
+          !season &&
+          seasonContext.seasonId !== (env.DEFAULT_SEASON || 'season2')
+        )
+          return response(event, 200, {
+            version: 0,
+            draftStarted: false,
+            isLocked: true,
+            availableTeams: [],
+            pickHistory: [],
+            historyAvailability: 'legacy-history-unavailable',
+          });
         const state = await ensureDraftState();
         return response(event, 200, state);
       }
@@ -388,13 +484,82 @@ export function createHttpHandler({ dynamoDB, https, env = process.env }) {
 
       return response(event, 404, { error: 'Not found', path, method });
     } catch (err) {
+      if (err instanceof DraftStateValidationError)
+        return response(event, 400, { error: err.message });
+      if (err instanceof DraftStateConflictError)
+        return response(event, 409, {
+          error: err.message,
+          currentState: err.currentState,
+        });
+      if (err.code === 'SeasonWriteLocked')
+        return response(event, 423, { error: 'Season writes are disabled' });
       console.error('handler error', err);
       return response(event, 500, {
         error: 'Internal Server Error',
-        detail: String(err),
       });
     }
   };
 
   return handler;
+}
+
+export function createHttpHandler({ dynamoDB, https, env = process.env }) {
+  if (env.SEASON_STORAGE !== 'v2')
+    return createLegacyHandler({ dynamoDB, https, env });
+  const http = createHttp({ ...createConfig(env), env });
+  return async (event) => {
+    if (http.getMethod(event) === 'OPTIONS')
+      return http.response(event, 204, {});
+    try {
+      const catalog = await storage.loadCatalog(dynamoDB, env);
+      if (
+        http.normalizePath(event) === '/seasons' &&
+        http.getMethod(event) === 'GET'
+      ) {
+        return http.response(event, 200, {
+          storageVersion: 'v2',
+          defaultSeason: catalog.defaultSeason,
+          seasons: catalog.seasons.map((s) => ({
+            ...s,
+            seasonId: s.id,
+            seasonOver: s.status === 'archived',
+          })),
+        });
+      }
+      const raw = http.getQueryParams(event).season ?? catalog.defaultSeason;
+      const match = String(raw)
+        .trim()
+        .toLowerCase()
+        .match(/^(?:season)?([1-9]\d*)$/);
+      if (!match) return http.response(event, 400, { error: 'Invalid season' });
+      const id = `season${match[1]}`;
+      const season = catalog.seasons.find((s) => s.id === id);
+      if (!season)
+        return http.response(event, 404, { error: 'Unknown season' });
+      const scoped = storage.scopedClient(
+        dynamoDB,
+        catalog.tables,
+        season,
+        'preseason'
+      );
+      const overrides = {
+        ...env,
+        DEFAULT_SEASON: id,
+        PLAYERS_TABLE: catalog.tables.players,
+        GAME_RECORDS_TABLE: catalog.tables.records,
+        GAME_OPTIONS_TABLE: catalog.tables.options,
+        [`PLAYERS_TABLE_${id.toUpperCase()}`]: catalog.tables.players,
+        [`GAME_RECORDS_TABLE_${id.toUpperCase()}`]: catalog.tables.records,
+      };
+      return await createLegacyHandler({
+        dynamoDB: scoped,
+        https,
+        env: overrides,
+        season,
+      })(event);
+    } catch (error) {
+      console.error('season request failed', error.name);
+      return http.response(event, 503, { error: 'Season data is unavailable' });
+    }
+  };
 }

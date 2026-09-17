@@ -23,3 +23,14 @@ Phase 1 was merged in #73. Phase 2 is implemented on
 `isc-030-phase2-behavior-refactors`; local verification is complete and draft PR #75 is open for the
 phase review. See PHASE-2-REVIEW.md and the PR checks for CI results. Production-data inventory, rollover, and visual redesign remain in
 Phases 3 and 4. The original WIP is untouched.
+
+## Phase 3 — #28 season isolation and rollover
+
+- DONE: read-only inventory, stable string player IDs, corroborated Season 2 roster recovery and explicit counter discrepancies.
+- DONE: opt-in canonical season/lifetime storage, catalog-based frontend, archived write guards, season-tagged checker, atomic reset and closeout.
+- DONE: dry-run migration, source/target fingerprints, schema/identity preflight, conditional reruns and separate restore copy.
+- DONE: disposable AWS rehearsal with actual exported Season 1/2 data; historical rows and restored backup remained unchanged after draft/game/closeout.
+- DONE: local regression checks, packaging and sanitized review; draft PR/CI review checkpoint pending.
+- REVIEW: approve/reconcile Terry's preserved 11 seasonal / 28 lifetime baseline before production cutover.
+- DEFERRED TO CUTOVER: production managed-backup restore, IAM/writer/schedule quiescence, authorization #29/#36, starting champion and dates, deployment and cache invalidation.
+- STOP: Phase 4 starts only after this phase is reviewed and the separate redesign guide is supplied.

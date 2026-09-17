@@ -106,11 +106,17 @@ function createStateStore({
   async function findPlayerWithTeam(team) {
     const params = { TableName: PLAYERS_TABLE };
     try {
-      const result = await dynamoDB.scan(params).promise();
-      const player = result.Items?.find(
+      const players = await require('../shared/season-storage.cjs').collect(
+        dynamoDB,
+        'scan',
+        { ...params, ConsistentRead: true }
+      );
+      const owners = players.filter(
         (p) => Array.isArray(p.teams) && p.teams.includes(team)
       );
-      return player ? player.id : null;
+      if (owners.length > 1)
+        throw new Error('Multiple owners for winning team');
+      return owners[0]?.id ?? null;
     } catch (error) {
       log('error', 'Players scan failed', { error: String(error) });
       throw new Error('Failed to find player with winning team');

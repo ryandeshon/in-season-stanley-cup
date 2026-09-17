@@ -12,7 +12,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
-AWS_PROFILE="${AWS_PROFILE:-inseason-admin}"
+AWS_PROFILE="${AWS_PROFILE:-default}"
 HTTP_API_FUNCTION_NAME="${HTTP_API_FUNCTION_NAME:-inseason-http-api}"
 SEASON_ID="${SEASON_ID:-season2}"
 GAME_OPTIONS_ID="${GAME_OPTIONS_ID:-currentChampion}"
@@ -25,6 +25,11 @@ LAMBDA_ENV_JSON="$(aws lambda get-function-configuration \
   --profile "$AWS_PROFILE" \
   --query 'Environment.Variables' \
   --output json)"
+
+if [[ "$(jq -r '.SEASON_STORAGE // "legacy"' <<<"$LAMBDA_ENV_JSON")" == "v2" ]]; then
+  echo "Canonical season storage requires scripts/season/rollover.cjs transition; refusing legacy closeout"
+  exit 1
+fi
 
 SEASON_NUMBER="$(echo "$SEASON_ID" | sed -E 's/[^0-9]//g')"
 if [[ -z "$SEASON_NUMBER" ]]; then

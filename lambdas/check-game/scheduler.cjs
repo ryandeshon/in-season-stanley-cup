@@ -64,6 +64,7 @@ function createScheduler({
         RoleArn: SCHEDULER_ROLE_ARN,
         Input: JSON.stringify({
           source: 'inseason.self-schedule',
+          ...(env.CHECK_SEASON ? { seasonId: env.CHECK_SEASON } : {}),
           reason,
           gameID,
           nextCheckAt,

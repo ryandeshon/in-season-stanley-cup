@@ -14,6 +14,16 @@ beforeEach(() => {
     throw new Error(`Unstubbed request: ${req.method} ${req.url}`);
   });
 
+  cy.intercept('GET', 'http://localhost:8080/api/seasons', {
+    body: {
+      defaultSeason: 'season2',
+      seasons: [
+        { id: 'season1', label: 'Season 1', status: 'archived' },
+        { id: 'season2', label: 'Season 2', status: 'active' },
+      ],
+    },
+  });
+
   // NHL logo assets are decorative; keep the suite independent of that CDN.
   cy.intercept('GET', 'https://assets.nhle.com/logos/**', {
     statusCode: 200,
