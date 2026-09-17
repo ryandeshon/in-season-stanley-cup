@@ -900,3 +900,66 @@
     transform: translateY(10%);
   }
 }
+
+/* The match remains a theatrical dark stage in both readable app themes. */
+[data-season='season3'] .v-main > .arcade-home {
+  padding-top: 12px;
+}
+.arcade-home .arcade-arena {
+  margin-top: 8px;
+}
+.fighter-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.fighter-foot img {
+  object-fit: contain;
+}
+[data-season='season3'][data-mode='light'] {
+  color-scheme: light;
+  --arcade-ivory: #253126;
+  --arcade-muted: #495546;
+}
+[data-season='season3'][data-mode='light'] .v-application {
+  background: radial-gradient(ellipse at top, #fafaf5, #dfe3d9);
+}
+[data-season='season3'][data-mode='light'] .v-app-bar,
+[data-season='season3'][data-mode='light'] .v-footer {
+  background: #d7dece !important;
+  color: #243526 !important;
+}
+[data-season='season3'][data-mode='light'] .arcade-brand {
+  color: #243526 !important;
+}
+[data-season='season3'][data-mode='light'] .arcade-brand small {
+  color: #485840;
+}
+[data-season='season3'][data-mode='light'] .brand-mark {
+  color: #66501c;
+}
+[data-season='season3'][data-mode='light'] .v-table {
+  background: #f8f9f3;
+}
+[data-season='season3'][data-mode='light'] .v-table th,
+[data-season='season3'][data-mode='light'] .v-table tr:nth-child(even) td {
+  background: #dbe2d4;
+  color: #293e2a;
+}
+[data-season='season3'][data-mode='light'] .arcade-dossier {
+  background: #e0e7d9;
+}
+[data-season='season3'][data-mode='light'] .arcade-dossier p,
+[data-season='season3'][data-mode='light'] .page-deck,
+[data-season='season3'][data-mode='light'] .page-eyebrow {
+  color: #45553e;
+}
+[data-season='season3'][data-mode='light'] .arcade-arena {
+  color: #f0efe5;
+  --arcade-ivory: #f0efe5;
+}
+[data-season='season3'][data-mode='light'] .preview-controls {
+  background: #ece6ce;
+  color: #4d431f;
+}

@@ -26,9 +26,12 @@
     </header>
     <div class="arena-hud" aria-live="polite" aria-atomic="true">
       <div class="hud-team">
-        <TeamLogo :team="leftTeam?.abbrev" width="42" height="42" /><span>{{
-          leftTeam?.abbrev || 'TBD'
-        }}</span>
+        <TeamLogo
+          logo-mode="dark"
+          :team="leftTeam?.abbrev"
+          width="42"
+          height="42"
+        /><span>{{ leftTeam?.abbrev || 'TBD' }}</span>
       </div>
       <div class="hud-score">
         <strong
@@ -46,7 +49,12 @@
       </div>
       <div class="hud-team right">
         <span>{{ rightTeam?.abbrev || 'TBD' }}</span
-        ><TeamLogo :team="rightTeam?.abbrev" width="42" height="42" />
+        ><TeamLogo
+          logo-mode="dark"
+          :team="rightTeam?.abbrev"
+          width="42"
+          height="42"
+        />
       </div>
     </div>
     <div v-if="!live && !final" class="arena-start">{{ startTime }}</div>
@@ -130,10 +138,13 @@
           >
         </button>
         <div class="fighter-foot">
-          <span
-            >{{ side.team?.placeName?.default || side.team?.abbrev }}
-            {{ side.team?.commonName?.default }}</span
-          ><small v-if="live">{{ side.team?.sog ?? '—' }} SHOTS</small>
+          <TeamLogo
+            logo-mode="dark"
+            :team="side.team?.abbrev"
+            width="60"
+            height="60"
+          />
+          <small v-if="live">{{ side.team?.sog ?? '—' }} SHOTS</small>
         </div>
       </div>
       <span class="arena-vs" aria-hidden="true">VS</span>

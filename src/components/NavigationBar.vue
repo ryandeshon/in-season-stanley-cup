@@ -10,15 +10,12 @@
       <img :src="currentLogo" alt="In Season Cup Logo" class="h-10" />
     </router-link>
     <v-spacer></v-spacer>
-    <nav v-if="arcade" class="arcade-navigation" aria-label="Main">
-      <router-link to="/">Arena</router-link
-      ><router-link to="/standings">Standings</router-link
-      ><router-link to="/draft">Draft</router-link
-      ><router-link to="/story">The story</router-link>
-    </nav>
-
     <!-- Mobile Menu Button -->
-    <v-menu location="bottom end" :close-on-content-click="false">
+    <v-menu
+      v-model="menuOpen"
+      location="bottom end"
+      :close-on-content-click="false"
+    >
       <template v-slot:activator="{ props }">
         <v-btn
           data-test="navigation-menu"
@@ -31,6 +28,7 @@
 
       <v-list class="py-0" min-width="200">
         <!-- Navigation Items -->
+        <v-list-item to="/" prepend-icon="mdi-home" title="Arena" />
         <v-list-item
           to="/standings"
           prepend-icon="mdi-trophy"
@@ -53,7 +51,6 @@
 
         <!-- Theme Toggle -->
         <v-list-item
-          v-if="!arcade"
           @click.stop="toggleTheme"
           :prepend-icon="
             isDarkTheme ? 'mdi-lightbulb-outline' : 'mdi-lightbulb'
@@ -96,6 +93,7 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useSeasonStore } from '@/store/seasonStore';
 import season1Logo from '@/assets/in-season-logo-season1.png';
@@ -103,6 +101,14 @@ import season2Logo from '@/assets/in-season-logo-season2.png';
 
 const { isDarkTheme, toggleTheme } = useTheme();
 const seasonStore = useSeasonStore();
+const menuOpen = ref(false);
+const route = useRoute();
+watch(
+  () => route.fullPath,
+  () => {
+    menuOpen.value = false;
+  }
+);
 const selectedSeason = ref(seasonStore.currentSeason);
 const arcade = computed(() => seasonStore.currentSeason === 'season3');
 

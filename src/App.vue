@@ -65,8 +65,9 @@ onMounted(() => {
 const currentThemeName = computed(() => {
   // Ensure we have valid values before computing theme name
   const seasonValue = seasonStore.currentSeason || 'season2';
-  if (seasonValue === 'season3') return 'season3-dark';
-  const season = seasonValue === 'season1' ? 'season1' : 'season2';
+  const season = ['season1', 'season2', 'season3'].includes(seasonValue)
+    ? seasonValue
+    : 'season2';
   const mode = isDarkTheme.value ? 'dark' : 'light';
   const themeName = `${season}-${mode}`;
   return themeName;
@@ -76,6 +77,7 @@ const currentThemeName = computed(() => {
 watch(
   currentThemeName,
   (newThemeName) => {
+    document.body.dataset.mode = isDarkTheme.value ? 'dark' : 'light';
     if (newThemeName && theme.global?.name) {
       theme.global.name.value = newThemeName;
     }
