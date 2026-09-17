@@ -51,7 +51,14 @@ describe('Hosted arcade preview isolation', () => {
     cy.get('[data-test="flawless-victory"]').should('be.visible');
     cy.get('.victory-heading').should('contain', 'Boz');
     cy.get('[data-test="navigation-menu"]').click();
-    cy.contains('.v-list-item', 'The Black Rink story').click();
+    cy.get('[data-test="navigation-menu"]').should(
+      'have.attr',
+      'aria-expanded',
+      'true'
+    );
+    cy.contains('.v-overlay--active .v-list-item', 'The Black Rink story')
+      .should('be.visible')
+      .click();
     cy.get('.story-console').should('be.visible');
     cy.location('pathname').should('eq', '/story');
     cy.reload();

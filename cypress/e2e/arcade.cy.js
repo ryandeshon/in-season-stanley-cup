@@ -116,7 +116,14 @@ describe('Season 3 arcade review', () => {
   it('provides optional scroll, timed, pause, chapter and skip story controls', () => {
     setup();
     cy.get('[data-test="navigation-menu"]').click();
-    cy.contains('.v-list-item', 'The Black Rink story').click();
+    cy.get('[data-test="navigation-menu"]').should(
+      'have.attr',
+      'aria-expanded',
+      'true'
+    );
+    cy.contains('.v-overlay--active .v-list-item', 'The Black Rink story')
+      .should('be.visible')
+      .click();
     cy.get('.story-scene:visible').should('have.length', 1);
     cy.get('.story-scene').should('contain', 'Ryan claimed the championship');
     cy.get('.br-controls').scrollIntoView();
