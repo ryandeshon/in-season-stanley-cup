@@ -5,6 +5,14 @@ import {
   hydratePlayerTeams,
 } from '@/utilities/playerTeamHydration';
 
+let adminToken = '';
+export function setDraftAdminToken(value) {
+  adminToken = value || '';
+}
+function adminHeaders() {
+  return adminToken ? { 'x-admin-token': adminToken } : {};
+}
+
 function withSeasonQuery(season) {
   if (!season) return undefined;
   return { season };
@@ -15,7 +23,7 @@ export async function getAllPlayers(options = {}) {
     query: withSeasonQuery(options.season),
     retries: 1,
   });
-  return hydratePlayerTeams(players);
+  return hydratePlayerTeams(players, options.season);
 }
 
 export async function getPlayerData(name, options = {}) {
@@ -23,7 +31,7 @@ export async function getPlayerData(name, options = {}) {
     query: withSeasonQuery(options.season),
     retries: 1,
   });
-  return hydratePlayerTeam(player);
+  return hydratePlayerTeam(player, options.season);
 }
 
 export async function getGameRecords(options = {}) {
@@ -43,6 +51,7 @@ export async function getDraftState(options = {}) {
 export async function updateDraftState(patch, options = {}) {
   return apiRequest('/draft/state', {
     method: 'PATCH',
+    headers: adminHeaders(),
     body: patch,
     query: withSeasonQuery(options.season),
   });
@@ -70,6 +79,7 @@ export async function makeDraftPick(playerId, team, version, options = {}) {
 
 export async function undoLastDraftPick(version, options = {}) {
   return apiRequest('/draft/undo-last-pick', {
+    headers: adminHeaders(),
     method: 'POST',
     body: { version },
     query: withSeasonQuery(options.season),
@@ -78,7 +88,9 @@ export async function undoLastDraftPick(version, options = {}) {
 
 export async function resetAllPlayerTeams(options = {}) {
   return apiRequest('/players/reset-teams', {
+    headers: adminHeaders(),
     method: 'POST',
+    body: { version: options.version },
     query: withSeasonQuery(options.season),
   });
 }

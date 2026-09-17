@@ -11,9 +11,9 @@ export function createDraftService({
   getNextPicker,
   getPlayerById,
   mapPlayerWithTeams,
+  listPlayers,
   normalizeDraftState,
   normalizeDraftTeam,
-  normalizeIsoDate,
   normalizePickHistory,
   parseDraftStateVersion,
   shouldDisableAutoPick,
@@ -38,35 +38,6 @@ export function createDraftService({
         }
       );
 
-      const needsNormalization =
-        typeof res.Item.state.isLocked !== 'boolean' ||
-        typeof res.Item.state.autoPickEnabled !== 'boolean' ||
-        !Number.isInteger(Number(res.Item.state.autoPickSeconds)) ||
-        !Array.isArray(res.Item.state.pickHistory) ||
-        !Array.isArray(res.Item.state.availableTeams) ||
-        !Number.isInteger(Number(res.Item.state.version)) ||
-        !res.Item.state.updatedAt ||
-        normalizeIsoDate(res.Item.state.autoPickDeadlineAt || null) !==
-          state.autoPickDeadlineAt;
-      if (needsNormalization) {
-        const now = new Date().toISOString();
-        state.updatedAt = now;
-        await dynamoDB
-          .update({
-            TableName: GAME_OPTIONS_TABLE,
-            Key: { id: DRAFT_STATE_ID },
-            UpdateExpression: 'SET #state = :state, #updatedAt = :ts',
-            ExpressionAttributeNames: {
-              '#state': 'state',
-              '#updatedAt': 'updatedAt',
-            },
-            ExpressionAttributeValues: {
-              ':state': state,
-              ':ts': now,
-            },
-          })
-          .promise();
-      }
       return state;
     }
 
@@ -82,17 +53,6 @@ export function createDraftService({
       ),
       version: 0,
     };
-
-    await dynamoDB
-      .put({
-        TableName: GAME_OPTIONS_TABLE,
-        Item: {
-          id: DRAFT_STATE_ID,
-          state,
-          updatedAt: state.updatedAt,
-        },
-      })
-      .promise();
 
     return state;
   }
@@ -175,7 +135,12 @@ export function createDraftService({
         .update(buildDraftStateVersionedWrite(next, expectedVersion))
         .promise();
     } catch (err) {
-      if (err?.code === 'ConditionalCheckFailedException') {
+      if (
+        [
+          'ConditionalCheckFailedException',
+          'TransactionCanceledException',
+        ].includes(err?.code)
+      ) {
         const latest = await ensureDraftState();
         throw new DraftStateConflictError(
           'Draft state version conflict',
@@ -186,6 +151,14 @@ export function createDraftService({
     }
 
     return next;
+  }
+
+  async function rejectChangedDraft(expectedVersion) {
+    // A roster read can observe a winning transaction after our earlier draft read.
+    const latest = await ensureDraftState();
+    if (latest.version !== expectedVersion) {
+      throw new DraftStateConflictError('Draft state version conflict', latest);
+    }
   }
 
   async function makeDraftPick({ playerId, team, version, playersTable }) {
@@ -237,6 +210,7 @@ export function createDraftService({
 
     const existingTeams = Array.isArray(player.teams) ? [...player.teams] : [];
     if (existingTeams.includes(normalizedTeam)) {
+      await rejectChangedDraft(expectedVersion);
       throw new DraftStateValidationError('Player already has that team');
     }
 
@@ -362,6 +336,7 @@ export function createDraftService({
 
     const existingTeams = Array.isArray(player.teams) ? [...player.teams] : [];
     if (!existingTeams.includes(undoTeam)) {
+      await rejectChangedDraft(expectedVersion);
       throw new DraftStateValidationError(
         'Last picked team is not assigned to the expected player'
       );
@@ -442,8 +417,58 @@ export function createDraftService({
       state: nextState,
     };
   }
+  async function resetDraft({ version, playersTable }) {
+    const expected = parseDraftStateVersion(version);
+    if (expected === null)
+      throw new DraftStateValidationError('version is required');
+    const current = await ensureDraftState();
+    if (current.version !== expected)
+      throw new DraftStateConflictError(
+        'Draft state version conflict',
+        current
+      );
+    const players = await listPlayers(playersTable);
+    const state = normalizeDraftState({
+      ...DEFAULT_DRAFT_STATE,
+      availableTeams: [...NHL_TEAMS],
+      version: expected + 1,
+      updatedAt: new Date().toISOString(),
+    });
+    try {
+      await dynamoDB
+        .transactWrite({
+          TransactItems: [
+            ...players.map((p) => ({
+              Update: {
+                TableName: playersTable,
+                Key: { id: p.id },
+                UpdateExpression: 'SET teams = :empty',
+                ConditionExpression: 'attribute_exists(id)',
+                ExpressionAttributeValues: { ':empty': [] },
+              },
+            })),
+            { Update: buildDraftStateVersionedWrite(state, expected) },
+          ],
+        })
+        .promise();
+    } catch (err) {
+      if (
+        [
+          'ConditionalCheckFailedException',
+          'TransactionCanceledException',
+        ].includes(err.code)
+      )
+        throw new DraftStateConflictError(
+          'Draft changed before reset',
+          await ensureDraftState()
+        );
+      throw err;
+    }
+    return { ok: true, state };
+  }
   return {
     ensureDraftState,
+    resetDraft,
     getDraftStateVersionCondition,
     buildDraftStateVersionedWrite,
     updateDraftState,

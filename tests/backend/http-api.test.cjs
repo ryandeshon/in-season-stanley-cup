@@ -222,3 +222,75 @@ test('storage errors produce a 500 response', async () => {
   });
   assert.equal((await request('/players')).statusCode, 500);
 });
+
+test('pick reports a version conflict when the roster read observes a concurrent winner', async () => {
+  let stateReads = 0;
+  const { request, calls } = await setup({
+    get: (p) => ({
+      Item:
+        p.Key.id === 'draftState'
+          ? {
+              state:
+                ++stateReads === 1
+                  ? state
+                  : { ...state, version: 8, currentPicker: 2 },
+            }
+          : { id: 1, name: 'Ryan', teams: ['BOS'] },
+    }),
+  });
+  const result = await request('/draft/pick', 'POST', {
+    playerId: 1,
+    team: 'BOS',
+    version: 7,
+  });
+  assert.equal(result.statusCode, 409);
+  assert.equal(result.json.currentState.version, 8);
+  assert.ok(!calls.some((call) => call.name === 'transactWrite'));
+});
+
+test('an already-owned team remains a validation error when the draft version is unchanged', async () => {
+  const { request } = await setup({
+    get: (p) => ({
+      Item: p.Key.id === 'draftState' ? { state } : { id: 1, teams: ['BOS'] },
+    }),
+  });
+  assert.equal(
+    (
+      await request('/draft/pick', 'POST', {
+        playerId: 1,
+        team: 'BOS',
+        version: 7,
+      })
+    ).statusCode,
+    400
+  );
+});
+
+test('undo reports a version conflict when another undo already removed the team', async () => {
+  let stateReads = 0;
+  const { request, calls } = await setup(
+    {
+      get: (p) => ({
+        Item:
+          p.Key.id === 'draftState'
+            ? {
+                state:
+                  ++stateReads === 1
+                    ? {
+                        ...state,
+                        pickHistory: [
+                          { playerId: 1, team: 'BOS', pickNumber: 1 },
+                        ],
+                      }
+                    : { ...state, version: 8 },
+              }
+            : { id: 1, name: 'Ryan', teams: [] },
+      }),
+    },
+    { ADMIN_API_TOKEN: '' }
+  );
+  const result = await request('/draft/undo-last-pick', 'POST', { version: 7 });
+  assert.equal(result.statusCode, 409);
+  assert.equal(result.json.currentState.version, 8);
+  assert.ok(!calls.some((call) => call.name === 'transactWrite'));
+});

@@ -16,7 +16,7 @@ function log(level, msg, extra = {}) {
 function addSecondsToNow(seconds) {
   return new Date(Date.now() + seconds * 1000).toISOString();
 }
-function createChecker({
+function createLegacyChecker({
   dynamoDB,
   https,
   scheduler = null,
@@ -100,6 +100,11 @@ function createChecker({
       log('info', 'GameID loaded', { gameID });
 
       const game = await fetchGameData(gameID);
+      if (
+        env.SEASON_STORAGE === 'v2' &&
+        !String(gameID).startsWith(env.NHL_GAME_PREFIX)
+      )
+        throw new Error('Game belongs to another season');
       log('info', 'Game state fetched', {
         gameID,
         gameState: game.gameState,
@@ -196,5 +201,52 @@ function createChecker({
   };
 
   return handler;
+}
+function createChecker(deps) {
+  const env = deps.env || process.env;
+  if (env.SEASON_STORAGE !== 'v2') return createLegacyChecker(deps);
+  const storage = require('../shared/season-storage.cjs');
+  return async (event = {}, context) => {
+    try {
+      const catalog = await storage.loadCatalog(deps.dynamoDB, env);
+      // Every trigger must name its season; delayed legacy triggers cannot switch seasons.
+      const season = catalog.seasons.find((s) => s.id === event.seasonId);
+      if (!season || season.status !== 'active' || !season.writersEnabled)
+        return {
+          statusCode: 423,
+          body: JSON.stringify({
+            error: 'An active, writable seasonId is required',
+          }),
+        };
+      if (!/^\d{6}$/.test(season.nhlGamePrefix || ''))
+        throw new Error('Missing NHL game prefix');
+      return createLegacyChecker({
+        ...deps,
+        dynamoDB: storage.scopedClient(
+          deps.dynamoDB,
+          catalog.tables,
+          season,
+          'active'
+        ),
+        env: {
+          ...env,
+          CHECK_SEASON: season.id,
+          NHL_GAME_PREFIX: season.nhlGamePrefix,
+          GAME_OPTIONS_TABLE: catalog.tables.options,
+          GAME_RECORDS_TABLE: catalog.tables.records,
+          PLAYERS_TABLE: catalog.tables.players,
+          WATCH_SCHEDULE_NAME: `${env.WATCH_SCHEDULE_NAME || 'inseason-check-game-watch'}-${season.id}`,
+        },
+      })(event, context);
+    } catch (error) {
+      (deps.log || log)('error', 'Season checker unavailable', {
+        error: error.name,
+      });
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Season checker unavailable' }),
+      };
+    }
+  };
 }
 module.exports = { createChecker };

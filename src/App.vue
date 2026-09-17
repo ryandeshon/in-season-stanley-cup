@@ -5,7 +5,10 @@
 
     <!-- Main Content -->
     <v-main>
-      <router-view></router-view>
+      <v-alert v-if="seasonStore.catalogError" type="error">{{
+        seasonStore.catalogError
+      }}</v-alert>
+      <router-view v-else :key="seasonStore.currentSeason"></router-view>
     </v-main>
 
     <!-- Footer -->

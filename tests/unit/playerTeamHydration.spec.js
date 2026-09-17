@@ -11,7 +11,7 @@ describe('playerTeamHydration', () => {
       { id: 0, name: 'Ryan', titleDefenses: 0 },
     ];
 
-    const hydrated = hydratePlayerTeams(players);
+    const hydrated = hydratePlayerTeams(players, 'season1');
 
     expect(hydrated[0].teams).toContain('NJD');
     expect(hydrated[1].teams).toContain('WPG');
@@ -46,13 +46,18 @@ describe('playerTeamHydration', () => {
   it('falls back by player name when id is unavailable', () => {
     const player = {
       name: '  terry ',
-      teams: [],
       championships: 0,
     };
 
-    const hydrated = hydratePlayerTeam(player);
+    expect(hydratePlayerTeam(player, 'season1').teams).toContain('NJD');
+  });
 
-    expect(hydrated.teams).toContain('NJD');
+  it('keeps empty rosters and does not leak historical teams to a new season', () => {
+    expect(hydratePlayerTeam({ id: '0', teams: [] }, 'season1')).toEqual({
+      id: 0,
+      teams: [],
+    });
+    expect(hydratePlayerTeam({ id: '0' }, 'season3').teams).toEqual([]);
   });
 
   it('guarantees teams is an array when no fallback exists', () => {

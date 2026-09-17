@@ -95,10 +95,9 @@ const currentLogo = computed(() => {
   return seasonStore.currentSeason === 'season1' ? season1Logo : season2Logo;
 });
 
-const seasonOptions = [
-  { label: '1', value: 'season1' },
-  { label: '2', value: 'season2' },
-];
+const seasonOptions = computed(() =>
+  seasonStore.seasons.map((s) => ({ label: s.id.slice(6), value: s.id }))
+);
 
 const handleSeasonChange = (newSeason) => {
   seasonStore.setSeason(newSeason);

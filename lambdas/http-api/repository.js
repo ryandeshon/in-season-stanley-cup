@@ -1,26 +1,21 @@
+import storage from '../shared/season-storage.cjs';
 export function createRepository({
   GAME_OPTIONS_TABLE,
   GAME_RECORDS_TABLE,
   PLAYERS_TABLE,
   dynamoDB,
+  GAME_OPTIONS_KEY = 'currentChampion',
 }) {
   async function listPlayers(tableName = PLAYERS_TABLE) {
-    const result = await dynamoDB.scan({ TableName: tableName }).promise();
-    return result.Items || [];
+    return storage.collect(dynamoDB, 'scan', {
+      TableName: tableName,
+      ConsistentRead: true,
+    });
   }
 
   async function getPlayerByName(name, tableName = PLAYERS_TABLE) {
-    const res = await dynamoDB
-      .query({
-        TableName: tableName,
-        IndexName: 'NameIndex',
-        KeyConditionExpression: '#n = :name',
-        ExpressionAttributeNames: { '#n': 'name' },
-        ExpressionAttributeValues: { ':name': name },
-        Limit: 1,
-      })
-      .promise();
-    return res.Items?.[0] || null;
+    const players = await listPlayers(tableName);
+    return players.find((player) => player.name === name) || null;
   }
 
   async function getPlayerById(id, tableName = PLAYERS_TABLE) {
@@ -78,13 +73,15 @@ export function createRepository({
   }
 
   async function listGameRecords(tableName = GAME_RECORDS_TABLE) {
-    const result = await dynamoDB.scan({ TableName: tableName }).promise();
-    return result.Items || [];
+    return storage.collect(dynamoDB, 'scan', {
+      TableName: tableName,
+      ConsistentRead: true,
+    });
   }
 
   async function getGameOptions() {
     const res = await dynamoDB
-      .get({ TableName: GAME_OPTIONS_TABLE, Key: { id: 'currentChampion' } })
+      .get({ TableName: GAME_OPTIONS_TABLE, Key: { id: GAME_OPTIONS_KEY } })
       .promise();
     return res.Item || {};
   }
@@ -94,7 +91,7 @@ export function createRepository({
       await dynamoDB
         .update({
           TableName: GAME_OPTIONS_TABLE,
-          Key: { id: 'currentChampion' },
+          Key: { id: GAME_OPTIONS_KEY },
           UpdateExpression: 'REMOVE gameID',
         })
         .promise();
@@ -104,7 +101,7 @@ export function createRepository({
     const res = await dynamoDB
       .update({
         TableName: GAME_OPTIONS_TABLE,
-        Key: { id: 'currentChampion' },
+        Key: { id: GAME_OPTIONS_KEY },
         UpdateExpression: 'SET gameID = :g, updatedAt = :ts',
         ExpressionAttributeValues: {
           ':g': gameID,

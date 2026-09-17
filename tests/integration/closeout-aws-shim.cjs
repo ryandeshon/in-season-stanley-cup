@@ -16,6 +16,7 @@ async function main() {
       console.log(
         JSON.stringify({
           PLAYERS_TABLE: tables.players,
+          SEASON_STORAGE: process.env.CLOSEOUT_TEST_STORAGE || 'legacy',
           GAME_OPTIONS_TABLE: tables.options,
         })
       );

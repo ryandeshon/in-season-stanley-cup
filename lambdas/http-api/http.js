@@ -44,9 +44,10 @@ export function createHttp({ ALLOWED_HOSTS, CORS_ORIGIN, env, https }) {
   function buildHeaders(event, cacheOptions = null) {
     const origin = getCorsOrigin(event);
     const base = {
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type,X-Admin-Token',
       'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
       Vary: 'Origin',
+      'Cache-Control': 'no-store',
     };
     if (origin) base['Access-Control-Allow-Origin'] = origin;
     if (cacheOptions?.ttlSeconds) {
@@ -112,7 +113,7 @@ export function createHttp({ ALLOWED_HOSTS, CORS_ORIGIN, env, https }) {
 
   function isAuthorized(event) {
     const requiredAdminToken = env.ADMIN_API_TOKEN;
-    if (!requiredAdminToken) return true;
+    if (!requiredAdminToken) return env.SEASON_STORAGE !== 'v2';
     const providedToken = getHeaderValue(event, 'x-admin-token');
     return providedToken === requiredAdminToken;
   }
