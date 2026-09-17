@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2
+
+### Patch Changes
+
+- 043d4fb: Add opt-in season-isolated storage, catalog-driven season selection, guarded draft/game/closeout transactions, and dry-run migration/restore tools. Preserve historical rosters and accepted lifetime totals, prevent empty new-season rosters from inheriting legacy teams, and extend rollover regression coverage.
+
+  Return current draft state when concurrent roster changes invalidate a pick or undo, and isolate browser dictionary downloads in Cypress.
+
 ## 2.4.1
 
 ### Patch Changes
