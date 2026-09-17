@@ -963,3 +963,10 @@
   background: #ece6ce;
   color: #4d431f;
 }
+[data-season='season3'][data-mode='light'] .arcade-scorers {
+  background: #e0e7d9;
+}
+[data-season='season3'][data-mode='light'] .arcade-scorers strong,
+[data-season='season3'][data-mode='light'] .arcade-scorers p {
+  color: #34462f;
+}

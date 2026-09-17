@@ -12,6 +12,7 @@
     <v-spacer></v-spacer>
     <!-- Mobile Menu Button -->
     <v-menu
+      :transition="false"
       v-model="menuOpen"
       location="bottom end"
       :close-on-content-click="false"
