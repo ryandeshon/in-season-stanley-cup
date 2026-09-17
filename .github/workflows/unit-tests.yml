@@ -25,5 +25,5 @@ jobs:
       - name: Run unit tests
         run: yarn test:unit
 
-      - name: Run game checker tests
-        run: yarn test:checker
+      - name: Run API and game checker contracts
+        run: yarn test:backend
