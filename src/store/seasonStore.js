@@ -34,7 +34,9 @@ export const useSeasonStore = defineStore('season', {
         ? 'GameRecords'
         : `GameRecords-Season${s.currentSeason.slice(6)}`,
     playerImagesPath: (s) =>
-      s.currentSeason === 'season1' ? 'season1' : 'season2',
+      ['season1', 'season2', 'season3'].includes(s.currentSeason)
+        ? s.currentSeason
+        : 'season2',
     seasonDisplayName: (s) =>
       s.seasons.find((season) => season.id === s.currentSeason)?.label ||
       s.currentSeason,

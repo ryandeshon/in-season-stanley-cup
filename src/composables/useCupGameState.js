@@ -1,5 +1,6 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { DateTime } from 'luxon';
+import { getPresentationResult } from '@/utilities/arcadePresentation';
 import nhlApi from '@/services/nhlApi';
 import {
   areSeasonContractEndpointsEnabled,
@@ -470,7 +471,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     const wasGameOver = isGameOver.value;
     todaysGame.value = gameData;
     secondsRemaining.value = gameData.clock?.secondsRemaining ?? 0;
-    isGameOver.value = ['FINAL', 'OFF'].includes(gameData.gameState);
+    isGameOver.value = Boolean(getPresentationResult(gameData));
     isGameLive.value = ['LIVE', 'CRIT'].includes(gameData.gameState);
     lastLiveUpdateAt.value = Date.now();
 
@@ -495,7 +496,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     isGameToday.value = true;
 
     if (isGameOver.value) {
-      setGameOutcome(gameData);
+      if (!setGameOutcome(gameData)) return;
       if (!wasGameOver) {
         refreshChampionAndGameState({ bustCache: true });
       }
@@ -509,12 +510,13 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   }
 
   function setGameOutcome(gameData) {
-    const homeTeam = gameData.homeTeam;
-    const awayTeam = gameData.awayTeam;
-    if (!homeTeam || !awayTeam) return;
-
-    const winnerTeam = homeTeam.score > awayTeam.score ? homeTeam : awayTeam;
-    const loserTeam = winnerTeam === homeTeam ? awayTeam : homeTeam;
+    const result = getPresentationResult(gameData);
+    if (!result) {
+      todaysWinner.value = {};
+      todaysLoser.value = {};
+      return false;
+    }
+    const { winner: winnerTeam, loser: loserTeam } = result;
 
     todaysWinner.value = {
       ...winnerTeam,
@@ -524,6 +526,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       ...loserTeam,
       player: resolvePlayerByTeam(loserTeam.abbrev),
     };
+    return true;
   }
 
   // Ownership changes when the selected season's roster arrives, even if the

@@ -34,7 +34,9 @@ function buildAssetUrl(path) {
 export function getPlayerImageUrl(season, playerName, imageType) {
   if (!ASSET_BASE_URL) return null;
 
-  const normalizedSeason = season === 'season1' ? 'season1' : 'season2';
+  const normalizedSeason = ['season1', 'season2', 'season3'].includes(season)
+    ? season
+    : 'season2';
   const normalizedPlayer =
     PLAYER_NAME_MAP[playerName] || playerName?.toLowerCase();
   if (!normalizedPlayer) return null;

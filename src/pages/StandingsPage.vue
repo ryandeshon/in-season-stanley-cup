@@ -1,5 +1,6 @@
 <template>
   <v-container class="max-w-screen-md">
+    <p v-if="arcade" class="page-eyebrow">SEASON 03 / THE RANKING BOARD</p>
     <h1 class="text-4xl font-bold mb-4">Standings</h1>
     <p>View the standings of the players based on their teams' cup reigns.</p>
     <template v-if="loading">
@@ -27,9 +28,14 @@
               class="py-2"
             >
               <td class="text-left font-bold align-middle">
-                <router-link :to="`/player/${standing.name}`">{{
-                  standing.name
-                }}</router-link>
+                <router-link :to="`/player/${standing.name}`"
+                  ><img
+                    v-if="arcade && characters[standing.name]"
+                    :src="characters[standing.name].portrait"
+                    alt=""
+                    class="rank-portrait"
+                  />{{ standing.name }}</router-link
+                >
                 <img
                   v-if="standing.name === currentChampion?.name"
                   :src="Crown"
@@ -107,12 +113,14 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useSeasonData } from '@/composables/useSeasonData';
 import { useChampionTimeline } from '@/composables/useChampionTimeline';
 import { getCurrentChampion } from '@/services/championServices';
+import { characters } from '@/utilities/arcadeAssets';
 import { useSeasonStore } from '@/store/seasonStore';
 import TeamLogo from '@/components/TeamLogo.vue';
 import ChampionTimeline from '@/components/ChampionTimeline.vue';
 import Crown from '@/assets/crown.png';
 
 const seasonStore = useSeasonStore();
+const arcade = computed(() => seasonStore.currentSeason === 'season3');
 const { players, gameRecords, loading } = useSeasonData();
 const currentChampion = ref(null);
 

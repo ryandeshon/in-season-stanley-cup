@@ -1,9 +1,21 @@
 <template>
   <v-app-bar app color="primary" class="px-2">
-    <router-link to="/" class="mr-2 h-10">
+    <router-link v-if="arcade" to="/" class="arcade-brand"
+      ><span class="brand-mark" aria-hidden="true">Ⅲ</span
+      ><span
+        >IN SEASON CUP<small>THE BLACK RINK · SEASON 03</small></span
+      ></router-link
+    >
+    <router-link v-else to="/" class="mr-2 h-10">
       <img :src="currentLogo" alt="In Season Cup Logo" class="h-10" />
     </router-link>
     <v-spacer></v-spacer>
+    <nav v-if="arcade" class="arcade-navigation" aria-label="Main">
+      <router-link to="/">Arena</router-link
+      ><router-link to="/standings">Standings</router-link
+      ><router-link to="/draft">Draft</router-link
+      ><router-link to="/story">The story</router-link>
+    </nav>
 
     <!-- Mobile Menu Button -->
     <v-menu location="bottom end" :close-on-content-click="false">
@@ -34,11 +46,14 @@
 
         <v-divider />
 
+        <v-list-item to="/draft" title="Draft" />
+        <v-list-item to="/story" title="The Black Rink story" />
         <!-- Settings Section -->
         <v-list-subheader>Settings</v-list-subheader>
 
         <!-- Theme Toggle -->
         <v-list-item
+          v-if="!arcade"
           @click.stop="toggleTheme"
           :prepend-icon="
             isDarkTheme ? 'mdi-lightbulb-outline' : 'mdi-lightbulb'
@@ -89,6 +104,7 @@ import season2Logo from '@/assets/in-season-logo-season2.png';
 const { isDarkTheme, toggleTheme } = useTheme();
 const seasonStore = useSeasonStore();
 const selectedSeason = ref(seasonStore.currentSeason);
+const arcade = computed(() => seasonStore.currentSeason === 'season3');
 
 // Computed property for current logo based on season
 const currentLogo = computed(() => {
@@ -107,7 +123,9 @@ const handleSeasonChange = (newSeason) => {
 // Function to update CSS variables for fonts
 const updateFontForSeason = (season) => {
   const root = document.documentElement;
-  if (season === 'season1') {
+  if (season === 'season3') {
+    root.style.setProperty('--font-heading', "'Press Start 2P', monospace");
+  } else if (season === 'season1') {
     root.style.setProperty('--font-heading', "'Roboto Condensed', sans-serif");
   } else {
     root.style.setProperty(
