@@ -5,6 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "preview:arcade": "node scripts/preview/arcade.cjs",
+    "test:hosted-preview": "ELECTRON_RUN_AS_NODE= start-server-and-test \"node scripts/preview/serve-static.cjs\" http://localhost:8092 \"cypress run --config-file cypress.hosted.config.cjs\"",
     "cy:serve": "node scripts/test/serve-cypress.cjs",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",

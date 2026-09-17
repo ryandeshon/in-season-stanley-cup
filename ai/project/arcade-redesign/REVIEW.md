@@ -55,3 +55,7 @@ The persistence suite requires DynamoDB Local; the repository CI provides that
 service. The security scanner reports the same three baseline documentation/
 asset-policy matches; the changed scope has no matches. Existing production asset
 size warnings remain. The patch changeset resolves to version 2.4.2.
+
+## Authorized Test deployment
+
+Following review, the user requested hosting the interactive sample-data preview on Test. Enable `VUE_APP_HOSTED_ARCADE_PREVIEW=true` only for Test. The preview defaults to Season 3 independently of saved live-season preferences. Use the preview toolbar to change scores and owners; Reset restores sample state in this browser. These actions never update the database. Production remains unchanged. The hosted production bundle has an additional Cypress gate, alongside the full existing browser suite.

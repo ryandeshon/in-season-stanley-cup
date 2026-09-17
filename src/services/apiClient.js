@@ -1,3 +1,4 @@
+import { hostedPreview, previewBase } from '@/utilities/previewConfig';
 const DEFAULT_TIMEOUT_MS = Number(process.env.VUE_APP_API_TIMEOUT_MS) || 10000;
 const DEFAULT_RETRY_DELAY_MS = 300;
 
@@ -60,7 +61,9 @@ function shouldRetry(error, attempt, retries) {
 }
 
 export async function apiRequest(path, options = {}) {
-  const baseURL = options.baseURL || process.env.VUE_APP_API_BASE;
+  const baseURL = hostedPreview
+    ? `${previewBase}/api`
+    : options.baseURL || process.env.VUE_APP_API_BASE;
   if (!baseURL) {
     throw new ApiClientError('VUE_APP_API_BASE is not configured.');
   }

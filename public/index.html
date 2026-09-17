@@ -35,6 +35,7 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto+Condensed:wght@700&display=swap"
       rel="stylesheet"
     />
+    <% if (process.env.VUE_APP_HOSTED_ARCADE_PREVIEW !== 'true') { %>
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -49,6 +50,7 @@
 
       gtag('config', 'G-KPL5ZVDJC7');
     </script>
+    <% } %>
   </head>
   <body>
     <noscript>
