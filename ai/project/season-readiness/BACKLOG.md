@@ -34,3 +34,9 @@ Phases 3 and 4. The original WIP is untouched.
 - REVIEW: approve/reconcile Terry's preserved 11 seasonal / 28 lifetime baseline before production cutover.
 - DEFERRED TO CUTOVER: production managed-backup restore, IAM/writer/schedule quiescence, authorization #29/#36, starting champion and dates, deployment and cache invalidation.
 - STOP: Phase 4 starts only after this phase is reviewed and the separate redesign guide is supplied.
+
+### PR #76 check follow-up
+
+- Fix the mixed-read draft race: if a roster already reflects a concurrent pick/undo, re-read the draft version and return 409 with the current state. Preserve 400 for an invalid roster operation at an unchanged version.
+- Stub only Electron's exact spelling-dictionary download route; retain the fail-closed guard for unstubbed app requests.
+- Add deterministic backend regressions for both concurrent paths and the unchanged-version validation case. Re-run browser and persistence CI before review.

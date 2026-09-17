@@ -32,7 +32,7 @@ rejection after activation, and exactly-once game finalization and closeout.
 The source production tables were read only. Test and restore tables are removed
 by the harness. Raw exports and test logs stay outside git.
 
-Local checks: 83 frontend unit tests, 22 backend contracts, 8 legacy persistence
+Local checks: 83 frontend unit tests, 25 backend contracts, 8 legacy persistence
 tests and the canonical lifecycle rehearsal, and all 32 Cypress scenarios.
 Production build, lint and complete Lambda packaging pass. The security scan
 retains the same pre-existing baseline matches; no new secret matches were added.

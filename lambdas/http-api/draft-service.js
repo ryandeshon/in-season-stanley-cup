@@ -153,6 +153,14 @@ export function createDraftService({
     return next;
   }
 
+  async function rejectChangedDraft(expectedVersion) {
+    // A roster read can observe a winning transaction after our earlier draft read.
+    const latest = await ensureDraftState();
+    if (latest.version !== expectedVersion) {
+      throw new DraftStateConflictError('Draft state version conflict', latest);
+    }
+  }
+
   async function makeDraftPick({ playerId, team, version, playersTable }) {
     const expectedVersion = parseDraftStateVersion(version);
     if (expectedVersion === null) {
@@ -202,6 +210,7 @@ export function createDraftService({
 
     const existingTeams = Array.isArray(player.teams) ? [...player.teams] : [];
     if (existingTeams.includes(normalizedTeam)) {
+      await rejectChangedDraft(expectedVersion);
       throw new DraftStateValidationError('Player already has that team');
     }
 
@@ -327,6 +336,7 @@ export function createDraftService({
 
     const existingTeams = Array.isArray(player.teams) ? [...player.teams] : [];
     if (!existingTeams.includes(undoTeam)) {
+      await rejectChangedDraft(expectedVersion);
       throw new DraftStateValidationError(
         'Last picked team is not assigned to the expected player'
       );

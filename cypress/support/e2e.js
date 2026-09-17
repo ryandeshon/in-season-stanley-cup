@@ -24,6 +24,17 @@ beforeEach(() => {
     },
   });
 
+  // Electron's browser process can fetch a dictionary even with webContents
+  // spellcheck disabled. Stub only this browser-owned download, never app APIs.
+  cy.intercept(
+    {
+      method: 'GET',
+      hostname: /(^|\.)gvt1\.com$/,
+      pathname: /^\/edgedl\/chrome\/dict\/[a-zA-Z0-9_-]+\.bdic$/,
+    },
+    { statusCode: 204, body: '' }
+  );
+
   // NHL logo assets are decorative; keep the suite independent of that CDN.
   cy.intercept('GET', 'https://assets.nhle.com/logos/**', {
     statusCode: 200,
