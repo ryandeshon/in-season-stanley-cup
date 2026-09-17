@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "cy:serve": "vue-cli-service serve --mode cypress --port 8080",
+    "cy:serve": "node scripts/test/serve-cypress.cjs",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "lint:fix": "vue-cli-service lint --fix",
@@ -13,12 +13,13 @@
     "assets:optimize": "bash ./scripts/assets/optimize-images.sh",
     "assets:upload": "bash ./scripts/assets/upload-assets.sh",
     "assets:bootstrap": "bash ./scripts/assets/bootstrap-assets-infra.sh",
-    "test:e2e": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress run\"",
-    "test:e2e:open": "ELECTRON_RUN_AS_NODE= start-server-and-test \"npm run cy:serve\" http://localhost:8080 \"cypress open\"",
+    "test:e2e": "ELECTRON_RUN_AS_NODE= start-server-and-test \"yarn cy:serve\" http://localhost:8080 \"cypress run\"",
+    "test:e2e:open": "ELECTRON_RUN_AS_NODE= start-server-and-test \"yarn cy:serve\" http://localhost:8080 \"cypress open\"",
     "security:audit": "bash ./scripts/security-scan.sh",
     "changeset": "changeset",
     "version:prepare": "changeset version",
-    "version:status": "changeset status --verbose"
+    "version:status": "changeset status --verbose",
+    "test:checker": "node --test lambdas/check-game/index.test.cjs"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",

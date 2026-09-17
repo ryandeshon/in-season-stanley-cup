@@ -1,7 +1,4 @@
-// TODO: Re-enable tests after fixing Cypress intercept issues in AWS
-// Tests are temporarily skipped for Season 2 release due to API intercept
-// patterns not working in AWS environment. See issue for details.
-describe.skip('In Season Cup - Standings', () => {
+describe('In Season Cup - Standings', () => {
   beforeEach(() => {
     cy.mockApiScenario('no-games-history-long');
   });

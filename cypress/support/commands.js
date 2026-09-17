@@ -1,8 +1,16 @@
+import { apiRoute, nhlRoute } from './routes';
+
 // Helpers for consistent API stubbing across scenarios
 Cypress.Commands.add(
   'mockApiScenario',
   (fixtureName = 'cup-day-multiple-games') => {
     cy.fixture(fixtureName).then((data) => {
+      cy.clock(
+        Date.parse(
+          data.gameInfoResponse?.startTimeUTC || '2024-11-01T12:00:00Z'
+        ),
+        ['Date']
+      );
       const {
         championResponse,
         championStatus = 200,
@@ -29,27 +37,27 @@ Cypress.Commands.add(
         scheduleStatus = 200,
       } = data;
 
-      cy.intercept('GET', '**/api/champion', {
+      cy.intercept(apiRoute('GET', '/champion'), {
         statusCode: championStatus,
         body: championResponse,
       }).as('getChampion');
 
-      cy.intercept('GET', '**/api/gameid', {
+      cy.intercept(apiRoute('GET', '/gameid'), {
         statusCode: gameIdStatus,
         body: gameIdResponse,
       }).as('getGameId');
 
-      cy.intercept('GET', '**/api/season/meta', {
+      cy.intercept(apiRoute('GET', '/season/meta'), {
         statusCode: seasonMetaStatus,
         body: seasonMetaResponse,
       }).as('getSeasonMeta');
 
-      cy.intercept('GET', '**/api/champion/history', {
+      cy.intercept(apiRoute('GET', '/champion/history'), {
         statusCode: championHistoryStatus,
         body: championHistoryResponse,
       }).as('getChampionHistory');
 
-      cy.intercept('GET', '**/api/players*', (req) => {
+      cy.intercept(apiRoute('GET', '/players{,/**}'), (req) => {
         const url = new URL(req.url);
         const pathParts = url.pathname.split('/').filter(Boolean);
         const playersIndex = pathParts.lastIndexOf('players');
@@ -77,19 +85,19 @@ Cypress.Commands.add(
         });
       }).as('getPlayers');
 
-      cy.intercept('GET', '**/api/game-records*', {
+      cy.intercept(apiRoute('GET', '/game-records'), {
         statusCode: 200,
         body: gameRecordsResponse,
       }).as('getGameRecords');
 
-      cy.intercept('GET', '**/nhl/gamecenter/**/boxscore', (req) => {
+      cy.intercept(nhlRoute('/gamecenter/**/boxscore'), (req) => {
         req.reply({
           statusCode: gameInfoStatus,
           body: gameInfoResponse,
         });
       }).as('getGameInfo');
 
-      cy.intercept('GET', '**/nhl/schedule/**', {
+      cy.intercept(nhlRoute('/schedule/**'), {
         statusCode: scheduleStatus,
         body: scheduleResponse,
       }).as('getSchedule');
@@ -127,19 +135,18 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       return new Date(Date.now() + seconds * 1000).toISOString();
     }
 
-    cy.intercept('GET', '**/api/players*', {
-      statusCode: 200,
-      body: players,
+    cy.intercept(apiRoute('GET', '/players'), (req) => {
+      req.reply({ statusCode: 200, body: players });
     }).as('getDraftPlayers');
 
-    cy.intercept('GET', '**/api/draft/state*', (req) => {
+    cy.intercept(apiRoute('GET', '/draft/state'), (req) => {
       req.reply({
         statusCode: 200,
         body: state,
       });
     }).as('getDraftState');
 
-    cy.intercept('PATCH', '**/api/draft/state*', (req) => {
+    cy.intercept(apiRoute('PATCH', '/draft/state'), (req) => {
       const expectedVersion = Number(req.body?.version);
       if (!Number.isInteger(expectedVersion)) {
         req.reply({
@@ -161,7 +168,8 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
         return;
       }
 
-      const { version: _ignoredVersion, ...patch } = req.body || {};
+      const patch = { ...req.body };
+      delete patch.version;
       state = {
         ...state,
         ...patch,
@@ -174,7 +182,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('patchDraftState');
 
-    cy.intercept('POST', '**/api/draft/pick*', (req) => {
+    cy.intercept(apiRoute('POST', '/draft/pick'), (req) => {
       const expectedVersion = Number(req.body?.version);
       const playerId = Number(req.body?.playerId);
       const team = String(req.body?.team || '')
@@ -278,7 +286,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('pickDraftTeam');
 
-    cy.intercept('POST', '**/api/draft/undo-last-pick*', (req) => {
+    cy.intercept(apiRoute('POST', '/draft/undo-last-pick'), (req) => {
       const expectedVersion = Number(req.body?.version);
       if (!Number.isInteger(expectedVersion)) {
         req.reply({
@@ -355,7 +363,7 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('undoDraftPick');
 
-    cy.intercept('POST', '**/api/draft/select-team*', (req) => {
+    cy.intercept(apiRoute('POST', '/draft/select-team'), (req) => {
       const playerId = Number(req.body?.playerId);
       const team = req.body?.team;
       players = players.map((player) => {
@@ -379,15 +387,12 @@ Cypress.Commands.add('mockDraftScenario', (fixtureName = 'draft-default') => {
       });
     }).as('selectDraftTeam');
 
-    cy.intercept('POST', '**/api/players/reset-teams*', () => {
+    cy.intercept(apiRoute('POST', '/players/reset-teams'), (req) => {
       players = players.map((player) => ({
         ...player,
         teams: [],
       }));
-      return {
-        statusCode: 200,
-        body: { ok: true },
-      };
+      req.reply({ statusCode: 200, body: { ok: true } });
     }).as('resetDraftTeams');
   });
 });
