@@ -3,7 +3,7 @@
 ## Current backend behavior
 - The HTTP API accepts `?season=seasonN` (or `?season=N`) on data endpoints.
 - If `season` is omitted, the API uses `DEFAULT_SEASON` (fallback: `season2`).
-- Table resolution rules in `lambdas/http-api/index.js`:
+- Table resolution rules in `lambdas/http-api/season.js`:
   - `season2` uses `PLAYERS_TABLE` and `GAME_RECORDS_TABLE`.
   - `seasonN` (`N != 2`) uses:
     - `PLAYERS_TABLE_SEASONN` / `GAME_RECORDS_TABLE_SEASONN` when provided.
@@ -58,7 +58,7 @@ Then check the same endpoint with `curl -i` first. A `404` response from API Gat
    - `SEASON3_REGULAR_SEASON_END=<YYYY-MM-DD>`
    - `SEASON3_PLAYOFFS_START=<YYYY-MM-DD>`
    - Optional: `SEASON3_SEASON_OVER=true|false`
-4. Deploy `lambdas/http-api/index.js` with the updated env vars.
+4. Package the complete HTTP Lambda with `yarn package:lambdas` and deploy `http-api.deploy.zip` with the updated env vars. Do not upload `index.js` alone; see [packaging prerequisites](phase2-testing-and-lambdas.md).
 5. Verify:
    - `GET /season/meta?season=season3`
    - `GET /players?season=season3`

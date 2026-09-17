@@ -56,6 +56,8 @@ describe('In Season Cup - Player Profile', () => {
     cy.get('[data-test="player-profile-head-to-head-row-boz"]').should(
       'not.exist'
     );
-    cy.get('[data-test="player-profile-head-to-head-row-ryan"]').should('exist');
+    cy.get('[data-test="player-profile-head-to-head-row-ryan"]').should(
+      'exist'
+    );
   });
 });

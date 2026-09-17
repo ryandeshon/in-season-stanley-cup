@@ -18,7 +18,7 @@ module.exports = defineConfig({
         );
         if (
           !results.totalTests ||
-          (config.env.requireFullSuite && results.totalTests < 17) ||
+          (config.env.requireFullSuite && results.totalTests < 29) ||
           results.totalPending > 0 ||
           results.totalSkipped > 0
         ) {
