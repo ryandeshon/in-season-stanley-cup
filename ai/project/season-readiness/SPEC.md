@@ -1,12 +1,12 @@
 # Season readiness: refactoring, reliable tests, historical data, redesign
 
-Status: proposed for review, September 17, 2026.
+Status: approved September 17, 2026; Phase 1 complete; awaiting user review. Stop for user review after each phase. Phase 4 design guide will be prepared by the user in another chat.
 
 ## Objective and sequence
 
 Prepare the app for Season 3 and a complete visual redesign without changing game rules or losing prior-season records. Sequence: audit and small covered refactors; restore reliable browser coverage (#71); strengthen game/data tests; complete season isolation and rehearse rollover (#28); redesign against protected behavior; verify release.
 
-Refactoring is authorized. The broader implementation plan is awaiting the user's review. This planning change does not modify application code or production data.
+The broader plan and Phase 1 are authorized. Phase 1 changes test infrastructure and fixtures only; no game rules or production data changes. Continue into Phase 2 only after the Phase 1 review.
 
 ## Baseline and workspace
 
@@ -103,4 +103,4 @@ Review screenshots for the new design as each page is accepted. Establish visual
 
 ## Review decision
 
-Proposed scope: Cypress recovery first, focused covered refactors, historical-data protection and rollover rehearsal, then visual redesign. User review is requested for this broader sequence; no additional permission is needed for the already-authorized refactoring work.
+Approved sequence: Cypress recovery first, focused covered refactors, historical-data protection and rollover rehearsal, then visual redesign. Phase 1 is complete; see PHASE-1-REVIEW.md. Await the requested review before Phase 2.

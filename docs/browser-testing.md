@@ -50,8 +50,9 @@ Node 22 too; browser tests run on its `test` branch or when an isolated validati
 branch sets `RUN_BROWSER_TESTS=true`. That opt-in does not change production API
 configuration. Main production deployment remains separate from validation.
 
-Required merge checks should include `browser-tests` and `unit-tests`. Repository
-protection settings must be verified independently from workflow success.
+Main branch protection now requires `browser-tests` and `unit-tests`, with the
+branch up to date before merging. Existing administrator bypass remains available.
+Repository protection settings are separate from workflow configuration.
 
 ## Maintenance and rollback
 
