@@ -1,3 +1,16 @@
+function resetPreview() {
+  cy.document().then((previousDocument) => {
+    cy.contains('button', 'Reset').click();
+    cy.document().should((currentDocument) => {
+      expect(
+        currentDocument === previousDocument,
+        'new document after Reset'
+      ).to.equal(false);
+    });
+  });
+  cy.contains('DESIGN PREVIEW · SAMPLE DATA').should('be.visible');
+}
+
 describe('Hosted arcade preview isolation', () => {
   it('runs the production build with browser fixtures, reloads owner choices and rejects real writes', () => {
     cy.intercept('https://fonts.cdnfonts.com/**', {
@@ -36,7 +49,7 @@ describe('Hosted arcade preview isolation', () => {
       },
     });
     cy.contains('DESIGN PREVIEW · SAMPLE DATA').should('be.visible');
-    cy.contains('button', 'Reset').click();
+    resetPreview();
     cy.get('[data-test="arcade-arena"]').should('be.visible');
     cy.get('.hud-score strong').should('contain', '2').and('contain', '1');
     cy.contains('button', 'BOS goal').click();
@@ -73,7 +86,7 @@ describe('Hosted arcade preview isolation', () => {
       });
       expect(write.status).to.eq(405);
     });
-    cy.contains('button', 'Reset').click();
+    resetPreview();
     cy.contains('a', 'Skip to the arena').click();
     cy.get('.fighter.left').should('contain', 'Ryan');
     cy.get('.hud-score strong').should('contain', '2');

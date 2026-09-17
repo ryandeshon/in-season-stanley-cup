@@ -131,7 +131,8 @@ describe('Season 3 arcade review', () => {
     cy.get('.story-scene:visible').should('have.length', 1);
     cy.contains('button', 'Pause').click({ scrollBehavior: false });
     cy.contains('button', 'Resume').should('be.visible');
-    cy.contains('button', 'III · The trap').click();
+    cy.scrollTo(0, 0);
+    cy.contains('button', 'III · The trap').click({ scrollBehavior: false });
     cy.get('.story-scene:visible').should('contain', 'The gates close');
     cy.get('[aria-label="Story time in seconds"]').should('have.value', '40');
     cy.scrollTo(0, 0);
