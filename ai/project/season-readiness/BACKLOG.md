@@ -9,8 +9,8 @@
 | 5 | DONE | Establish clean-main baseline | 65 unit + 3 checker tests; lint/build pass; characterization of future refactors stays in Phase 2 |
 | 6 | DONE | Fix #71 environment and intercept behavior; activate 17 tests | Local and AWS runs; no unintended backend requests |
 | 7 | DONE | Add PR browser gate, skip detection and failure artifacts | Three clean CI runs; local deliberate failure returns exit 1; required main checks verified |
-| 8 | TODO | Add API/checker persistence and failure-path coverage | Contract tests and isolated integration tests |
-| 9 | TODO | Extract season loading, draft logic and Lambda modules in small changes | Behavior parity and relevant tests per PR |
+| 8 | DONE | Add API/checker persistence and failure-path coverage | Contract tests and isolated integration tests |
+| 9 | DONE | Extract season loading, draft logic and Lambda modules in small changes | Behavior parity and relevant tests per PR |
 | 10 | TODO | Inventory historical data and verify closeout/lifetime baseline | Read-only reconciliation report |
 | 11 | TODO | Implement season isolation and safe migration/rollover tools | Dry-run + rerun + restore rehearsal on copies |
 | 12 | TODO | Verify Season 3 draft/game lifecycle preserves Season 2 | Historical parity and exactly-once statistics |
@@ -19,4 +19,7 @@
 
 Related: #71 (browser testing), #28 (multi-season), #30 (Lambda modules), #29/#36 (admin auth), #31 (assets), #53 (player login), closed PR #51 (prior migration work).
 
-Phase 1 is complete in draft PR #73. Local and AWS Cypress: 17/17. GitHub browser CI passed three consecutive attempts. Unit/checker/lint/build pass. Temporary Amplify branch removed. See PHASE-1-REVIEW.md. Stop for review before Phase 2; no application refactors or data changes, and existing WIP is untouched.
+Phase 1 was merged in #73. Phase 2 is implemented on
+`isc-030-phase2-behavior-refactors`; local verification is complete and draft PR #75 is open for the
+phase review. See PHASE-2-REVIEW.md and the PR checks for CI results. Production-data inventory, rollover, and visual redesign remain in
+Phases 3 and 4. The original WIP is untouched.

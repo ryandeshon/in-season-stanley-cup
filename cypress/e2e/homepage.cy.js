@@ -1,3 +1,5 @@
+import { apiRoute, nhlRoute } from '../support/routes';
+
 describe('In Season Cup - Homepage', () => {
   context('Cup defense day', () => {
     beforeEach(() => {
@@ -301,5 +303,47 @@ describe('In Season Cup - Homepage', () => {
       );
       cy.get('.v-progress-circular').should('not.exist');
     });
+  });
+});
+
+describe('Home recovery and pregame', () => {
+  it('shows scheduled game information before puck drop', () => {
+    cy.mockApiScenario('cup-day-multiple-games');
+    cy.fixture('cup-day-multiple-games').then((data) => {
+      cy.intercept(nhlRoute('/gamecenter/**/boxscore'), {
+        ...data.gameInfoResponse,
+        gameState: 'FUT',
+      }).as('pregame');
+    });
+    cy.visit('/');
+    cy.wait('@pregame');
+    cy.contains('Game Information').should('be.visible');
+    cy.contains('Time Remaining').should('not.exist');
+    cy.get('[data-test="view-game-details-link"]').should('exist');
+  });
+  it('clears a status error on visibility refresh after service recovery', () => {
+    cy.mockApiScenario('cup-day-multiple-games');
+    let unavailable = true;
+    cy.intercept(apiRoute('GET', '/champion'), (req) => {
+      req.reply(
+        unavailable
+          ? { statusCode: 503, body: { error: 'Unavailable' } }
+          : { body: { champion: 'BOS' } }
+      );
+    }).as('recoverChampion');
+    cy.visit('/');
+    cy.get('[data-test="home-warning"]').should('contain', 'Unable to refresh');
+    cy.then(() => {
+      unavailable = false;
+    });
+    cy.document().then((doc) => {
+      Object.defineProperty(doc, 'visibilityState', {
+        configurable: true,
+        value: 'visible',
+      });
+      doc.dispatchEvent(new Event('visibilitychange'));
+    });
+    cy.get('[data-test="home-warning"]').should('not.exist');
+    cy.get('[data-test="champion-select-card"]').should('contain', 'Ryan');
   });
 });

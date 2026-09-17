@@ -19,7 +19,10 @@
     "changeset": "changeset",
     "version:prepare": "changeset version",
     "version:status": "changeset status --verbose",
-    "test:checker": "node --test lambdas/check-game/index.test.cjs"
+    "test:checker": "node --test lambdas/check-game/index.test.cjs",
+    "test:backend": "node --test tests/backend/*.test.cjs lambdas/check-game/index.test.cjs",
+    "test:integration": "node --test tests/integration/*.test.cjs",
+    "package:lambdas": "node scripts/aws/package-lambdas.cjs"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
@@ -34,6 +37,8 @@
     "vuetify": "^3.7.0-beta.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1134.0",
+    "@aws-sdk/lib-dynamodb": "^3.1134.0",
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
     "@changesets/cli": "^2.29.6",

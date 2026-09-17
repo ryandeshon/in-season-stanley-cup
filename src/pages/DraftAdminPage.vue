@@ -295,7 +295,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { useDraftCountdown } from '@/composables/useDraftCountdown';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   getDraftPlayers,
   getDraftState,
@@ -306,6 +307,10 @@ import {
 } from '../services/dynamodbService';
 import { ApiClientError } from '@/services/apiClient';
 import { sendSocketMessage } from '@/services/socketClient';
+import {
+  requireDraftVersion,
+  canApplyDraftState,
+} from '@/utilities/draftVersion';
 import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import { useSeasonStore } from '@/store/seasonStore';
 import PlayerCard from '@/components/PlayerCard.vue';
@@ -334,8 +339,6 @@ const currentPickerId = ref('');
 const draftState = ref(null);
 const availableTeams = ref([]);
 const isDraftOver = ref(false);
-const nowMs = ref(Date.now());
-let countdownIntervalId = null;
 const autoPickEnabledControl = ref(false);
 const autoPickSecondsControl = ref(60);
 const autoPickInFlight = ref(false);
@@ -384,29 +387,11 @@ const canUndoLastPick = computed(() =>
   Boolean(draftState.value?.pickHistory?.length)
 );
 
-const autoPickSecondsRemaining = computed(() => {
-  if (!draftState.value?.autoPickEnabled) return null;
-  const deadlineAt = Date.parse(draftState.value.autoPickDeadlineAt || '');
-  if (!Number.isFinite(deadlineAt)) return null;
-  return Math.max(0, Math.ceil((deadlineAt - nowMs.value) / 1000));
-});
-
-const showAutoPickCountdown = computed(
-  () =>
-    Boolean(draftState.value?.draftStarted) &&
-    !isDraftOver.value &&
-    autoPickSecondsRemaining.value !== null
-);
-
-const autoPickCountdownLabel = computed(() => {
-  const remaining = autoPickSecondsRemaining.value;
-  if (remaining === null) return '--:--';
-  const minutes = Math.floor(remaining / 60)
-    .toString()
-    .padStart(2, '0');
-  const seconds = (remaining % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
-});
+const {
+  autoPickSecondsRemaining,
+  showAutoPickCountdown,
+  autoPickCountdownLabel,
+} = useDraftCountdown(draftState, isDraftOver);
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
@@ -417,6 +402,7 @@ const orderedPlayers = computed(() => {
 });
 
 const { isDisconnected } = useDraftRealtime({
+  onRefresh: () => loadInitialData({ showLoading: false }),
   onDraftUpdate(payload) {
     applyDraftStateToView(payload || draftState.value);
     loadInitialData({ showLoading: false, skipDraftState: true });
@@ -424,7 +410,7 @@ const { isDisconnected } = useDraftRealtime({
 });
 
 function applyDraftStateToView(stateData) {
-  if (!stateData) return;
+  if (!canApplyDraftState(draftState.value, stateData)) return;
   const previousVersion = Number(draftState.value?.version);
   const nextVersion = Number(stateData.version);
   if (previousVersion !== nextVersion) {
@@ -442,10 +428,7 @@ function applyDraftStateToView(stateData) {
 }
 
 async function patchDraftStateWithVersion(patch) {
-  const currentVersion = Number(draftState.value?.version);
-  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-    throw new Error('Draft state version is unavailable. Refresh and retry.');
-  }
+  const currentVersion = requireDraftVersion(draftState.value);
 
   try {
     const updatedState = await updateDraftState(
@@ -490,6 +473,7 @@ async function loadInitialData(options = {}) {
         ? Promise.resolve(draftState.value)
         : getDraftState({ season: seasonStore.currentSeason }),
     ]);
+    if (!canApplyDraftState(draftState.value, stateData)) return;
     allPlayersData.value = playersData || [];
     applyDraftStateToView(stateData);
     loadError.value = '';
@@ -517,16 +501,6 @@ watch(autoPickSecondsRemaining, (remainingSeconds) => {
 
 onMounted(() => {
   loadInitialData();
-  countdownIntervalId = window.setInterval(() => {
-    nowMs.value = Date.now();
-  }, 1000);
-});
-
-onBeforeUnmount(() => {
-  if (countdownIntervalId) {
-    window.clearInterval(countdownIntervalId);
-    countdownIntervalId = null;
-  }
 });
 
 function getPlayerName(playerId) {
@@ -600,10 +574,7 @@ async function advanceDraft(options = {}) {
       return;
     }
 
-    const currentVersion = Number(draftState.value?.version);
-    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-      throw new Error('Draft state version is unavailable. Refresh and retry.');
-    }
+    const currentVersion = requireDraftVersion(draftState.value);
 
     const randomTeamIndex = Math.floor(
       Math.random() * availableTeams.value.length

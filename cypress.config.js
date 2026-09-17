@@ -10,6 +10,17 @@ module.exports = defineConfig({
     viewportWidth: 1280,
     viewportHeight: 720,
     setupNodeEvents(on, config) {
+      on('before:browser:launch', (browser, launchOptions) => {
+        if (browser.name === 'electron') {
+          // A fresh CI browser can download a spelling dictionary mid-test.
+          // Disable that browser-only feature; unexpected app requests still fail.
+          launchOptions.preferences.webPreferences = {
+            ...launchOptions.preferences.webPreferences,
+            spellcheck: false,
+          };
+        }
+        return launchOptions;
+      });
       on('after:run', (results) => {
         fs.mkdirSync('cypress/results', { recursive: true });
         fs.writeFileSync(
@@ -18,7 +29,7 @@ module.exports = defineConfig({
         );
         if (
           !results.totalTests ||
-          (config.env.requireFullSuite && results.totalTests < 17) ||
+          (config.env.requireFullSuite && results.totalTests < 29) ||
           results.totalPending > 0 ||
           results.totalSkipped > 0
         ) {

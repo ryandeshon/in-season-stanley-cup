@@ -8,7 +8,13 @@
     <!-- Mobile Menu Button -->
     <v-menu location="bottom end" :close-on-content-click="false">
       <template v-slot:activator="{ props }">
-        <v-btn icon="mdi-menu" size="small" v-bind="props" />
+        <v-btn
+          data-test="navigation-menu"
+          aria-label="Open navigation"
+          icon="mdi-menu"
+          size="small"
+          v-bind="props"
+        />
       </template>
 
       <v-list class="py-0" min-width="200">
@@ -53,6 +59,8 @@
           <v-list-item-title>Season</v-list-item-title>
           <template v-slot:append>
             <v-select
+              data-test="season-select"
+              aria-label="Season"
               v-model="selectedSeason"
               :items="seasonOptions"
               item-title="label"

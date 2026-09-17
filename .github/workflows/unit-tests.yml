@@ -9,6 +9,11 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:2.6.1
+        ports: ['8000:8000']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,5 +30,13 @@ jobs:
       - name: Run unit tests
         run: yarn test:unit
 
-      - name: Run game checker tests
-        run: yarn test:checker
+      - name: Run API and game checker contracts
+        run: yarn test:backend
+
+      # Keep persistence in this already-required check so it cannot be bypassed
+      # as an optional new workflow when reviewing frontend or backend changes.
+      - name: Run isolated persistence tests
+        run: yarn test:integration
+
+      - name: Verify complete Lambda packages
+        run: yarn package:lambdas
