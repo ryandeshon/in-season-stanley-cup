@@ -73,6 +73,8 @@ keyboard controls, including at a mobile viewport. Pointer-driven nested select
 menus triggered Chromium ResizeObserver diagnostics in the development server;
 keyboard navigation exercises the same selection handler without exception
 suppression. All window exceptions and unstubbed backend requests still fail.
+A fresh CI Electron instance attempted a background spelling-dictionary download
+and tripped the network guard; its spellchecker is now disabled at launch.
 
 ## Phase 3 boundaries and remaining risks
 
