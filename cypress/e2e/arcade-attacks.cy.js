@@ -50,6 +50,9 @@ describe('PixiJS attacks', () => {
         setup(name, side);
         cy.get('.attack-canvas').should('have.attr', 'data-renderer', 'pixi');
         cy.get('.attack-canvas canvas').should('be.visible');
+        cy.get('.fighter .portrait-visual').should('have.length', 2).each(p => expect(p.attr('data-art')).to.equal('expressions'));
+        cy.get('.fighter.victory .portrait-visual').should('have.attr', 'data-emotion', 'Happy');
+        cy.get('.fighter.defeated .portrait-visual').should('have.attr', 'data-emotion', 'Sad');
         cy.contains('button', 'Replay fatality').click();
         cy.get('.arcade-arena').should('have.class', `attack-${attack}`).and('have.class', `from-${side}`);
         // Let the actual GPU ticker reach the impact, not just the Vue phase.

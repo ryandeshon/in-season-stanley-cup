@@ -1,7 +1,17 @@
+import ryanExpressions from '@/assets/arcade/ryan-expressions-v1.png';
+import cooperExpressions from '@/assets/arcade/cooper-expressions-v1.png';
+import bozExpressions from '@/assets/arcade/boz-expressions-v1.png';
+import terryExpressions from '@/assets/arcade/terry-expressions-v1.png';
 import ryan from '@/assets/arcade/ryan-approved.png';
 import cooper from '@/assets/arcade/cooper-approved.png';
 import boz from '@/assets/arcade/boz-approved.png';
 import terry from '@/assets/arcade/terry-approved.png';
+export const expressionAtlases = {
+  Ryan: ryanExpressions,
+  Cooper: cooperExpressions,
+  Boz: bozExpressions,
+  Terry: terryExpressions,
+};
 export const isArcadeSeason = (season) => season === 'season3';
 export const characters = {
   Ryan: {
@@ -37,7 +47,7 @@ export const characters = {
     lore: 'Terry watches the ice and waits for an opening. Beneath the green armor is a calculating opponent who gives little away.',
   },
 };
-// Approved identity art is the honest fallback until aligned pose atlases arrive.
+// Expressive portraits drive the live faceoff; full-body action atlases remain deferred.
 export const livePoseManifest = Object.fromEntries(
   Object.entries(characters).map(([name, c]) => [
     name,
@@ -50,7 +60,7 @@ export const livePoseManifest = Object.fromEntries(
       launch: { x: 0.8, y: 0.5 },
       impact: { x: 0.5, y: 0.45 },
       body: { x: 0.15, y: 0.1, width: 0.7, height: 0.85 },
-      facing: ['Ryan', 'Terry'].includes(name) ? 'left' : 'right',
+      facing: 'left',
       scale: 1,
       usesPortraitFallback: true,
     },

@@ -95,6 +95,10 @@ describe('reusable arena choreography', () => {
         `attack-${attacks[side === 'left' ? left : right]}`
       );
       expect(wrapper.classes()).toContain('phase-windup');
+      expect(
+        wrapper.find('.is-receiver .portrait-visual').attributes('data-emotion')
+      ).toBe('Happy');
+      expect(wrapper.find('.hud-score').text()).toContain('2');
       expect(wrapper.find('.is-attacker').classes()).toContain(side);
       expect(wrapper.find('.is-receiver').classes()).toContain(
         side === 'left' ? 'right' : 'left'
@@ -103,8 +107,21 @@ describe('reusable arena choreography', () => {
       expect(wrapper.classes()).toContain('phase-travel');
       await vi.advanceTimersByTimeAsync(250);
       expect(wrapper.classes()).toContain('phase-impact');
+      expect(
+        wrapper.find('.is-receiver .portrait-visual').attributes('data-emotion')
+      ).toBe('Anguish');
+      expect(
+        wrapper.find('.is-attacker .portrait-visual').attributes('data-emotion')
+      ).toBe('Happy');
       await vi.advanceTimersByTimeAsync(1000);
       expect(wrapper.classes()).toContain('phase-idle');
+      expect(
+        wrapper
+          .find(
+            `.fighter.${side === 'left' ? 'right' : 'left'} .portrait-visual`
+          )
+          .attributes('data-emotion')
+      ).toBe('Angry');
     }
   );
   it('shows static final results, retains profile links and suppresses mirror fatality', async () => {
@@ -122,6 +139,12 @@ describe('reusable arena choreography', () => {
     });
     expect(wrapper.text()).toContain('MIRROR MATCH RESOLVED');
     expect(wrapper.text()).toContain('FLAWLESS VICTORY');
+    expect(
+      wrapper.find('.fighter.left .portrait-visual').attributes('data-emotion')
+    ).toBe('Happy');
+    expect(
+      wrapper.find('.fighter.right .portrait-visual').attributes('data-emotion')
+    ).toBe('Sad');
     expect(wrapper.text()).not.toContain('Replay fatality');
     expect(wrapper.classes()).toContain('phase-idle');
     expect(wrapper.findAll('.fighter-label a')).toHaveLength(2);

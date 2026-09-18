@@ -119,12 +119,12 @@
             emit('select', side.key === 'left' ? 'champion' : 'challenger')
           "
         >
-          <img
+          <ExpressivePortrait
             v-if="!broken[side.player?.name] && art(side.player)"
-            :src="art(side.player)"
-            :alt="`${side.player?.name} ${stance(side)}`"
-            :class="{ flipped: shouldFlip(side) }"
-            @error="broken[side.player?.name] = true"
+            :name="side.player?.name"
+            :emotion="portraitEmotion(side)"
+            :flipped="shouldFlip(side)"
+            @unavailable="broken[side.player?.name] = true"
           />
           <div v-else class="portrait-fallback">
             {{ side.player?.name || 'UNKNOWN'
@@ -219,6 +219,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import AttackCanvas from './AttackCanvas.vue';
+import ExpressivePortrait from './ExpressivePortrait.vue';
 import { characters, livePoseManifest } from '@/utilities/arcadeAssets';
 import {
   createArenaTracker,
@@ -279,6 +280,7 @@ const hidden = ref(false);
 const phase = ref('idle');
 const attack = ref('fire');
 const attackingSide = ref('');
+const beforeHit = ref('Happy');
 const announcement = ref('');
 let timers = [];
 let audio;
@@ -340,6 +342,26 @@ function playFinish() {
   cue();
   later(clearAction, 2500);
 }
+function portraitEmotion(side) {
+  if (result.value)
+    return side.team?.abbrev === result.value.winner.abbrev ? 'Happy' : 'Sad';
+  if (!live.value || props.game.clock?.inIntermission) return 'Happy';
+  if (attackingSide.value && attackingSide.value !== side.key) {
+    if (['impact', 'recover'].includes(phase.value)) return 'Anguish';
+    if (['windup', 'travel'].includes(phase.value)) return beforeHit.value;
+  }
+  const opponent = sides.value.find((s) => s.key !== side.key)?.team;
+  if (
+    !Number.isInteger(side.team?.score) ||
+    !Number.isInteger(opponent?.score) ||
+    side.team.score >= opponent.score
+  )
+    return 'Happy';
+  return (side.key === 'left' ? props.leftEmotion : props.rightEmotion) ===
+    'Anguish'
+    ? 'Anguish'
+    : 'Angry';
+}
 function stance(side) {
   if (result.value)
     return side.team?.abbrev === result.value.winner.abbrev
@@ -359,7 +381,7 @@ function stance(side) {
 }
 watch(
   () => [props.game, props.season, props.suspended, hidden.value],
-  () => {
+  (_, previous) => {
     const event = track(props.game, {
       season: props.season,
       suspended: props.suspended || hidden.value,
@@ -383,6 +405,12 @@ watch(
     }
     const side = sides.value.find((s) => s.team?.abbrev === event.team);
     if (!side || !effects.value) return;
+    const prior = previous?.[0];
+    const priorTeams = [prior?.homeTeam, prior?.awayTeam];
+    const priorScorer = priorTeams.find((t) => t?.abbrev === event.team);
+    const priorReceiver = priorTeams.find((t) => t && t.abbrev !== event.team);
+    beforeHit.value =
+      priorReceiver?.score < priorScorer?.score ? 'Angry' : 'Happy';
     attackingSide.value = side.key;
     attack.value = characters[side.player?.name]?.attack || 'fire';
     announcement.value = `Goal for ${event.team}. ${side.player?.name || 'The scoring owner'} attacks.`;
