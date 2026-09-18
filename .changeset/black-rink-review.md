@@ -7,3 +7,5 @@ Add the Season 3 Black Rink arcade theme, approved portrait faceoffs, reusable g
 Support an opt-in hosted Test preview with isolated browser fixtures, persistent sample controls and production-build Cypress validation.
 
 Refine the faceoff, official team logos, dropdown navigation, light theme and scroll-driven stone prologue based on design review.
+
+Upgrade attacks to a lazy-loaded PixiJS particle layer with responsive anchors, bounded GPU resources, cancellation and fallback regression coverage.

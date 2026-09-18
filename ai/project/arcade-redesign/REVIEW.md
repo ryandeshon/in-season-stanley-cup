@@ -63,3 +63,7 @@ Following review, the user requested hosting the interactive sample-data preview
 ## Follow-up design notes
 
 Home now starts at the faceoff. The dropdown contains all navigation links and light/dark mode; selecting a route closes it. Season 3 uses official NHL team marks, including larger logos under the portraits. The dark arena retains the dark-background logo variants in both app themes. The story matches the supplied prologue-v2 scroll preview with the stone console, pinned scroll progression, camera motion and optional typewriter playback. See EFFECTS-RESEARCH.md for the PixiJS recommendation and original Mortal Kombat media sources; those media files are not included in this update.
+
+## PixiJS attack review
+
+Use Test's sample controls to choose each owner, then add a goal: Ryan emits fire and embers, Cooper sends branching lightning, Terry throws acid droplets, and Boz sends an orb with an expanding impact ring. Try goals from both sides. Shutout final and Replay fatality reuse the winning fighter's effect. Turn Effects off during an attack to clear the layer; reduced motion preserves a static result. The effects use procedural graphics, not original game recordings or sprites.

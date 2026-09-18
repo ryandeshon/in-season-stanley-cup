@@ -18,4 +18,9 @@
 - [x] Apply review notes: remove home intro, consolidate menu, restore light/dark, use official Season 3 team logos and add fighter-side logos.
 - [x] Port the prologue-v2 stone console and scroll/timed behavior; validate chapter, pause, scrub and skip controls.
 - [x] Research a richer effects renderer and locate original Finish Him art and game sound sources (EFFECTS-RESEARCH.md).
-- [ ] Implement the recommended PixiJS effects pass and resolve original-game media selection/usage before integrating those assets.
+- [ ] Resolve original-game media selection/usage before integrating those assets.
+
+## PixiJS follow-up
+- [x] Implement bounded particle renderer and lifecycle integration.
+- [x] Verify four attacks, cancellation, fallback and mobile rendering.
+- [x] Capture effects and prepare the validated Test build for review.

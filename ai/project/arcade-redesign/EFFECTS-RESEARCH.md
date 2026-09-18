@@ -4,7 +4,7 @@
 
 [PixiJS 8](https://pixijs.com/8.x/guides/components/filters) is the best fit for a richer arena effects pass: use a transparent canvas over the existing HTML fighters, additive particles and textured sprites for fire/acid/orbs, then blur/glow and displacement for impact. Keep Vue responsible for score, ownership and the presentation state machine. Lazy-load the renderer, cap particle count/resolution on phones, stop it in hidden tabs, destroy it on unmount, and leave the readable static result when effects or reduced-motion settings disable animation.
 
-The [PixiJS filters collection](https://pixijs.io/filters/docs/index.html) supplies additional effects. A transition library alone would smooth movement but would not supply convincing fire, electrical branching or liquid textures. This is a recommendation for the next effects pass; no new rendering dependency is included in this layout/story update.
+The [PixiJS filters collection](https://pixijs.io/filters/docs/index.html) supplies additional effects. A transition library alone would smooth movement but would not supply convincing fire, electrical branching or liquid textures. The follow-up now implements PixiJS 8 with a shared procedural soft texture, additive embers, branching electricity, acid droplets and orb shockwaves. It does not require the optional filter package. The renderer caps sprites at 90 on phones and 160 on larger layouts, caps pixel density at 1.5, stops its private ticker when idle, and destroys resources when disabled, hidden or unmounted. CSS remains the fallback when WebGL is unavailable; reduced motion does not initialize the renderer.
 
 ## Located originals
 

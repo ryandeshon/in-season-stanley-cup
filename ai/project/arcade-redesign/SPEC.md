@@ -25,3 +25,7 @@ for review after the implementation and screenshots.
 The Test branch may opt into `VUE_APP_HOSTED_ARCADE_PREVIEW=true`. A same-origin service worker serves sample API responses; API clients and NHL requests use only that worker, sockets and analytics are disabled. Unknown requests fail closed. Sample scores and owner choices persist in browser Cache Storage; Reset restores the fixture. This mode requires HTTPS (or localhost) and service workers. Real season records are not read or changed.
 
 The follow-up review removes the Season 3 homepage intro and duplicate navigation, restores light/dark selection, and replaces Season 3 team artwork with official NHL logos. Story presentation follows the supplied prologue-v2 scroll demo, with one pinned scene driven by scroll or a 60-second timeline; pause, full text, scrub, chapters and skip remain available.
+
+## PixiJS attack upgrade
+
+Replace the CSS goal effects with a lazy-loaded transparent PixiJS 8 overlay: ember fire, branching electricity, ballistic acid droplets and an energy orb/shockwave. Keep the existing score-event tracker and phase timings authoritative. Bound particle count and pixel density, stop rendering when idle/hidden/disabled, discard stale asynchronous initialization and destroy GPU resources on unmount. Preserve a static CSS fallback for reduced motion or unavailable WebGL. Verify all four attacks in both directions plus cancellation and browser rendering before review.

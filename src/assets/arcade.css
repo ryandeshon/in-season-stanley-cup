@@ -970,3 +970,9 @@
 [data-season='season3'][data-mode='light'] .arcade-scorers p {
   color: #34462f;
 }
+
+/* GPU particles replace the original polygon overlays when available. */
+.arcade-arena.pixi-ready .projectile,
+.arcade-arena.pixi-ready .fighter .body-impact {
+  display: none;
+}

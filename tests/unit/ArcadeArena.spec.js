@@ -36,7 +36,11 @@ function mountArena(left = 'Ryan', right = 'Cooper') {
       season: 'season3',
     },
     global: {
-      stubs: { TeamLogo: true, RouterLink: { template: '<a><slot /></a>' } },
+      stubs: {
+        AttackCanvas: true,
+        TeamLogo: true,
+        RouterLink: { template: '<a><slot /></a>' },
+      },
     },
   });
   wrappers.push(wrapper);

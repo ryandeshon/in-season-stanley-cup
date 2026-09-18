@@ -3,7 +3,11 @@
     class="arcade-arena stone-frame"
     data-test="arcade-arena"
     :class="[
-      { 'reduced-motion': reducedMotion, 'arena-paused': hidden || suspended },
+      {
+        'reduced-motion': reducedMotion,
+        'arena-paused': hidden || suspended,
+        'pixi-ready': pixiReady,
+      },
       `phase-${phase}`,
       `attack-${attack}`,
       `from-${attackingSide}`,
@@ -148,6 +152,13 @@
         </div>
       </div>
       <span class="arena-vs" aria-hidden="true">VS</span>
+      <AttackCanvas
+        :enabled="effects && !reducedMotion && !hidden && !suspended"
+        :phase="phase"
+        :attack="attack"
+        :side="attackingSide"
+        @ready="pixiReady = $event"
+      />
       <div class="projectile" aria-hidden="true">
         <svg v-if="attack === 'lightning'" viewBox="0 0 120 60">
           <path d="M0 30 30 12 25 32 65 8 55 30 110 20 88 42 115 40" /></svg
@@ -207,6 +218,7 @@
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import TeamLogo from '@/components/TeamLogo.vue';
+import AttackCanvas from './AttackCanvas.vue';
 import { characters, livePoseManifest } from '@/utilities/arcadeAssets';
 import {
   createArenaTracker,
@@ -260,6 +272,7 @@ const shouldFlip = (side) =>
   (side.key === 'left' ? 'right' : 'left');
 const broken = ref({});
 const effects = ref(true);
+const pixiReady = ref(false);
 const sound = ref(false);
 const reducedMotion = ref(false);
 const hidden = ref(false);
