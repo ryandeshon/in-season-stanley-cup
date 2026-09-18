@@ -29,3 +29,9 @@ The follow-up review removes the Season 3 homepage intro and duplicate navigatio
 ## PixiJS attack upgrade
 
 Replace the CSS goal effects with a lazy-loaded transparent PixiJS 8 overlay: ember fire, branching electricity, ballistic acid droplets and an energy orb/shockwave. Keep the existing score-event tracker and phase timings authoritative. Bound particle count and pixel density, stop rendering when idle/hidden/disabled, discard stale asynchronous initialization and destroy GPU resources on unmount. Preserve a static CSS fallback for reduced motion or unavailable WebGL. Verify all four attacks in both directions plus cancellation and browser rendering before review.
+
+The story stage must pin 10px below the actual navigation bottom, never use a negative sticky offset to fit controls. Its containing scroll track must include the console height plus the full 2400px story progression so it releases only after the final scene. Keep the image within the viewport on desktop and phone sizes. Follow-up changes stay local until the user deploys Test.
+
+## Expressive portrait implementation
+
+Use four custom expression atlases (one 2×2 sheet per owner) with Happy, Angry, Anguish and Sad quadrants. The final Sad state has visible bruises, small cuts and scuffed clothing/armor. Resolve emotions from confirmed score/result and transient impact, keeping score updates immediate. During travel preserve the prior expression until contact; only the receiver recoils, with a response determined by the incoming attack. Keep layered PixiJS effects independent of portrait art, preserve fallbacks, reduced motion, disabled effects and historical seasons. Full-body action sprites are deferred. All changes remain local.

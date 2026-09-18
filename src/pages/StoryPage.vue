@@ -1,6 +1,13 @@
 <template>
-  <div ref="page" class="story-page">
-    <div class="story-stage" :style="{ top: `${stickyTop}px` }">
+  <div
+    ref="page"
+    class="story-page"
+    :style="{ '--story-top': `${stickyTop}px` }"
+  >
+    <div
+      class="story-stage"
+      :style="{ top: `${stickyTop}px`, '--story-top': `${stickyTop}px` }"
+    >
       <section
         ref="consoleEl"
         class="story-console"
@@ -28,7 +35,12 @@
               :style="{ transform: camera }"
             />
           </div>
-          <div class="br-copy">
+          <div
+            ref="copyEl"
+            class="br-copy"
+            tabindex="0"
+            aria-label="Scene narration"
+          >
             <p>{{ visibleCopy }}</p>
           </div>
         </article>
@@ -111,12 +123,13 @@ const scenes = [
 
 const page = ref(null),
   consoleEl = ref(null),
+  copyEl = ref(null),
   elapsed = ref(0),
   playing = ref(false),
   hasPlayed = ref(false),
   fullText = ref(false),
   reducedMotion = ref(false),
-  stickyTop = ref(64);
+  stickyTop = ref(74);
 const active = computed(() =>
   Math.min(2, Math.floor((elapsed.value + 0.00001) / 20))
 );
@@ -139,9 +152,15 @@ const timecode = computed(() =>
 );
 watch(active, () => {
   fullText.value = false;
+  if (copyEl.value) copyEl.value.scrollTop = 0;
 });
 function startY() {
-  return page.value.getBoundingClientRect().top + window.scrollY - 64;
+  return (
+    page.value.getBoundingClientRect().top +
+    window.scrollY +
+    parseFloat(getComputedStyle(page.value).paddingTop || 0) -
+    stickyTop.value
+  );
 }
 function seek(time) {
   playing.value = false;
@@ -172,12 +191,10 @@ function pauseHidden() {
   if (document.hidden) playing.value = false;
 }
 function resize() {
-  stickyTop.value = Math.min(
-    64,
-    window.innerHeight - consoleEl.value.offsetHeight
-  );
+  const navigation = document.querySelector('.v-app-bar');
+  stickyTop.value = (navigation?.getBoundingClientRect().bottom || 64) + 10;
 }
-let timer, last, media;
+let timer, last, media, observer;
 function motion() {
   reducedMotion.value = media.matches;
 }
@@ -186,6 +203,11 @@ onMounted(() => {
   motion();
   media.addEventListener('change', motion);
   resize();
+  if (window.ResizeObserver) {
+    observer = new ResizeObserver(resize);
+    const navigation = document.querySelector('.v-app-bar');
+    if (navigation) observer.observe(navigation);
+  }
   last = performance.now();
   timer = setInterval(() => {
     const now = performance.now();
@@ -201,6 +223,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   clearInterval(timer);
+  observer?.disconnect();
   media?.removeEventListener('change', motion);
   window.removeEventListener('scroll', scrollStory);
   window.removeEventListener('resize', resize);
@@ -636,12 +659,14 @@ onBeforeUnmount(() => {
   position: relative;
   background: #09090c;
   color: #fff;
-  min-height: calc(2400px + 100vh);
+  --console-height: min(900px, calc(100dvh - var(--story-top, 74px) - 10px));
+  --story-padding: 20px;
+  min-height: calc(2400px + var(--console-height) + var(--story-padding));
   padding: 20px 12px 0;
 }
 .story-stage {
   position: sticky;
-  top: 64px;
+  top: 74px;
 }
 .story-console h1 {
   font: inherit !important;
@@ -675,6 +700,7 @@ onBeforeUnmount(() => {
 }
 @media (max-width: 600px) {
   .story-page {
+    --story-padding: 10px;
     padding: 10px 6px 0;
   }
   .story-console h1 {
@@ -682,6 +708,68 @@ onBeforeUnmount(() => {
   }
   .story-console .br-copy {
     min-height: 298px;
+  }
+}
+/* Keep the image and controls inside the viewport while the story is pinned. */
+.story-console {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto auto;
+  height: var(--console-height);
+  padding: 10px;
+}
+.story-console .br-frame {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+.story-console .br-picture {
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+.story-console .br-picture img {
+  object-fit: contain;
+  padding: 3%;
+}
+.story-console .br-copy {
+  min-height: 0;
+  max-height: 22vh;
+  overflow-y: auto;
+  padding: 10px;
+}
+.story-console .br-copy:focus-visible {
+  outline: 2px solid #c8ff80;
+}
+.story-console .skip-link {
+  padding: 6px 0;
+}
+@media (max-height: 800px) {
+  .story-console footer > span:first-child {
+    display: none;
+  }
+  .story-console header {
+    padding-bottom: 0;
+  }
+  .story-console h1 {
+    font-size: 16px !important;
+    margin: 4px 0 !important;
+  }
+  .story-console .br-copy p {
+    font-size: 10px;
+    line-height: 1.7;
+  }
+  .story-console .br-controls,
+  .story-console .br-scrub {
+    margin-top: 6px;
+  }
+}
+@media (max-height: 700px) {
+  .story-console header > span {
+    display: none;
+  }
+  .story-console .br-copy {
+    max-height: 16vh;
   }
 }
 </style>

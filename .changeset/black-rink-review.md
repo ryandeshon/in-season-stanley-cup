@@ -9,3 +9,7 @@ Support an opt-in hosted Test preview with isolated browser fixtures, persistent
 Refine the faceoff, official team logos, dropdown navigation, light theme and scroll-driven stone prologue based on design review.
 
 Upgrade attacks to a lazy-loaded PixiJS particle layer with responsive anchors, bounded GPU resources, cancellation and fallback regression coverage.
+
+Pin the story 10px below navigation through its complete scroll sequence, fit the console to the viewport and preserve full artwork on small screens.
+
+Add custom four-state expression atlases for all owners, beaten-up defeated portraits, impact-synchronized expressions and opponent-specific recoil while preserving immediate score updates and approved-art fallbacks.

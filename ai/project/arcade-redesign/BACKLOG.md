@@ -8,9 +8,8 @@
 - DONE: isolated in-memory review preview and desktop/mobile visual inspection.
 - DONE: local lint/build, 130 unit, 36 Cypress and 25 backend tests; patch changeset.
 - REVIEW: draft PR and CI database integration (DynamoDB Local unavailable on host).
-- ART FOLLOW-UP: aligned emotion/pose artwork and full-body transparent animation
-  atlases. Supplied concept sheets are not production sprites. Review uses approved
-  portraits and localized CSS finishers as the guide's progressive fallback.
+- DEFERRED: full-body animation atlases and short action sequences, for a separate
+  experiment. Custom four-state expression atlases are implemented locally.
 
 - [x] Add opt-in hosted sample-data mode with browser-local persistence and Reset.
 - [x] Add production-build Cypress coverage for sample goals, owner reloads, story navigation and rejected writes.
@@ -24,3 +23,11 @@
 - [x] Implement bounded particle renderer and lifecycle integration.
 - [x] Verify four attacks, cancellation, fallback and mobile rendering.
 - [x] Capture effects and prepare the validated Test build for review.
+
+- [x] Pin the story below navigation until progression completes; verify desktop, phone and 320px layouts. Keep this follow-up local for user deployment.
+
+## Custom expressive portraits
+- [x] Generate and inspect four equal-quadrant expression atlases, including visibly damaged defeated states.
+- [x] Integrate Happy, Angry, Anguish and Sad with layered attack-specific recoil and image fallbacks.
+- [x] Verify every pairing's impact timing and final-expression assignment in unit tests.
+- [x] Review browser screenshots and production build; keep all changes local.

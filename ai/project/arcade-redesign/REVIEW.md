@@ -32,13 +32,18 @@ final result classification, deduplicated playback, static winner/loser states,
 page styling, dossier copy and optional prologue are implemented. Existing draft
 permissions/turn logic, season storage and statistics remain authoritative.
 
-The four identity portraits are the shipped fallback. The manifest explicitly
-marks them as fallback artwork for all five pose keys. The handoff's reaction
-and full-body sprite sheets are concept studies, not transparent production
-atlases. Separate reaction/pose artwork and frame-animated full-body finishers
-remain an art follow-up. Current finishers are short localized CSS effects on
-portraits; they do not claim to implement the full illustrated choreography.
-The supplied PNGs are retained at original quality for this review.
+Each character now has a 2×2 expression atlas: Happy, Angry, Anguish and Sad.
+The defeated portraits show bruises, small cuts and scuffed clothing or armor.
+Hurt expressions start at impact, with opponent-specific effects layered above
+the portrait. The original identity portraits remain as image-loading fallbacks.
+Full-body animation and short action sequences are deferred for a separate
+experiment. Current finishers use localized portrait effects rather than full
+illustrated choreography. See PORTRAIT-PROMPTS.md for asset provenance.
+
+Local portrait verification: 136 unit tests, 49 browser tests, the hosted-preview
+test and production build passed. All four defeated portraits were captured and
+visually reviewed. These portrait and story-pinning changes have not been pushed
+or deployed.
 
 ## Review boundary
 

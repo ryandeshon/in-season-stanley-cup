@@ -340,14 +340,14 @@
 .portrait-button:disabled {
   cursor: default;
 }
-.portrait-button img {
+.portrait-button .portrait-visual {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transform-origin: 50% 85%;
   animation: arcade-breathe 4s ease-in-out infinite alternate;
 }
-.portrait-button img.flipped {
+.portrait-button .portrait-visual.flipped {
   scale: -1 1;
 }
 .portrait-button::after {
@@ -438,8 +438,8 @@
   padding: 12px;
   margin: 0;
 }
-.fighter.defeated .portrait-button img {
-  filter: saturate(0.25) brightness(0.65);
+.fighter.defeated .portrait-button .portrait-visual {
+  filter: saturate(0.85) brightness(0.9);
   animation: none;
 }
 .fighter.victory .portrait-button {
@@ -591,10 +591,10 @@
 .phase-recover .body-impact {
   animation: impact-fade 0.6s linear both;
 }
-.phase-windup .is-attacker img {
+.phase-windup .is-attacker .portrait-visual {
   animation: windup 0.15s ease-out both;
 }
-.phase-impact .is-receiver img {
+.phase-impact .is-receiver .portrait-visual {
   animation: recoil 0.4s ease-out both;
 }
 .finished-plaque {
@@ -611,7 +611,7 @@
   color: #e4bd58;
   z-index: 3;
 }
-.phase-finish .is-receiver img {
+.phase-finish .is-receiver .portrait-visual {
   animation: finish-sink 2.5s ease both;
 }
 .reduced-motion *,
@@ -856,13 +856,13 @@
 .arcade-scorers p {
   margin: 6px 0 0;
 }
-.phase-finish.attack-lightning .is-receiver img {
+.phase-finish.attack-lightning .is-receiver .portrait-visual {
   animation: finish-freeze 2.5s ease both;
 }
-.phase-finish.attack-orb .is-receiver img {
+.phase-finish.attack-orb .is-receiver .portrait-visual {
   animation: finish-strips 2.5s ease both;
 }
-.phase-finish.attack-acid .is-receiver img {
+.phase-finish.attack-acid .is-receiver .portrait-visual {
   animation: finish-mist 2.5s ease both;
 }
 @keyframes finish-freeze {
@@ -976,3 +976,13 @@
 .arcade-arena.pixi-ready .fighter .body-impact {
   display: none;
 }
+
+/* Recoil belongs to the incoming attack, not the defender's own power. */
+.phase-impact.attack-fire .is-receiver .portrait-visual { animation: recoil-fire 0.4s ease-out both; }
+.phase-impact.attack-lightning .is-receiver .portrait-visual { animation: recoil-lightning 0.4s ease-out both; }
+.phase-impact.attack-acid .is-receiver .portrait-visual { animation: recoil-acid 0.4s ease-out both; }
+.phase-impact.attack-orb .is-receiver .portrait-visual { animation: recoil-orb 0.4s ease-out both; }
+@keyframes recoil-fire { 35% { transform: translateY(5px) rotate(-2deg); filter: sepia(0.5) saturate(1.6); } }
+@keyframes recoil-lightning { 25% { transform: translateX(-3px) rotate(-1deg); filter: sepia(0.5) hue-rotate(150deg); } 55% { transform: translateX(3px); } }
+@keyframes recoil-acid { 35% { transform: translateY(7px) scale(0.98); filter: sepia(0.5) hue-rotate(35deg); } }
+@keyframes recoil-orb { 35% { transform: translateY(3px) scale(0.95); filter: brightness(1.15); } }
