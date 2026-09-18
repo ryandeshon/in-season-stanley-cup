@@ -179,6 +179,9 @@ function seek(time) {
     top: Math.max(0, startY() + (time / 60) * 2400),
     behavior: 'instant',
   });
+  // A second scroll can arrive before the browser dispatches the seek's event.
+  // Track the new position now so returning to the previous position is not ignored.
+  lastScrollY = window.scrollY;
 }
 let lastScrollY = 0;
 function scrollStory() {

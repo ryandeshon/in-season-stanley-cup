@@ -23,3 +23,5 @@ Center fighter cards with a 250px maximum width to reveal more arena artwork.
 Introduce matching hockey-arcade SVG identity icons and combine Season 3 character lore, honors and stats into a keyboard-accessible card that cycles all four portrait expressions.
 
 Increase stone-frame padding and center shot counts beneath team logos.
+
+Synchronize story seeks with the scroll position so rapid chapter changes and returning to the start remain reliable.

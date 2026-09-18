@@ -14,7 +14,13 @@ it('advances three timed scenes, pauses, ends at one minute and replays', async 
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   }));
-  vi.stubGlobal('scrollTo', vi.fn());
+  vi.stubGlobal('scrollY', 0);
+  vi.stubGlobal(
+    'scrollTo',
+    vi.fn(({ top }) => {
+      window.scrollY = top;
+    })
+  );
   Object.defineProperty(document, 'hidden', {
     configurable: true,
     value: false,
@@ -52,4 +58,11 @@ it('advances three timed scenes, pauses, ends at one minute and replays', async 
     'The trap'
   );
   expect(window.scrollTo).toHaveBeenCalled();
+  // Return before the browser has delivered the programmatic seek's scroll event.
+  window.scrollTo({ top: 0 });
+  window.dispatchEvent(new Event('scroll'));
+  await wrapper.vm.$nextTick();
+  expect(wrapper.find('.story-scene').attributes('aria-label')).toBe(
+    'The seizure'
+  );
 });
