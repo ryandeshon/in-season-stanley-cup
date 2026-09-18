@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
+    "preview:arcade": "node scripts/preview/arcade.cjs",
+    "test:hosted-preview": "ELECTRON_RUN_AS_NODE= start-server-and-test \"node scripts/preview/serve-static.cjs\" http://localhost:8092 \"cypress run --config-file cypress.hosted.config.cjs\"",
     "cy:serve": "node scripts/test/serve-cypress.cjs",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
@@ -30,6 +32,7 @@
     "core-js": "^3.8.3",
     "luxon": "^3.5.0",
     "pinia": "^2.2.4",
+    "pixi.js": "^8",
     "sass": "^1.79.4",
     "vue": "^3.2.13",
     "vue-gtag-next": "^1.14.0",

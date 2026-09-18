@@ -10,6 +10,7 @@ import ChampionTest from '../pages/ChampionTest.vue';
 
 const routes = [
   { path: '/', component: HomePage },
+  { path: '/story', component: () => import('../pages/StoryPage.vue') },
   { path: '/standings', component: StandingsPage },
   { path: '/about', component: AboutPage },
   {
@@ -45,6 +46,10 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (to.path === '/story' || from.path === '/story')
+      return savedPosition || { top: 0 };
+  },
 });
 
 export default router;

@@ -1,3 +1,7 @@
+import { hostedPreview } from '@/utilities/previewConfig';
+const seasonStorageKey = hostedPreview
+  ? 'arcadePreviewSeason'
+  : 'selectedSeason';
 import { defineStore } from 'pinia';
 import { apiRequest } from '@/services/apiClient';
 const legacySeasons = [
@@ -34,7 +38,9 @@ export const useSeasonStore = defineStore('season', {
         ? 'GameRecords'
         : `GameRecords-Season${s.currentSeason.slice(6)}`,
     playerImagesPath: (s) =>
-      s.currentSeason === 'season1' ? 'season1' : 'season2',
+      ['season1', 'season2', 'season3'].includes(s.currentSeason)
+        ? s.currentSeason
+        : 'season2',
     seasonDisplayName: (s) =>
       s.seasons.find((season) => season.id === s.currentSeason)?.label ||
       s.currentSeason,
@@ -43,10 +49,10 @@ export const useSeasonStore = defineStore('season', {
     setSeason(season) {
       if (!this.seasons.some((s) => s.id === season)) return;
       this.currentSeason = season;
-      localStorage.setItem('selectedSeason', season);
+      localStorage.setItem(seasonStorageKey, season);
     },
     loadSeasonFromStorage() {
-      const stored = localStorage.getItem('selectedSeason');
+      const stored = localStorage.getItem(seasonStorageKey);
       if (this.seasons.some((s) => s.id === stored))
         this.currentSeason = stored;
     },

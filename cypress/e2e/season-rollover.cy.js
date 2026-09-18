@@ -49,8 +49,9 @@ describe('Season rollover', () => {
       .should('eq', 'season3');
     cy.get('[data-test="draft-admin-start"]').should('exist');
     cy.get('[data-test="navigation-menu"]').click();
-    cy.get('[data-test="season-select"] input').focus();
-    cy.press('2');
+    // Send keys to the focused input instead of relying on OS-level focus.
+    cy.get('[data-test="season-select"] input').focus().type('2', { force: true });
+    cy.get('[data-test="season-select"]').should('contain', '2');
     cy.get('[data-test="navigation-menu"]').click();
     cy.get('[data-test="draft-season-read-only"]').should(
       'contain',

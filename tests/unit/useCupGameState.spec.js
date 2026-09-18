@@ -57,6 +57,27 @@ describe('useCupGameState', () => {
     return players[teamAbbrev];
   }
 
+  it('keeps polling invalid finals and never assigns a winner from a tie', async () => {
+    const state = useCupGameState({ findPlayerByTeam });
+    await state.refreshChampionAndGameState();
+    const onGameOver = vi.fn();
+    state.setLifecycleHandlers({ onGameOver });
+    const game = {
+      id: '2024021111',
+      gameState: 'FINAL',
+      homeTeam: { abbrev: 'TOR', score: 2 },
+      awayTeam: { abbrev: 'BOS', score: 2 },
+    };
+    state.applyGameUpdate(game);
+    expect(state.isGameOver.value).toBe(false);
+    expect(state.todaysWinner.value).toEqual({});
+    expect(onGameOver).not.toHaveBeenCalled();
+    state.applyGameUpdate({ ...game, homeTeam: { abbrev: 'TOR', score: 3 } });
+    expect(state.isGameOver.value).toBe(true);
+    expect(state.todaysWinner.value.abbrev).toBe('TOR');
+    expect(onGameOver).toHaveBeenCalledTimes(1);
+  });
+
   it('refreshes champion and game ids', async () => {
     const state = useCupGameState({ findPlayerByTeam });
     await state.refreshChampionAndGameState();
