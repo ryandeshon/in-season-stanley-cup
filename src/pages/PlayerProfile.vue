@@ -20,18 +20,12 @@
       Player profile is not available.
     </v-alert>
     <div v-else class="w-full flex flex-col justify-center items-center my-4">
-      <section
+      <CharacterDossier
         v-if="currentSeason === 'season3' && characters[player.name]"
-        class="arcade-dossier profile-section"
-      >
-        <img :src="characters[player.name].portrait" alt="" />
-        <div>
-          <span class="eyebrow">CHARACTER DOSSIER · FICTIONAL LORE</span>
-          <h2>{{ characters[player.name].title }}</h2>
-          <p>{{ characters[player.name].lore }}</p>
-        </div>
-      </section>
-      <v-card class="profile-section pb-3">
+        :player="player"
+        class="profile-section"
+      />
+      <v-card v-else class="profile-section pb-3">
         <v-card-text class="flex flex-col justify-center items-center">
           <PlayerCard
             :player="player"
@@ -270,6 +264,7 @@ import {
 } from '@/utilities/playerProfileTrends';
 
 import PlayerCard from '@/components/PlayerCard.vue';
+import CharacterDossier from '@/components/arcade/CharacterDossier.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import { characters } from '@/utilities/arcadeAssets';
 import cup from '@/assets/in-season-logo-season2.png';

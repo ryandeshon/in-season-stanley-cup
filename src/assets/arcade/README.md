@@ -11,3 +11,8 @@ The reaction study, composition wireframes and full-body sprite concept sheet
 are intentionally not shipped as animation atlases. `arcadeAssets.js` records the
 approved portrait fallback explicitly. Future pose artwork must preserve identity,
 facing, scale and anchors and must not replace Season 1/2 historical artwork.
+
+Custom four-expression atlases and four champion arena backgrounds are generated
+with the built-in imagegen tool. Their prompt records and source inspiration are
+in `ai/project/arcade-redesign/PORTRAIT-PROMPTS.md` and `ARENA-PROMPTS.md`. The
+original Black Rink and approved identity portraits remain unchanged.

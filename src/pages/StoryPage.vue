@@ -44,16 +44,19 @@
             <p>{{ visibleCopy }}</p>
           </div>
         </article>
-        <div
-          class="br-progress"
-          role="progressbar"
-          aria-label="Story progress"
-          :aria-valuenow="Math.floor(elapsed)"
-          aria-valuemin="0"
-          aria-valuemax="60"
-        >
-          <span :style="{ width: `${(elapsed / 60) * 100}%` }"></span>
-        </div>
+        <label class="br-progress">
+          <span class="sr-only">Story position</span>
+          <input
+            type="range"
+            min="0"
+            max="60"
+            step="0.1"
+            :value="elapsed"
+            :style="{ '--progress': `${(elapsed / 60) * 100}%` }"
+            aria-label="Story time in seconds"
+            @input="seek(Number($event.target.value))"
+          />
+        </label>
         <div class="br-controls">
           <button @click="togglePlay">
             {{
@@ -72,16 +75,6 @@
             Full text</button
           ><output>{{ timecode }} / 01:00</output>
         </div>
-        <label class="br-scrub"
-          >Story position<input
-            type="range"
-            min="0"
-            max="60"
-            step="0.1"
-            :value="elapsed"
-            aria-label="Story time in seconds"
-            @input="seek(Number($event.target.value))"
-        /></label>
         <footer>
           <span>Scroll through the story, or play the one-minute intro.</span
           ><span role="status">{{
@@ -96,7 +89,14 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+} from 'vue';
 import seizure from '@/assets/arcade/seizure.png';
 import survivors from '@/assets/arcade/survivors.png';
 import trap from '@/assets/arcade/trap.png';
@@ -152,6 +152,16 @@ const timecode = computed(() =>
 );
 watch(active, () => {
   fullText.value = false;
+  if (copyEl.value) copyEl.value.scrollTop = 0;
+});
+// Keep the newest typed line visible without changing the artwork's size.
+watch(visibleCopy, async () => {
+  await nextTick();
+  if (copyEl.value && playing.value && !fullText.value) {
+    copyEl.value.scrollTop = copyEl.value.scrollHeight;
+  }
+});
+watch(fullText, () => {
   if (copyEl.value) copyEl.value.scrollTop = 0;
 });
 function startY() {
@@ -231,248 +241,71 @@ onBeforeUnmount(() => {
 });
 </script>
 <style scoped>
+.story-page {
+  --console-height: min(900px, calc(100dvh - var(--story-top, 74px) - 10px));
+  --picture-height: clamp(
+    90px,
+    calc((100dvh - var(--story-top, 74px) - 270px) * 0.52),
+    320px
+  );
+  --story-padding: 20px;
+  position: relative;
+  min-height: calc(2400px + var(--console-height) + var(--story-padding));
+  padding: var(--story-padding) 12px 0;
+  background: #09090c;
+  color: #fff;
+}
+.story-stage {
+  position: sticky;
+  top: 74px;
+}
 .story-console {
-  background: #0c0d10;
-  color: #f3efe5;
-  padding: 18px;
-  max-width: 960px;
+  --stone: url('../assets/arcade/arcade-stone.png');
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+  height: var(--console-height);
+  max-width: 780px;
   margin: auto;
-  box-sizing: border-box;
+  padding: 10px;
+  background: #55565a var(--stone) repeat;
+  background-size: 128px;
+  border: 6px ridge #969797;
+  box-shadow: inset 0 0 0 2px #222;
+  color: #fff;
   font:
-    14px/1.5 ui-monospace,
-    SFMono-Regular,
-    Consolas,
+    10px/1.7 'Press Start 2P',
     monospace;
+  text-shadow: 2px 2px #17171a;
   color-scheme: dark;
 }
 .story-console * {
   box-sizing: border-box;
 }
 .story-console header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  color: #d3b58b;
-  letter-spacing: 0.13em;
-  font-size: 11px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #414149;
-}
-.story-console nav {
-  display: flex;
-  gap: 6px;
-  margin: 12px 0;
-}
-.story-console button {
-  font: inherit;
-  background: #24252d;
-  border: 1px solid #5a5961;
-  color: #efede6;
-  padding: 9px 12px;
-  cursor: pointer;
-  min-height: 42px;
-}
-.story-console nav button {
-  flex: 1;
-  font-size: 12px;
-}
-.story-console button:hover {
-  background: #3b3941;
-}
-.story-console button[aria-pressed='true'] {
-  background: #d1b080;
-  color: #151315;
-  border-color: #d1b080;
-}
-.story-console .br-frame {
-  border: 7px ridge #676770;
-  padding: 7px;
-  background: #35363f;
-}
-.story-console .br-picture {
-  position: relative;
-  aspect-ratio: 16/9;
-  overflow: hidden;
-  background: #09090c;
-  border: 2px solid #15151a;
-}
-.story-console img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  image-rendering: pixelated;
-  display: block;
-}
-.story-console .br-copy {
-  background: #20212a;
-  border: 3px inset #6b6a73;
-  margin-top: 8px;
-  padding: 17px 21px;
-  min-height: 154px;
-}
-.story-console .br-copy p {
-  font-size: 14px;
-  line-height: 1.65;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-  margin: 0;
-  font-weight: 500;
-  color: #faf7ef;
-}
-.story-console .br-progress {
-  height: 3px;
-  background: #37343d;
-  margin-top: 10px;
-}
-.story-console .br-progress span {
-  display: block;
-  height: 100%;
-  background: #d6b581;
-  width: 0;
-}
-.story-console .br-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.story-console .br-controls button {
-  font-size: 12px;
-}
-.story-console output {
-  margin-left: auto;
-  font-size: 12px;
-  color: #d5c4af;
-  font-variant-numeric: tabular-nums;
-}
-.story-console .br-scrub {
-  display: block;
-  font-size: 11px;
-  color: #c1bbc1;
-  margin-top: 10px;
-}
-.story-console input {
-  display: block;
-  width: 100%;
-  accent-color: #d1b080;
-}
-.story-console footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 11px;
-  color: #bdb7c0;
-  margin-top: 8px;
-}
-.story-console .br-wire {
-  position: absolute;
-  inset: 12%;
-  background: #17191be8;
-  border: 1px dashed #cbc7bf;
-  padding: 20px;
   text-align: center;
-  align-content: center;
-  color: #e8dfd1;
-}
-.story-console .br-wire span {
-  color: #dfbe8d;
-}
-.story-console .br-wire p {
-  font-size: 12px;
-}
-.story-console.is-wire img {
-  filter: grayscale(1);
-  opacity: 0.3;
-}
-@media (max-width: 600px) {
-  .story-console {
-    padding: 10px;
-  }
-  .story-console header {
-    font-size: 10px;
-  }
-  .story-console nav button {
-    font-size: 10px;
-    padding: 8px 4px;
-  }
-  .story-console .br-copy {
-    padding: 12px;
-    min-height: 238px;
-  }
-  .story-console .br-copy p {
-    font-size: 12px;
-    line-height: 1.6;
-  }
-  .story-console .br-controls {
-    gap: 5px;
-  }
-  .story-console .br-controls button {
-    font-size: 11px;
-    padding: 7px;
-  }
-  .story-console .br-wire {
-    inset: 5%;
-    padding: 8px;
-    font-size: 11px;
-  }
-  .story-console .br-wire p {
-    font-size: 10px;
-  }
-  .story-console .br-frame {
-    padding: 4px;
-    border-width: 5px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .story-console img {
-    transform: none !important;
-  }
-}
-
-.story-console {
-  --stone: url('../assets/arcade/arcade-stone.png');
-  background: #55565a var(--stone) repeat;
-  background-size: 128px 128px;
-  border: 6px ridge #969797;
-  box-shadow: inset 0 0 0 2px #222;
-  max-width: 880px;
+  padding: 2px 0 6px;
   color: #fff;
-  font-family: 'Press Start 2P', monospace;
-  text-shadow: 2px 2px 0 #17171a;
-  padding: 16px;
-}
-.story-console header {
-  display: block;
-  text-align: center;
-  border: 0;
-  padding: 2px 0 10px;
-  font-family: 'Press Start 2P', monospace;
-  letter-spacing: 0;
-  font-size: 9px;
-  line-height: 1.7;
-  color: #eee;
 }
 .story-console header span {
-  display: block;
+  font-size: 9px;
 }
-.story-console header span + span {
-  font-size: 22px;
-  line-height: 1.4;
-  color: #e7e7e7;
-  text-shadow:
-    2px 2px #111,
-    3px 3px #222;
-  margin-top: 7px;
+.story-console h1 {
+  font:
+    22px/1.4 'Press Start 2P',
+    monospace !important;
+  border: 0 !important;
+  margin: 8px 0 !important;
+  color: #fff !important;
 }
 .story-console nav {
+  display: flex;
   gap: 8px;
   margin: 6px 0 12px;
 }
 .story-console button {
-  font-family: 'Press Start 2P', monospace;
+  font:
+    9px/1.7 'Press Start 2P',
+    monospace;
   text-transform: uppercase;
   border: 3px outset #a2a2a2;
   border-radius: 0;
@@ -481,26 +314,31 @@ onBeforeUnmount(() => {
   color: #fff;
   text-shadow: 2px 2px #111;
   box-shadow: 1px 1px #111;
-  font-size: 9px;
-  line-height: 1.7;
   padding: 7px 9px;
   min-height: 40px;
+  cursor: pointer;
 }
 .story-console nav button {
-  font-size: 9px;
+  flex: 1;
+  min-height: 44px;
 }
 .story-console button:hover {
   background-image: linear-gradient(#ffffff18, #ffffff18), var(--stone);
-  color: #fff;
 }
 .story-console button[aria-pressed='true'] {
   background: #282c25;
   border: 3px solid #85ed34;
-  box-shadow: inset 0 0 0 2px #10170d;
   color: #c8ff80;
   text-shadow: 2px 2px #0b1704;
 }
+.story-console button:disabled {
+  color: #ddd;
+  cursor: default;
+}
 .story-console .br-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: #5b5b60 var(--stone);
   background-size: 128px;
   border: 8px ridge #a1a0a3;
@@ -508,82 +346,152 @@ onBeforeUnmount(() => {
   box-shadow: 2px 3px #222;
 }
 .story-console .br-picture {
+  position: relative;
+  height: var(--picture-height);
+  flex: 0 0 var(--picture-height);
+  overflow: hidden;
   border: 4px inset #9b9b9f;
-  background: #141418;
+  background: #08090b;
 }
-.story-console .br-picture:after {
+.story-console .br-picture img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  padding: 3%;
+  image-rendering: pixelated;
+  transition: transform 0.1s linear;
+}
+.story-console .br-picture::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 3px,
-    #00000013 3px,
-    #00000013 4px
-  );
+  background: repeating-linear-gradient(transparent 0 3px, #00000013 3px 4px);
 }
 .story-console .br-copy {
-  background: linear-gradient(#15161adb, #15161adb), var(--stone);
+  flex: 0 1 auto;
+  min-height: 36px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  background: #15161a;
   border: 4px inset #9a999e;
-  padding: 16px 18px;
-  min-height: 182px;
+  margin-top: 8px;
+  padding: 10px;
 }
 .story-console .br-copy p {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  line-height: 1.9;
+  font:
+    11px/1.9 'Press Start 2P',
+    monospace;
   letter-spacing: 0;
-  font-weight: 400;
-  color: #fff;
+  text-transform: uppercase;
+  margin: 0;
+  color: #fff !important;
   text-shadow: 2px 2px #101015;
+  overflow-wrap: anywhere;
+}
+.story-console :focus-visible {
+  outline: 2px solid #c8ff80;
+  outline-offset: 2px;
+}
+.story-console .br-progress {
+  display: block;
+  margin-top: 8px;
+}
+.story-console .br-progress input {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  cursor: pointer;
+  background: transparent;
+}
+.story-console input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    #88e839 var(--progress),
+    #252829 var(--progress)
+  );
+  border-bottom: 1px solid #aaa;
+}
+.story-console input::-moz-range-track {
+  height: 6px;
+  background: #252829;
+}
+.story-console input::-moz-range-progress {
+  height: 6px;
+  background: #88e839;
+}
+.story-console input::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  margin-top: -7px;
+  border: 2px solid #d7ffb1;
+  border-radius: 0;
+  background: #88e839;
+}
+.story-console input::-moz-range-thumb {
+  width: 12px;
+  height: 16px;
+  border: 2px solid #d7ffb1;
+  border-radius: 0;
+  background: #88e839;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.story-console .br-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 .story-console .br-controls button {
   font-size: 8px;
 }
 .story-console output {
+  margin-left: auto;
   font-size: 9px;
   color: #fff;
-  line-height: 1.8;
+  font-variant-numeric: tabular-nums;
 }
-.story-console .br-scrub,
 .story-console footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 9px;
-  line-height: 1.7;
   color: #fff;
-  letter-spacing: 0;
+  margin-top: 8px;
 }
-.story-console .br-progress {
-  height: 5px;
-  background: #262829;
-  border-bottom: 1px solid #999;
-}
-.story-console .br-progress span {
-  background: #88e839;
-}
-.story-console input {
-  accent-color: #9ff450;
-}
-.story-console button:disabled {
-  opacity: 0.65;
-  cursor: default;
-}
-.story-console .br-wire {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  line-height: 1.8;
-}
-.story-console .br-wire p {
+.story-console .skip-link {
+  display: inline-block;
+  color: #fff;
+  padding: 6px 0;
   font-size: 10px;
 }
 @media (max-width: 600px) {
+  .story-page {
+    --story-padding: 10px;
+    padding-inline: 6px;
+  }
   .story-console {
     padding: 9px;
     border-width: 4px;
   }
-  .story-console header span + span {
-    font-size: 16px;
+  .story-console h1 {
+    font-size: 16px !important;
   }
   .story-console nav {
     gap: 5px;
@@ -591,7 +499,6 @@ onBeforeUnmount(() => {
   .story-console nav button {
     font-size: 8px;
     padding: 6px 3px;
-    line-height: 1.7;
   }
   .story-console .br-frame {
     padding: 5px;
@@ -600,149 +507,15 @@ onBeforeUnmount(() => {
   .story-console .br-picture {
     border-width: 3px;
   }
-  .story-console .br-copy {
-    padding: 12px 10px;
-    min-height: 298px;
-  }
-  .story-console .br-copy p {
-    font-size: 11px;
-    line-height: 1.8;
+  .story-console .br-controls {
+    gap: 6px;
   }
   .story-console .br-controls button {
-    font-size: 8px;
     padding: 5px 7px;
   }
   .story-console footer {
     font-size: 8px;
   }
-  .story-console .br-wire {
-    inset: 4%;
-    font-size: 9px;
-  }
-  .story-console .br-wire p {
-    font-size: 8px;
-  }
-  .story-console .br-controls {
-    gap: 6px;
-  }
-}
-
-@media (min-width: 650px) {
-  .story-console {
-    max-width: 780px;
-  }
-  .story-console .br-picture {
-    max-height: 36vh;
-    aspect-ratio: auto;
-    height: 320px;
-  }
-  .story-console img {
-    object-fit: contain;
-    background: #08090b;
-  }
-  .story-console .br-copy {
-    min-height: 182px;
-  }
-}
-@media (max-height: 700px) {
-  .story-console .br-picture {
-    max-height: 28vh;
-  }
-  .story-console header {
-    padding-bottom: 7px;
-  }
-  .story-console nav {
-    margin: 7px 0;
-  }
-}
-.story-page {
-  position: relative;
-  background: #09090c;
-  color: #fff;
-  --console-height: min(900px, calc(100dvh - var(--story-top, 74px) - 10px));
-  --story-padding: 20px;
-  min-height: calc(2400px + var(--console-height) + var(--story-padding));
-  padding: 20px 12px 0;
-}
-.story-stage {
-  position: sticky;
-  top: 74px;
-}
-.story-console h1 {
-  font: inherit !important;
-  font-size: 22px !important;
-  line-height: 1.4 !important;
-  border: 0 !important;
-  margin: 8px 0 !important;
-  color: #eee !important;
-}
-.story-console .br-picture img {
-  transition: transform 0.1s linear;
-}
-.story-console .br-copy p {
-  margin: 0;
-  color: #fff;
-}
-.story-console .skip-link {
-  display: inline-block;
-  color: #fff;
-  padding: 12px 0;
-  font-size: 10px;
-}
-.story-console .br-scrub input {
-  min-height: 32px;
-}
-.story-console nav button {
-  min-height: 44px;
-}
-.story-console .br-copy {
-  min-height: 182px;
-}
-@media (max-width: 600px) {
-  .story-page {
-    --story-padding: 10px;
-    padding: 10px 6px 0;
-  }
-  .story-console h1 {
-    font-size: 16px !important;
-  }
-  .story-console .br-copy {
-    min-height: 298px;
-  }
-}
-/* Keep the image and controls inside the viewport while the story is pinned. */
-.story-console {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto auto;
-  height: var(--console-height);
-  padding: 10px;
-}
-.story-console .br-frame {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-height: 0;
-}
-.story-console .br-picture {
-  height: 100%;
-  max-height: none;
-  min-height: 0;
-  aspect-ratio: auto;
-}
-.story-console .br-picture img {
-  object-fit: contain;
-  padding: 3%;
-}
-.story-console .br-copy {
-  min-height: 0;
-  max-height: 22vh;
-  overflow-y: auto;
-  padding: 10px;
-}
-.story-console .br-copy:focus-visible {
-  outline: 2px solid #c8ff80;
-}
-.story-console .skip-link {
-  padding: 6px 0;
 }
 @media (max-height: 800px) {
   .story-console footer > span:first-child {
@@ -759,8 +532,7 @@ onBeforeUnmount(() => {
     font-size: 10px;
     line-height: 1.7;
   }
-  .story-console .br-controls,
-  .story-console .br-scrub {
+  .story-console .br-progress {
     margin-top: 6px;
   }
 }
@@ -768,8 +540,11 @@ onBeforeUnmount(() => {
   .story-console header > span {
     display: none;
   }
-  .story-console .br-copy {
-    max-height: 16vh;
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-console img {
+    transform: none !important;
+    transition: none !important;
   }
 }
 </style>

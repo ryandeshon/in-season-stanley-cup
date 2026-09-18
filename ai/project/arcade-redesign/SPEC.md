@@ -35,3 +35,14 @@ The story stage must pin 10px below the actual navigation bottom, never use a ne
 ## Expressive portrait implementation
 
 Use four custom expression atlases (one 2×2 sheet per owner) with Happy, Angry, Anguish and Sad quadrants. The final Sad state has visible bruises, small cuts and scuffed clothing/armor. Resolve emotions from confirmed score/result and transient impact, keeping score updates immediate. During travel preserve the prior expression until contact; only the receiver recoils, with a response determined by the incoming attack. Keep layered PixiJS effects independent of portrait art, preserve fallbacks, reduced motion, disabled effects and historical seasons. Full-body action sprites are deferred. All changes remain local.
+
+## Story and arena review follow-up
+
+Push the verified portrait/story-pinning baseline and deploy it to Test if absent. Then keep this next review local: fixed-height story artwork during typing, readable scrolling narration, one interactive progress slider above playback controls with a screen-reader-only label, and a concise Story navigation link. Create four original rink backgrounds: Cooper/Thunderkeep Ice, Boz/The Spotlight Pit, Terry/The Venom Vault, and The Portal Rink for unassigned champions. Ryan retains The Black Rink. Use the defending champion's owner for the arena during a game; change to the confirmed winner's realm on final results. Dim defeated portraits while retaining color, and display only the winner's name in the victory heading.
+
+Black Rink v2 matches the new arenas’ 1536×1024 canvas and wide rink geometry while retaining black ice, red banners and the throne-room setting. The original is retained as source art.
+
+Fighter cards are capped at 250px and centered in their grid columns, shrinking on narrow screens. PixiJS reads the actual portrait bounds for launch and impact points.
+
+## Identity icons and unified dossiers
+Create original scalable SVG artwork for the app logo, favicon, current-champion badge and silver championship Cup. Use the Cup in place of III in the Season 3 header and for historical championship honors. Preserve archived season artwork. Combine Season 3 profile portrait, lore, honors and defense stats into one card that cycles Happy → Angry → Anguish → Sad with click, Enter or Space and resets when the player changes. Historical champion honors for Cooper and Ryan reflect the user-confirmed previous winners; no database records are modified.

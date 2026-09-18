@@ -31,3 +31,19 @@
 - [x] Integrate Happy, Angry, Anguish and Sad with layered attack-specific recoil and image fallbacks.
 - [x] Verify every pairing's impact timing and final-expression assignment in unit tests.
 - [x] Review browser screenshots and production build; keep all changes local.
+
+## Story and arena review follow-up
+- [x] Push the verified portrait/story-pinning baseline; trigger Test deployment.
+- [x] Fix story image sizing, narration visibility and the single scrubber.
+- [x] Generate four original arenas and bind their name/background to champion ownership.
+- [x] Dim defeated portraits and simplify the victory heading.
+- [x] Verify Test deployment, local regressions and desktop/mobile screenshots.
+
+- [x] Reshape The Black Rink to match the new rink dimensions and perspective; preserve original source art.
+
+- [x] Cap fighters at 250px, center each in its arena column and verify responsive attack anchoring.
+
+## Identity icons and unified dossiers
+- [x] Create and integrate SVG logo, favicon, champion badge and Cup.
+- [x] Merge profile dossier and card with accessible four-expression cycling.
+- [x] Validate character navigation, trophy display, icons and responsive screenshots.

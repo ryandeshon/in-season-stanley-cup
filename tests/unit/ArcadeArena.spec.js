@@ -65,6 +65,30 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe('reusable arena choreography', () => {
+  it.each([
+    ['Ryan', 'The Black Rink'],
+    ['Cooper', 'Thunderkeep Ice'],
+    ['Boz', 'The Spotlight Pit'],
+    ['Terry', 'The Venom Vault'],
+    ['Unknown', 'The Portal Rink'],
+  ])(
+    'hosts %s in %s and transfers the arena on a confirmed loss',
+    async (owner, arenaName) => {
+      const { wrapper, game } = mountArena(owner, 'Cooper');
+      expect(wrapper.find('.arena-topline .eyebrow').text()).toBe(arenaName);
+      const final = {
+        ...game,
+        gameState: 'FINAL',
+        awayTeam: { ...game.awayTeam, score: 2 },
+      };
+      await wrapper.setProps({ game: final, rightTeam: final.awayTeam });
+      expect(wrapper.find('.arena-topline .eyebrow').text()).toBe(
+        'Thunderkeep Ice'
+      );
+      expect(wrapper.find('.victory-heading h2').text()).toBe('Cooper');
+      expect(wrapper.find('.victory-heading small').exists()).toBe(false);
+    }
+  );
   it('labels an unconfirmed final without awarding a winner or showing invalid scores', async () => {
     const { wrapper, game } = mountArena();
     const final = {

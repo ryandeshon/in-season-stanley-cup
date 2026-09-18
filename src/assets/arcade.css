@@ -108,13 +108,13 @@
   color: #a9b0a3;
 }
 .brand-mark {
-  font:
-    32px/1 Georgia,
-    serif;
-  color: #e4bd58;
-  border: 1px solid #626957;
-  padding: 3px 9px;
+  display: block;
+  width: 44px;
+  height: 48px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
+.arcade-wordmark { display: block; width: 205px; max-width: 48vw; height: auto; }
 .arcade-navigation {
   display: flex;
   gap: 28px;
@@ -164,7 +164,7 @@
     0 0 0 1px #b3b7a9,
     7px 9px 0 #070907;
   background: #242628 url('./arcade/arcade-stone.png') center/460px;
-  padding: 8px;
+  padding: 24px;
 }
 .arcade-button {
   display: inline-flex;
@@ -294,10 +294,13 @@
   overflow: hidden;
   background:
     linear-gradient(#060d0899, #08120999),
-    url('./arcade/black-rink-arena.png') center/cover;
+    var(--arena-background, url('./arcade/black-rink-arena-v2.png')) center/cover;
 }
 .fighter {
   min-width: 0;
+  width: 100%;
+  max-width: 250px;
+  justify-self: center;
   position: relative;
   z-index: 1;
 }
@@ -439,7 +442,7 @@
   margin: 0;
 }
 .fighter.defeated .portrait-button .portrait-visual {
-  filter: saturate(0.85) brightness(0.9);
+  filter: brightness(0.62);
   animation: none;
 }
 .fighter.victory .portrait-button {
@@ -654,7 +657,7 @@
 }
 @keyframes finish-sink {
   50% {
-    filter: brightness(0.2) saturate(0);
+    filter: brightness(0.45);
     transform: translateY(12%);
   }
 }
@@ -713,7 +716,7 @@
   }
   .stone-frame {
     border-width: 3px;
-    padding: 4px;
+    padding: 12px;
     box-shadow: 3px 5px #050805;
   }
   .arena-topline {
@@ -910,9 +913,11 @@
 }
 .fighter-foot {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 8px;
+  text-align: center;
 }
 .fighter-foot img {
   object-fit: contain;

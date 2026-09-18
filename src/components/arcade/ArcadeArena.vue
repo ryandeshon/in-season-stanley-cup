@@ -2,6 +2,7 @@
   <section
     class="arcade-arena stone-frame"
     data-test="arcade-arena"
+    :style="{ '--arena-background': `url(${arena.background})` }"
     :class="[
       {
         'reduced-motion': reducedMotion,
@@ -14,7 +15,7 @@
     ]"
   >
     <header class="arena-topline">
-      <span class="eyebrow">THE BLACK RINK</span
+      <span class="eyebrow">{{ arena.name }}</span
       ><span class="arena-status"
         ><i :class="{ live: live }"></i
         >{{
@@ -70,7 +71,7 @@
         >FLAWLESS VICTORY</span
       ><span v-else>VICTORY</span>
       <h2>
-        {{ winnerName }} <small>· {{ result.winner.abbrev }}</small>
+        {{ winnerName }}
       </h2>
       <p v-if="mirror">MIRROR MATCH RESOLVED</p>
     </div>
@@ -216,6 +217,7 @@
   </section>
 </template>
 <script setup>
+import { arenaForOwner } from '@/utilities/arcadeArenas';
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import AttackCanvas from './AttackCanvas.vue';
@@ -257,6 +259,10 @@ const winnerName = computed(
   () =>
     sides.value.find((s) => s.team?.abbrev === result.value?.winner.abbrev)
       ?.player?.name || 'Unknown owner'
+);
+// The defender hosts the live game; a confirmed final transfers the realm.
+const arena = computed(() =>
+  arenaForOwner(result.value ? winnerName.value : props.leftPlayer?.name)
 );
 const selected = computed(() =>
   props.selectedRole === 'champion'

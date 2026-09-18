@@ -1,9 +1,17 @@
 <template>
   <v-app-bar app color="primary" class="px-2">
-    <router-link v-if="arcade" to="/" class="arcade-brand"
-      ><span class="brand-mark" aria-hidden="true">Ⅲ</span
-      ><span
-        >IN SEASON CUP<small>THE BLACK RINK · SEASON 03</small></span
+    <router-link
+      v-if="arcade"
+      to="/"
+      class="arcade-brand"
+      aria-label="In Season Cup home"
+      ><img class="brand-mark" :src="arcadeCup" alt="" />
+      <span
+        ><img
+          class="arcade-wordmark"
+          :src="arcadeLogo"
+          alt="In Season Cup"
+        /><small>SEASON 03</small></span
       ></router-link
     >
     <router-link v-else to="/" class="mr-2 h-10">
@@ -46,7 +54,7 @@
         <v-divider />
 
         <v-list-item to="/draft" title="Draft" />
-        <v-list-item to="/story" title="The Black Rink story" />
+        <v-list-item to="/story" title="Story" />
         <!-- Settings Section -->
         <v-list-subheader>Settings</v-list-subheader>
 
@@ -97,6 +105,8 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useSeasonStore } from '@/store/seasonStore';
+import arcadeCup from '@/assets/arcade/icons/championship-cup.svg';
+import arcadeLogo from '@/assets/arcade/icons/in-season-cup-logo.svg';
 import season1Logo from '@/assets/in-season-logo-season1.png';
 import season2Logo from '@/assets/in-season-logo-season2.png';
 

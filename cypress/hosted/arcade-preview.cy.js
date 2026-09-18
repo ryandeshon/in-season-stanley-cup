@@ -69,7 +69,7 @@ describe('Hosted arcade preview isolation', () => {
       'aria-expanded',
       'true'
     );
-    cy.contains('.v-overlay--active .v-list-item', 'The Black Rink story')
+    cy.contains('.v-overlay--active .v-list-item', 'Story')
       .should('be.visible')
       .click();
     cy.get('.story-console').should('be.visible');

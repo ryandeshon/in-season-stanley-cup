@@ -42,8 +42,9 @@ illustrated choreography. See PORTRAIT-PROMPTS.md for asset provenance.
 
 Local portrait verification: 136 unit tests, 49 browser tests, the hosted-preview
 test and production build passed. All four defeated portraits were captured and
-visually reviewed. These portrait and story-pinning changes have not been pushed
-or deployed.
+visually reviewed. The portrait and story-pinning baseline was subsequently pushed and deployed
+to Test after user approval; all four hosted portrait files were verified against
+the local PNGs.
 
 ## Review boundary
 
@@ -72,3 +73,48 @@ Home now starts at the faceoff. The dropdown contains all navigation links and l
 ## PixiJS attack review
 
 Use Test's sample controls to choose each owner, then add a goal: Ryan emits fire and embers, Cooper sends branching lightning, Terry throws acid droplets, and Boz sends an orb with an expanding impact ring. Try goals from both sides. Shutout final and Replay fatality reuse the winning fighter's effect. Turn Effects off during an attack to clear the layer; reduced motion preserves a static result. The effects use procedural graphics, not original game recordings or sprites.
+
+## Champion realms and story refinement (local review)
+
+Story illustrations keep a fixed height while narration types. The text panel
+grows within its available space, scrolls on small screens, and follows the
+latest typed line. One interactive slider above playback controls replaces the
+duplicate progress indicators. Story position is screen-reader-only; the menu
+link is Story. The existing navigation offset and full scroll duration remain.
+
+The live defending owner selects the arena; a confirmed winner takes over the
+realm at the final result. Ryan keeps The Black Rink, Cooper has Thunderkeep Ice,
+Boz has The Spotlight Pit, and Terry has The Venom Vault. An unknown owner uses
+The Portal Rink. These four new backgrounds are original generated artwork; see
+ARENA-PROMPTS.md for saved filenames, prompts and reference sites. Defeated
+portraits retain color at reduced brightness. Victory headings show the owner
+without a repeated team abbreviation.
+
+Validation: 141 unit tests; 49 browser cases (46 full-suite passes plus the three
+updated story checks on targeted rerun); hosted-preview and champion-realm
+checks; production build and lint. Story screenshots reviewed at 1280×720 and
+320×640, and champion arena screenshots reviewed. These newer changes remain
+local for review. The deployed Test baseline does not include them yet.
+
+## Identity and dossier review (local)
+
+New original SVG icons replace the Season 3 header numeral, standings champion
+crown, browser favicon and championship trophy. The wordmark uses outlined
+pixel lettering without a font dependency. Character pages now combine portrait,
+lore, known past honors and defense statistics in one card. Click anywhere on
+the card, Enter or Space cycles Happy → Angry → Anguish → Sad. Changing the
+character resets to Happy. Ryan and Cooper's historical honors are presentation
+metadata based on confirmed prior winners; season/database counters are unchanged.
+
+Validated 143 unit tests, 51 browser cases (50 in the full run plus the corrected
+legacy dossier selector on targeted rerun) and two hosted-preview cases. Build
+and lint pass. Desktop/mobile dossier screenshots and the icon family were
+visually reviewed. These updates remain local.
+
+## Approved Test update
+
+The user approved pushing the completed arena, story, identity, dossier and
+spacing changes to Test. This supersedes the local-only review notes above.
+Test remains an interactive sample-data preview; production and stored season
+statistics are unchanged. Fighter cards are capped at 250px, frame padding is
+24px (12px on phones), and shot counts are centered below team logos.

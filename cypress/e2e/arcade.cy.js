@@ -68,7 +68,7 @@ describe('Season 3 arcade review', () => {
     );
     cy.screenshot('arcade-desktop', { capture: 'fullPage' });
     cy.get('.fighter-label a').contains('Cooper').click();
-    cy.get('.arcade-dossier').should('contain', 'The Former Steward');
+    cy.get('[data-test=character-dossier]').should('contain', 'The Former Steward');
     cy.get('[data-test="player-profile-trend-panel"]').should('be.visible');
   });
   it('fits both fighters and readable scoreboard on a 320px phone', () => {
@@ -121,7 +121,7 @@ describe('Season 3 arcade review', () => {
       'aria-expanded',
       'true'
     );
-    cy.contains('.v-overlay--active .v-list-item', 'The Black Rink story')
+    cy.contains('.v-overlay--active .v-list-item', 'Story')
       .should('be.visible')
       .click();
     cy.get('.story-scene:visible').should('have.length', 1);
