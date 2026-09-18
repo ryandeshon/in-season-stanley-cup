@@ -38,8 +38,8 @@
                 >
                 <img
                   v-if="standing.name === currentChampion?.name"
-                  :src="Crown"
-                  alt="Crown"
+                  :src="arcade ? championBadge : Crown"
+                  alt="Current champion"
                   class="inline ml-1 w-8 h-8"
                 />
               </td>
@@ -64,8 +64,12 @@
         </v-table>
       </div>
       <div class="text-sm my-2">
-        <img :src="Crown" alt="Crown" class="inline w-8 h-8 mr-1" /> = Current
-        Champion
+        <img
+          :src="arcade ? championBadge : Crown"
+          alt="Current champion"
+          class="inline w-8 h-8 mr-1"
+        />
+        = Current Champion
       </div>
     </div>
     <template v-if="totalGamesPlayed && seasonProgressPercentage !== null">
@@ -117,6 +121,7 @@ import { characters } from '@/utilities/arcadeAssets';
 import { useSeasonStore } from '@/store/seasonStore';
 import TeamLogo from '@/components/TeamLogo.vue';
 import ChampionTimeline from '@/components/ChampionTimeline.vue';
+import championBadge from '@/assets/arcade/icons/current-champion.svg';
 import Crown from '@/assets/crown.png';
 
 const seasonStore = useSeasonStore();

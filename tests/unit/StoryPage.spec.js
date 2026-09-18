@@ -41,9 +41,7 @@ it('advances three timed scenes, pauses, ends at one minute and replays', async 
   expect(wrapper.find('.story-scene').attributes('aria-label')).toBe(
     'The trap'
   );
-  expect(wrapper.find('[role="progressbar"]').attributes('aria-valuenow')).toBe(
-    '60'
-  );
+  expect(wrapper.find('input[type=range]').element.value).toBe('60');
   await button('Replay').trigger('click');
   expect(wrapper.find('.story-scene').attributes('aria-label')).toBe(
     'The seizure'
