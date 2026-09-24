@@ -35,20 +35,20 @@ describe('useDraftRealtime', () => {
     __socketState.lastMessage.value = null;
   });
 
-  it('polls while disconnected, refreshes on reconnect and stops on unmount', async () => {
+  it('polls even when connected, refreshes on reconnect and stops on unmount', async () => {
     vi.useFakeTimers();
     __socketState.isConnected.value = false;
     const onRefresh = vi.fn().mockResolvedValue();
     const mounted = await mountComposable(() =>
       useDraftRealtime({ onRefresh })
     );
-    await vi.advanceTimersByTimeAsync(30000);
+    await vi.advanceTimersByTimeAsync(5000);
     expect(onRefresh).toHaveBeenCalledTimes(1);
     __socketState.isConnected.value = true;
     await nextTick();
     expect(onRefresh).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(30000);
-    expect(onRefresh).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onRefresh).toHaveBeenCalledTimes(3);
     await mounted.unmount();
     expect(vi.getTimerCount()).toBe(0);
   });

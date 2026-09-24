@@ -56,6 +56,17 @@
       {{ snackbar.message }}
     </v-snackbar>
     <v-container class="max-w-screen-lg">
+      <v-text-field
+        v-if="seasonStore.storageVersion === 'v2' && !isDraftOver"
+        v-model="draftToken"
+        type="password"
+        label="Your draft access code"
+        hint="Use the private code supplied for your player. It stays only on this page."
+        persistent-hint
+        autocomplete="off"
+        data-test="draft-access-code"
+        class="mb-4"
+      />
       <v-alert
         v-if="loadError && !isLoading"
         type="error"
@@ -239,6 +250,7 @@ import TeamLogo from '@/components/TeamLogo.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
+const draftToken = ref('');
 const isLoading = ref(true);
 const loadError = ref('');
 const showIsNotYourTurn = ref(false);
@@ -460,6 +472,7 @@ async function selectTeam(team) {
       currentVersion,
       {
         season: seasonStore.currentSeason,
+        token: draftToken.value,
       }
     );
 
@@ -478,6 +491,10 @@ async function selectTeam(team) {
     sendSocketMessage('default', updatedState); // broadcast
     await loadInitialData({ showLoading: false });
   } catch (error) {
+    if (error instanceof ApiClientError && error.status === 401) {
+      showSnackbar('Enter the correct access code for this player.', 'error');
+      return;
+    }
     if (error instanceof ApiClientError && error.status === 409) {
       applyDraftStateToView(error.details?.currentState || null);
       syncCurrentPlayer();

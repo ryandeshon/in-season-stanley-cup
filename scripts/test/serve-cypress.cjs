@@ -2,6 +2,7 @@
 // This launcher is only used by browser tests, never by the production build.
 const { spawn } = require('node:child_process');
 
+const port = process.env.TEST_APP_PORT || '8080';
 const server = spawn(
   process.execPath,
   [
@@ -10,7 +11,7 @@ const server = spawn(
     '--mode',
     'cypress',
     '--port',
-    '8080',
+    port,
   ],
   {
     stdio: 'inherit',
@@ -18,8 +19,8 @@ const server = spawn(
       ...process.env,
       NODE_ENV: 'development',
       VUE_APP_HOSTED_ARCADE_PREVIEW: 'false',
-      VUE_APP_API_BASE: 'http://localhost:8080/api',
-      VUE_APP_NHL_API_URL: 'http://localhost:8080/nhl',
+      VUE_APP_API_BASE: `http://localhost:${port}/api`,
+      VUE_APP_NHL_API_URL: `http://localhost:${port}/nhl`,
       VUE_APP_WEB_SOCKET_URL: '',
       VUE_APP_ASSET_BASE_URL: '',
       VUE_APP_ENABLE_SEASON_CONTRACTS: 'true',

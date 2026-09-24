@@ -31,14 +31,34 @@
     </template>
 
     <template v-else>
-      <SeasonChampion v-if="isSeasonOver" />
+      <section
+        v-if="seasonStore.selectedSeason?.status === 'preseason'"
+        class="text-center my-8"
+        data-test="season-preseason"
+      >
+        <h1 class="text-3xl mb-4">Season 3 · Enter the Black Rink</h1>
+        <p class="mb-4">
+          A new season starts with the draft. All 32 teams are ready for their
+          next owner.
+        </p>
+        <v-btn to="/draft" color="primary" class="ma-2">Enter the draft</v-btn>
+        <v-btn to="/story" variant="outlined" class="ma-2"
+          >Watch the prologue</v-btn
+        >
+        <p class="mt-4">Past seasons remain available in the season menu.</p>
+      </section>
+      <SeasonChampion v-else-if="isSeasonOver" />
       <p v-if="isSeasonOver && !arcade" class="text-center my-6">
         <router-link to="/story"
           >Enter the Black Rink · Watch the Season 3 prologue ↗</router-link
         >
       </p>
 
-      <template v-else>
+      <template
+        v-if="
+          !isSeasonOver && seasonStore.selectedSeason?.status !== 'preseason'
+        "
+      >
         <ArcadeArena
           v-if="arcade && (isGameToday || isGameOver) && todaysGame?.id"
           :game="todaysGame"

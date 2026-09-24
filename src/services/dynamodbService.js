@@ -72,6 +72,10 @@ export async function selectTeamForPlayer(playerId, team, options = {}) {
 export async function makeDraftPick(playerId, team, version, options = {}) {
   return apiRequest('/draft/pick', {
     method: 'POST',
+    headers: {
+      ...adminHeaders(),
+      ...(options.token ? { 'x-draft-token': options.token } : {}),
+    },
     body: { playerId, team, version },
     query: withSeasonQuery(options.season),
   });

@@ -46,6 +46,7 @@ function createLegacyHandler({
     getSeasonMeta: legacySeasonMeta,
     getToday,
     isAuthorized,
+    isPlayerAuthorized,
     listChampionHistory,
     listGameRecords,
     listPlayers,
@@ -391,6 +392,11 @@ function createLegacyHandler({
 
       if (path === '/draft/pick' && method === 'POST') {
         const { playerId, team, version } = parseBody(event.body);
+        if (!isPlayerAuthorized(event, playerId)) {
+          return response(event, 401, {
+            error: 'Enter the access code for this player.',
+          });
+        }
         if (playerId === undefined || playerId === null || playerId === '') {
           return response(event, 400, { error: 'playerId is required' });
         }
