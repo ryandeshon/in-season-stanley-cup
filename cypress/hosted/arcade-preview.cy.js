@@ -91,4 +91,33 @@ describe('Hosted arcade preview isolation', () => {
     cy.get('.fighter.left').should('contain', 'Ryan');
     cy.get('.hud-score strong').should('contain', '2');
   });
+  it('previews off days, empty schedules, and pregame, then restores live play', () => {
+    cy.visit('/');
+    resetPreview();
+    cy.contains('button', 'Off day').click();
+    cy.contains('is not Defending the Championship Today').should('be.visible');
+    cy.get('[data-test="arcade-arena"]').should('not.exist');
+    cy.get('[data-test="whats-next-row"]').should('have.length.greaterThan', 0);
+    cy.contains('button', 'Off day').should(
+      'have.attr',
+      'aria-pressed',
+      'true'
+    );
+    cy.reload();
+    cy.contains('is not Defending the Championship Today').should('be.visible');
+    cy.contains('button', 'No upcoming games').click();
+    cy.get('[data-test="whats-next-empty"]').should('be.visible');
+    cy.get('[data-test="whats-next-row"]').should('not.exist');
+    cy.contains('button', 'Pregame').click();
+    cy.get('[data-test="arcade-arena"]').should('be.visible');
+    cy.get('.hud-score strong').should('have.text', '0:0');
+    cy.contains('button', 'Go live').click();
+    cy.get('.hud-score strong').should('contain', '2').and('contain', '1');
+    cy.contains('button', 'Live game').should(
+      'have.attr',
+      'aria-pressed',
+      'true'
+    );
+    resetPreview();
+  });
 });

@@ -14,6 +14,37 @@ const catalog = {
   ],
 };
 describe('Season rollover', () => {
+  it('resets a saved Season 2 selection once and sorts the dropdown', () => {
+    cy.mockApiScenario('cup-day-multiple-games');
+    cy.intercept(apiRoute('GET', '/seasons'), {
+      body: {
+        ...catalog,
+        seasons: [catalog.seasons[2], catalog.seasons[0], catalog.seasons[1]],
+      },
+    });
+    cy.visit('/standings', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('selectedSeason', 'season2');
+        win.localStorage.removeItem('selectedSeasonCatalogDefault');
+      },
+    });
+    cy.wait('@getPlayers').its('request.query.season').should('eq', 'season3');
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.get('[data-test="season-select"]').should('contain', '3').click();
+    cy.get('.v-select__content [role="option"]').then((options) => {
+      expect(
+        [...options].map((option) => option.textContent.trim())
+      ).to.deep.equal(['1', '2', '3']);
+    });
+    cy.get('.v-select__content [role="option"]').contains('2').click();
+    cy.reload();
+    cy.window()
+      .its('localStorage')
+      .invoke('getItem', 'selectedSeason')
+      .should('eq', 'season2');
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.get('[data-test="season-select"]').should('contain', '2');
+  });
   it('defaults to Season 3 with empty rosters and preserved lifetime totals', () => {
     cy.mockApiScenario('cup-day-multiple-games');
     cy.intercept(apiRoute('GET', '/seasons'), { body: catalog });
@@ -50,7 +81,9 @@ describe('Season rollover', () => {
     cy.get('[data-test="draft-admin-start"]').should('exist');
     cy.get('[data-test="navigation-menu"]').click();
     // Send keys to the focused input instead of relying on OS-level focus.
-    cy.get('[data-test="season-select"] input').focus().type('2', { force: true });
+    cy.get('[data-test="season-select"] input')
+      .focus()
+      .type('2', { force: true });
     cy.get('[data-test="season-select"]').should('contain', '2');
     cy.get('[data-test="navigation-menu"]').click();
     cy.get('[data-test="draft-season-read-only"]').should(
@@ -67,5 +100,40 @@ describe('Season rollover', () => {
     cy.visit('/draft/admin');
     cy.contains('Season data is unavailable').should('be.visible');
     cy.get('[data-test="draft-admin-start"]').should('not.exist');
+  });
+});
+
+describe('Season 3 launch', () => {
+  it('shows the preseason draft entry and keeps About available', () => {
+    cy.mockApiScenario('no-games');
+    cy.intercept(apiRoute('GET', '/seasons'), { body: catalog });
+    cy.intercept(apiRoute('GET', '/champion'), {
+      body: { champion: null, gameID: null },
+    });
+    cy.intercept(apiRoute('GET', '/gameid'), { body: { gameID: null } });
+    cy.intercept(apiRoute('GET', '/season/meta'), {
+      body: { seasonId: 'season3', status: 'preseason', seasonOver: false },
+    });
+    cy.visit('/');
+    cy.get('[data-test="season-preseason"]').should(
+      'contain',
+      'Enter the draft'
+    );
+    cy.get('[data-test="champion-team-fallback"]').should('not.exist');
+    cy.visit('/about');
+    cy.contains('h1', 'About').should('be.visible');
+    cy.contains('Drafting Teams').should('be.visible');
+  });
+  it('sends the participant access code with a versioned pick', () => {
+    cy.mockDraftScenario('draft-default');
+    cy.intercept(apiRoute('GET', '/seasons'), { body: catalog });
+    cy.visit('/draft');
+    cy.wait('@getDraftState');
+    cy.get('[data-test="draft-player-selection"]').contains('Ryan').click();
+    cy.get('[data-test="draft-access-code"] input').type('private-test-code');
+    cy.get('[data-test="draft-team-card-BOS"]').click();
+    cy.wait('@pickDraftTeam')
+      .its('request.headers.x-draft-token')
+      .should('eq', 'private-test-code');
   });
 });

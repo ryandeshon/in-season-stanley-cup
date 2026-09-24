@@ -88,3 +88,34 @@ test('canonical admin authorization is fail-closed without a configured token', 
     true
   );
 });
+
+test('canonical picks bind player identity to a private code and permit admin autopicks', async () => {
+  const { createHttp } = await import('../../lambdas/http-api/http.js');
+  const http = createHttp({
+    env: {
+      SEASON_STORAGE: 'v2',
+      ADMIN_API_TOKEN: 'admin-only',
+      DRAFT_PLAYER_TOKENS: JSON.stringify({ 0: 'ryan-only', 1: 'cooper-only' }),
+    },
+  });
+  assert.equal(http.isPlayerAuthorized({}, '0'), false);
+  assert.equal(
+    http.isPlayerAuthorized({ headers: { 'X-Draft-Token': 'ryan-only' } }, '0'),
+    true
+  );
+  assert.equal(
+    http.isPlayerAuthorized({ headers: { 'x-draft-token': 'ryan-only' } }, '1'),
+    false
+  );
+  assert.equal(
+    http.isPlayerAuthorized(
+      { headers: { 'x-admin-token': 'admin-only' } },
+      '1'
+    ),
+    true
+  );
+  assert.equal(
+    createHttp({ env: { SEASON_STORAGE: 'v2' } }).isPlayerAuthorized({}, '0'),
+    false
+  );
+});

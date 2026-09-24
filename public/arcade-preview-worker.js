@@ -1,4 +1,5 @@
 /* Test-only, browser-local fixture API. No database, production proxy or write fallback. */
+importScripts('/arcade-preview-scenarios.js');
 const PREFIX = '/__arcade-preview';
 let state;
 let loading;
@@ -59,7 +60,9 @@ async function respond(request, url) {
     if (request.method === 'POST' && path === '/preview') {
       const command = await request.json();
       const game = data.gameInfoResponse;
-      if (command.action === 'goal-home') game.homeTeam.score++;
+      if (command.action === 'scenario')
+        self.applyPreviewScenario(data, await pristine(), command.scenario);
+      else if (command.action === 'goal-home') game.homeTeam.score++;
       else if (command.action === 'goal-away') game.awayTeam.score++;
       else if (command.action === 'live') {
         game.gameState = 'LIVE';
@@ -97,6 +100,8 @@ async function respond(request, url) {
     }
     if (request.method !== 'GET')
       return json({ error: 'Preview is read only' }, 405);
+    if (path === '/preview')
+      return json({ scenario: data.previewScenario || 'live' });
     if (path === '/api/seasons') return json(catalog);
     if (path === '/api/champion') return json(data.championResponse);
     if (path === '/api/gameid') return json(data.gameIdResponse);
