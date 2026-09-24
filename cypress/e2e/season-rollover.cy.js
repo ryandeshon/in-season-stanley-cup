@@ -96,8 +96,9 @@ describe('Season 3 launch', () => {
   it('sends the participant access code with a versioned pick', () => {
     cy.mockDraftScenario('draft-default');
     cy.intercept(apiRoute('GET', '/seasons'), { body: catalog });
-    cy.visit('/draft/Ryan');
+    cy.visit('/draft');
     cy.wait('@getDraftState');
+    cy.get('[data-test="draft-player-selection"]').contains('Ryan').click();
     cy.get('[data-test="draft-access-code"] input').type('private-test-code');
     cy.get('[data-test="draft-team-card-BOS"]').click();
     cy.wait('@pickDraftTeam')

@@ -56,8 +56,23 @@
       {{ snackbar.message }}
     </v-snackbar>
     <v-container class="max-w-screen-lg">
+      <section
+        v-if="!playerName && !isLoading"
+        class="text-center my-6"
+        data-test="draft-player-selection"
+      >
+        <h1 class="text-2xl mb-4">Choose your player</h1>
+        <v-btn
+          v-for="player in allPlayersData"
+          :key="player.id"
+          :to="`/draft/${encodeURIComponent(player.name)}`"
+          class="ma-2"
+          color="primary"
+          >{{ player.name }}</v-btn
+        >
+      </section>
       <v-text-field
-        v-if="seasonStore.storageVersion === 'v2' && !isDraftOver"
+        v-if="playerName && seasonStore.storageVersion === 'v2' && !isDraftOver"
         v-model="draftToken"
         type="password"
         label="Your draft access code"
@@ -282,7 +297,11 @@ function preloadAudio() {
 
 const route = useRoute();
 const seasonStore = useSeasonStore();
-const playerName = route.params.name;
+const playerName = computed(() => String(route.params.name || ''));
+watch(playerName, () => {
+  draftToken.value = '';
+  syncCurrentPlayer();
+});
 const currentPlayer = ref(null);
 
 const allPlayersData = ref([]);
@@ -353,9 +372,14 @@ const { isDisconnected } = useDraftRealtime({
 
 function syncCurrentPlayer() {
   const foundPlayer = allPlayersData.value.find(
-    (player) => player.name.toLowerCase() === String(playerName).toLowerCase()
+    (player) => player.name.toLowerCase() === playerName.value.toLowerCase()
   );
   currentPlayer.value = foundPlayer || null;
+  if (!playerName.value) {
+    isYourTurn.value = false;
+    loadError.value = '';
+    return false;
+  }
   if (!currentPlayer.value) {
     loadError.value = 'Player not found. Please check your URL.';
     showSnackbar(loadError.value, 'error');
