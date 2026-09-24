@@ -2,7 +2,8 @@
 const http = require('node:http');
 const { spawn } = require('node:child_process');
 const fixture = require('../../cypress/fixtures/cup-day-multiple-games.json');
-const state = structuredClone(fixture);
+const applyPreviewScenario = require('../../public/arcade-preview-scenarios.js');
+let state = structuredClone(fixture);
 const catalog = {
   storageVersion: 'v2',
   defaultSeason: 'season3',
@@ -44,7 +45,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const command = JSON.parse(raw);
       const game = state.gameInfoResponse;
-      if (command.action === 'goal-home') game.homeTeam.score++;
+      if (command.action === 'scenario')
+        applyPreviewScenario(state, fixture, command.scenario);
+      else if (command.action === 'goal-home') game.homeTeam.score++;
       else if (command.action === 'goal-away') game.awayTeam.score++;
       else if (command.action === 'final') {
         game.gameState = 'FINAL';
@@ -61,8 +64,7 @@ const server = http.createServer(async (req, res) => {
         game.clock.inIntermission = false;
       } else if (command.action === 'intermission')
         game.clock.inIntermission = !game.clock.inIntermission;
-      else if (command.action === 'reset')
-        Object.assign(state, structuredClone(fixture));
+      else if (command.action === 'reset') state = structuredClone(fixture);
       else if (command.action === 'owners') {
         const names = ['Ryan', 'Cooper', 'Boz', 'Terry'];
         if (!names.includes(command.left) || !names.includes(command.right))
@@ -85,7 +87,9 @@ const server = http.createServer(async (req, res) => {
   } else if (req.method !== 'GET') {
     res.statusCode = 405;
     body = { error: 'Review preview is read only' };
-  } else if (path === '/api/seasons') body = catalog;
+  } else if (path === '/preview')
+    body = { scenario: state.previewScenario || 'live' };
+  else if (path === '/api/seasons') body = catalog;
   else if (path === '/api/champion') body = state.championResponse;
   else if (path === '/api/gameid') body = state.gameIdResponse;
   else if (path === '/api/season/meta')

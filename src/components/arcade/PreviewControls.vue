@@ -1,7 +1,21 @@
 <template>
   <aside class="preview-controls" aria-label="Design preview controls">
     <strong>DESIGN PREVIEW · SAMPLE DATA</strong
-    ><span>Sample data only. Reset restores the fixture.</span>
+    ><span
+      >Sample data only. Scenarios stay in this browser. Reset restores the live
+      game.</span
+    >
+    <div aria-label="Game scenarios">
+      <strong>Game scenario</strong>
+      <button
+        v-for="option in scenarios"
+        :key="option[0]"
+        :aria-pressed="scenario === option[0]"
+        @click="send('scenario', { scenario: option[0] })"
+      >
+        {{ option[1] }}
+      </button>
+    </div>
     <div>
       <label
         >Left owner
@@ -16,6 +30,10 @@
       ><button
         v-for="action in actions"
         :key="action[0]"
+        :disabled="
+          ['off-day', 'empty-schedule'].includes(scenario) &&
+          !['reset', 'live'].includes(action[0])
+        "
         @click="send(action[0])"
       >
         {{ action[1] }}
@@ -27,6 +45,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { previewBase } from '@/utilities/previewConfig';
+const scenario = ref('live');
+const scenarios = [
+  ['live', 'Live game'],
+  ['pregame', 'Pregame'],
+  ['off-day', 'Off day'],
+  ['empty-schedule', 'No upcoming games'],
+];
 const names = ['Ryan', 'Cooper', 'Boz', 'Terry'];
 const left = ref('Ryan'),
   right = ref('Cooper'),
@@ -41,6 +66,10 @@ const actions = [
   ['reset', 'Reset'],
 ];
 async function send(action, extra = {}) {
+  if (action === 'live' && scenario.value !== 'live') {
+    action = 'scenario';
+    extra = { scenario: 'live' };
+  }
   try {
     const response = await fetch(`${previewBase}/preview`, {
       method: 'POST',
@@ -49,8 +78,9 @@ async function send(action, extra = {}) {
     });
     if (!response.ok) throw Error('Preview update failed');
     error.value = '';
-    if (action === 'reset') sessionStorage.removeItem('arcade-finished-games');
-    if (action === 'reset' || action === 'owners') {
+    if (action === 'reset' || action === 'scenario')
+      sessionStorage.removeItem('arcade-finished-games');
+    if (action === 'reset' || action === 'owners' || action === 'scenario') {
       location.reload();
       return;
     }
@@ -61,6 +91,8 @@ async function send(action, extra = {}) {
 }
 onMounted(async () => {
   try {
+    const status = await fetch(`${previewBase}/preview`);
+    if (status.ok) scenario.value = (await status.json()).scenario;
     const response = await fetch(`${previewBase}/api/players`);
     if (!response.ok) throw Error('Preview owners unavailable');
     const players = await response.json();
@@ -102,6 +134,14 @@ function owners() {
   border: 1px solid #847851;
   background: #181b16;
   color: #f2e5bf;
+}
+.preview-controls button[aria-pressed='true'] {
+  background: #ead9a2;
+  color: #181b16;
+}
+.preview-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .preview-controls label {
   display: flex;
