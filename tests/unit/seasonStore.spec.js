@@ -36,12 +36,39 @@ describe('season catalog', () => {
   it('preserves a valid explicit selection and discards an obsolete one', async () => {
     apiRequest.mockResolvedValue(catalog);
     localStorage.setItem('selectedSeason', 'season2');
+    localStorage.setItem('selectedSeasonCatalogDefault', 'season3');
     const store = useSeasonStore();
     await store.loadCatalog();
     expect(store.currentSeason).toBe('season2');
     localStorage.setItem('selectedSeason', 'season99');
     await store.loadCatalog();
     expect(store.currentSeason).toBe('season3');
+  });
+  it('moves returning visitors to Season 3 once, then preserves archive choices', async () => {
+    apiRequest.mockResolvedValue(catalog);
+    localStorage.setItem('selectedSeason', 'season2');
+    const store = useSeasonStore();
+    await store.loadCatalog();
+    expect(store.currentSeason).toBe('season3');
+    expect(localStorage.getItem('selectedSeason')).toBe('season3');
+    store.setSeason('season1');
+    setActivePinia(createPinia());
+    const reloaded = useSeasonStore();
+    await reloaded.loadCatalog();
+    expect(reloaded.currentSeason).toBe('season1');
+  });
+  it('sorts the unordered catalog numerically without mutating the response', async () => {
+    const seasons = [{ id: 'season10' }, ...catalog.seasons.slice().reverse()];
+    apiRequest.mockResolvedValue({ ...catalog, seasons });
+    const store = useSeasonStore();
+    await store.loadCatalog();
+    expect(store.seasons.map((s) => s.id)).toEqual([
+      'season1',
+      'season2',
+      'season3',
+      'season10',
+    ]);
+    expect(seasons[0].id).toBe('season10');
   });
   it('falls back only when the legacy API has no catalog', async () => {
     const store = useSeasonStore();

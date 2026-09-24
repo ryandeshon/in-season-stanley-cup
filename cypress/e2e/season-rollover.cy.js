@@ -14,6 +14,37 @@ const catalog = {
   ],
 };
 describe('Season rollover', () => {
+  it('resets a saved Season 2 selection once and sorts the dropdown', () => {
+    cy.mockApiScenario('cup-day-multiple-games');
+    cy.intercept(apiRoute('GET', '/seasons'), {
+      body: {
+        ...catalog,
+        seasons: [catalog.seasons[2], catalog.seasons[0], catalog.seasons[1]],
+      },
+    });
+    cy.visit('/standings', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('selectedSeason', 'season2');
+        win.localStorage.removeItem('selectedSeasonCatalogDefault');
+      },
+    });
+    cy.wait('@getPlayers').its('request.query.season').should('eq', 'season3');
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.get('[data-test="season-select"]').should('contain', '3').click();
+    cy.get('.v-select__content [role="option"]').then((options) => {
+      expect(
+        [...options].map((option) => option.textContent.trim())
+      ).to.deep.equal(['1', '2', '3']);
+    });
+    cy.get('.v-select__content [role="option"]').contains('2').click();
+    cy.reload();
+    cy.window()
+      .its('localStorage')
+      .invoke('getItem', 'selectedSeason')
+      .should('eq', 'season2');
+    cy.get('[data-test="navigation-menu"]').click();
+    cy.get('[data-test="season-select"]').should('contain', '2');
+  });
   it('defaults to Season 3 with empty rosters and preserved lifetime totals', () => {
     cy.mockApiScenario('cup-day-multiple-games');
     cy.intercept(apiRoute('GET', '/seasons'), { body: catalog });
