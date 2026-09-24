@@ -110,9 +110,7 @@ describe('Hosted arcade preview isolation', () => {
     cy.get('[data-test="whats-next-row"]').should('not.exist');
     cy.contains('button', 'Pregame').click();
     cy.get('[data-test="arcade-arena"]').should('be.visible');
-    cy.get('.hud-score strong').each(($score) => {
-      expect($score.text().trim()).to.eq('0');
-    });
+    cy.get('.hud-score strong').should('have.text', '0:0');
     cy.contains('button', 'Go live').click();
     cy.get('.hud-score strong').should('contain', '2').and('contain', '1');
     cy.contains('button', 'Live game').should(
