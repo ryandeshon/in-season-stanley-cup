@@ -44,7 +44,8 @@ export function createHttp({ ALLOWED_HOSTS, CORS_ORIGIN, env, https }) {
   function buildHeaders(event, cacheOptions = null) {
     const origin = getCorsOrigin(event);
     const base = {
-      'Access-Control-Allow-Headers': 'Content-Type,X-Admin-Token',
+      'Access-Control-Allow-Headers':
+        'Content-Type,X-Admin-Token,X-Draft-Token',
       'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
       Vary: 'Origin',
       'Cache-Control': 'no-store',
@@ -118,6 +119,22 @@ export function createHttp({ ALLOWED_HOSTS, CORS_ORIGIN, env, https }) {
     return providedToken === requiredAdminToken;
   }
 
+  function isPlayerAuthorized(event, playerId) {
+    if (isAuthorized(event) && env.ADMIN_API_TOKEN) return true;
+    if (env.SEASON_STORAGE !== 'v2' && !env.DRAFT_PLAYER_TOKENS) return true;
+    try {
+      const tokens = JSON.parse(env.DRAFT_PLAYER_TOKENS || '{}');
+      const required = tokens[String(playerId)];
+      return (
+        typeof required === 'string' &&
+        required.length > 0 &&
+        getHeaderValue(event, 'x-draft-token') === required
+      );
+    } catch {
+      return false;
+    }
+  }
+
   function getQueryParams(event) {
     if (
       event?.queryStringParameters &&
@@ -138,6 +155,7 @@ export function createHttp({ ALLOWED_HOSTS, CORS_ORIGIN, env, https }) {
     parseBody,
     getHeaderValue,
     isAuthorized,
+    isPlayerAuthorized,
     getQueryParams,
   };
 }

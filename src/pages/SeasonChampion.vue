@@ -11,6 +11,11 @@
     <v-alert v-else-if="!player" type="warning" variant="tonal">
       Season champion is not available yet.
     </v-alert>
+    <ArcadeCoronation
+      v-else-if="seasonKey === 'season3'"
+      :player="player"
+      :season="seasonKey"
+    />
     <SeasonChampionFlash
       v-else
       :player="player"
@@ -29,6 +34,7 @@ import { useSeasonStore } from '@/store/seasonStore';
 import { selectSeasonChampion } from '@/utilities/seasonChampion';
 import { getPlayerImageUrl } from '@/utilities/assetUrls';
 
+import ArcadeCoronation from '@/components/arcade/ArcadeCoronation.vue';
 import SeasonChampionFlash from '@/components/SeasonChampionFlash.vue';
 import season1CooperChampionImage from '@/assets/players/season1/season-champion.png';
 import season2BozChampionImage from '@/assets/players/season2/boz-winner.png';
@@ -43,9 +49,7 @@ const player = ref(null);
 const loading = ref(true);
 const useLocalImageFallback = ref(false);
 
-const seasonKey = computed(() =>
-  seasonStore.currentSeason === 'season1' ? 'season1' : 'season2'
-);
+const seasonKey = computed(() => seasonStore.currentSeason);
 
 const winnerImages = {
   season1: {

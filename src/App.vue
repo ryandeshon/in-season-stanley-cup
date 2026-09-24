@@ -5,6 +5,7 @@
 
     <!-- Main Content -->
     <v-main>
+      <PreviewControls v-if="preview" />
       <v-alert v-if="seasonStore.catalogError" type="error">{{
         seasonStore.catalogError
       }}</v-alert>
@@ -12,7 +13,12 @@
     </v-main>
 
     <!-- Footer -->
-    <v-footer app color="primary" :style="{ zIndex: 2000 }">
+    <v-footer
+      :key="seasonStore.currentSeason"
+      :app="seasonStore.currentSeason !== 'season3'"
+      color="primary"
+      :style="{ zIndex: 2000 }"
+    >
       <span class="mx-auto"
         >© {{ new Date().getFullYear() }} In Season Cup |
         <a
@@ -29,12 +35,19 @@
 </template>
 
 <script setup>
-import { watch, computed, onMounted } from 'vue';
+import { defineAsyncComponent, watch, computed, onMounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useTheme as useVuetifyTheme } from 'vuetify';
 import { useSeasonStore } from '@/store/seasonStore';
+import { previewEnabled } from '@/utilities/previewConfig';
 import NavigationBar from '@/components/NavigationBar.vue';
 
+const preview = previewEnabled;
+const PreviewControls = preview
+  ? defineAsyncComponent(
+      () => import('@/components/arcade/PreviewControls.vue')
+    )
+  : null;
 const appVersion = process.env.VUE_APP_VERSION || 'dev';
 const changelogUrl =
   process.env.VUE_APP_CHANGELOG_URL ||
@@ -52,7 +65,9 @@ onMounted(() => {
 const currentThemeName = computed(() => {
   // Ensure we have valid values before computing theme name
   const seasonValue = seasonStore.currentSeason || 'season2';
-  const season = seasonValue === 'season1' ? 'season1' : 'season2';
+  const season = ['season1', 'season2', 'season3'].includes(seasonValue)
+    ? seasonValue
+    : 'season2';
   const mode = isDarkTheme.value ? 'dark' : 'light';
   const themeName = `${season}-${mode}`;
   return themeName;
@@ -62,6 +77,7 @@ const currentThemeName = computed(() => {
 watch(
   currentThemeName,
   (newThemeName) => {
+    document.body.dataset.mode = isDarkTheme.value ? 'dark' : 'light';
     if (newThemeName && theme.global?.name) {
       theme.global.name.value = newThemeName;
     }
@@ -97,6 +113,7 @@ watch(
 /* Import CSS files from the assets folder */
 @import '@/assets/_variables.css';
 @import '@/assets/style.css';
+@import '@/assets/arcade.css';
 
 .app-version-link {
   color: inherit;

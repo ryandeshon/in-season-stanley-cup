@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico" />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="<%= BASE_URL %>arcade-favicon.svg" />
     <title>In Season Cup</title>
     <meta
       name="description"
@@ -12,19 +12,6 @@
     />
     <meta name="keywords" content="NHL, hockey, game, season, champion" />
     <meta name="author" content="Ryan Deshon" />
-    <!-- Favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="<%= BASE_URL %>favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="<%= BASE_URL %>favicon-16x16.png"
-    />
     <link
       rel="apple-touch-icon"
       sizes="180x180"
@@ -35,6 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto+Condensed:wght@700&display=swap"
       rel="stylesheet"
     />
+    <% if (process.env.VUE_APP_HOSTED_ARCADE_PREVIEW !== 'true') { %>
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -49,6 +37,7 @@
 
       gtag('config', 'G-KPL5ZVDJC7');
     </script>
+    <% } %>
   </head>
   <body>
     <noscript>

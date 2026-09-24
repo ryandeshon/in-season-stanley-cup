@@ -1,10 +1,13 @@
+import { hostedPreview, previewBase } from '@/utilities/previewConfig';
 // Docs: https://gitlab.com/dword4/nhlapi/-/blob/master/new-api.md
 
 import axios from 'axios';
 import { DateTime } from 'luxon';
 
 const apiClient = axios.create({
-  baseURL: process.env.VUE_APP_NHL_API_URL, // Use the proxy defined in vue.config.js
+  baseURL: hostedPreview
+    ? `${previewBase}/nhl`
+    : process.env.VUE_APP_NHL_API_URL, // Use the proxy defined in vue.config.js
   withCredentials: false,
   headers: {
     Accept: 'application/json',

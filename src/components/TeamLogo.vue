@@ -54,6 +54,7 @@ const { isDarkOrLight } = useTheme();
 const useLocalLogoFallback = ref(false);
 
 const props = defineProps({
+  logoMode: { type: String, default: '' },
   team: {
     type: String,
     required: true,
@@ -104,9 +105,10 @@ const teamLogos = {
 };
 
 const teamLogoSrc = computed(() => {
-  // Season 1: Use NHL SVG logos
-  if (seasonStore.currentSeason === 'season1') {
-    const themeMode = isDarkOrLight.value === 'dark' ? 'dark' : 'light';
+  // Current and original seasons use official NHL logos; preserve the Season 2 archive.
+  if (seasonStore.currentSeason !== 'season2') {
+    const themeMode =
+      props.logoMode || (isDarkOrLight.value === 'dark' ? 'dark' : 'light');
     return `https://assets.nhle.com/logos/nhl/svg/${props.team}_${themeMode}.svg`;
   }
 

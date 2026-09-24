@@ -68,6 +68,32 @@ export default createVuetify({
   theme: {
     defaultTheme: 'season2-light',
     themes: {
+      'season3-light': {
+        dark: false,
+        colors: {
+          background: '#e8e9e3',
+          surface: '#f4f4ee',
+          primary: '#344c38',
+          secondary: '#4c6147',
+          error: '#a42626',
+          info: '#1e5480',
+          success: '#24603b',
+          warning: '#755814',
+        },
+      },
+      'season3-dark': {
+        dark: true,
+        colors: {
+          background: '#101112',
+          surface: '#242628',
+          primary: '#E4BD58',
+          secondary: '#a0c7ac',
+          error: '#f29383',
+          info: '#9ecbff',
+          success: '#80c996',
+          warning: '#E4BD58',
+        },
+      },
       'season1-light': Season1LightTheme,
       'season1-dark': Season1DarkTheme,
       'season2-light': Season2LightTheme,

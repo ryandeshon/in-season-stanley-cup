@@ -20,7 +20,12 @@
       Player profile is not available.
     </v-alert>
     <div v-else class="w-full flex flex-col justify-center items-center my-4">
-      <v-card class="profile-section pb-3">
+      <CharacterDossier
+        v-if="currentSeason === 'season3' && characters[player.name]"
+        :player="player"
+        class="profile-section"
+      />
+      <v-card v-else class="profile-section pb-3">
         <v-card-text class="flex flex-col justify-center items-center">
           <PlayerCard
             :player="player"
@@ -259,7 +264,9 @@ import {
 } from '@/utilities/playerProfileTrends';
 
 import PlayerCard from '@/components/PlayerCard.vue';
+import CharacterDossier from '@/components/arcade/CharacterDossier.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
+import { characters } from '@/utilities/arcadeAssets';
 import cup from '@/assets/in-season-logo-season2.png';
 import bozAngryImageS1 from '@/assets/players/season1/boz-angry.png';
 import bozSadImageS1 from '@/assets/players/season1/boz-sad.png';
@@ -403,7 +410,9 @@ const currentSeasonKey = computed(() =>
 );
 
 const getHeadToHeadAvatar = (opponentName, imageType) =>
-  playerImages[currentSeasonKey.value]?.[opponentName]?.[imageType] || null;
+  unref(currentSeason) === 'season3'
+    ? characters[opponentName]?.portrait
+    : playerImages[currentSeasonKey.value]?.[opponentName]?.[imageType] || null;
 
 const headToHeadRows = computed(() =>
   headToHeadSummaries.value.map((summary) => ({

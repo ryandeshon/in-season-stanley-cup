@@ -56,6 +56,32 @@
       {{ snackbar.message }}
     </v-snackbar>
     <v-container class="max-w-screen-lg">
+      <section
+        v-if="!playerName && !isLoading"
+        class="text-center my-6"
+        data-test="draft-player-selection"
+      >
+        <h1 class="text-2xl mb-4">Choose your player</h1>
+        <v-btn
+          v-for="player in allPlayersData"
+          :key="player.id"
+          :to="`/draft/${encodeURIComponent(player.name)}`"
+          class="ma-2"
+          color="primary"
+          >{{ player.name }}</v-btn
+        >
+      </section>
+      <v-text-field
+        v-if="playerName && seasonStore.storageVersion === 'v2' && !isDraftOver"
+        v-model="draftToken"
+        type="password"
+        label="Your draft access code"
+        hint="Use the private code supplied for your player. It stays only on this page."
+        persistent-hint
+        autocomplete="off"
+        data-test="draft-access-code"
+        class="mb-4"
+      />
       <v-alert
         v-if="loadError && !isLoading"
         type="error"
@@ -239,6 +265,7 @@ import TeamLogo from '@/components/TeamLogo.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
+const draftToken = ref('');
 const isLoading = ref(true);
 const loadError = ref('');
 const showIsNotYourTurn = ref(false);
@@ -270,7 +297,11 @@ function preloadAudio() {
 
 const route = useRoute();
 const seasonStore = useSeasonStore();
-const playerName = route.params.name;
+const playerName = computed(() => String(route.params.name || ''));
+watch(playerName, () => {
+  draftToken.value = '';
+  syncCurrentPlayer();
+});
 const currentPlayer = ref(null);
 
 const allPlayersData = ref([]);
@@ -341,9 +372,14 @@ const { isDisconnected } = useDraftRealtime({
 
 function syncCurrentPlayer() {
   const foundPlayer = allPlayersData.value.find(
-    (player) => player.name.toLowerCase() === String(playerName).toLowerCase()
+    (player) => player.name.toLowerCase() === playerName.value.toLowerCase()
   );
   currentPlayer.value = foundPlayer || null;
+  if (!playerName.value) {
+    isYourTurn.value = false;
+    loadError.value = '';
+    return false;
+  }
   if (!currentPlayer.value) {
     loadError.value = 'Player not found. Please check your URL.';
     showSnackbar(loadError.value, 'error');
@@ -460,6 +496,7 @@ async function selectTeam(team) {
       currentVersion,
       {
         season: seasonStore.currentSeason,
+        token: draftToken.value,
       }
     );
 
@@ -478,6 +515,10 @@ async function selectTeam(team) {
     sendSocketMessage('default', updatedState); // broadcast
     await loadInitialData({ showLoading: false });
   } catch (error) {
+    if (error instanceof ApiClientError && error.status === 401) {
+      showSnackbar('Enter the correct access code for this player.', 'error');
+      return;
+    }
     if (error instanceof ApiClientError && error.status === 409) {
       applyDraftStateToView(error.details?.currentState || null);
       syncCurrentPlayer();

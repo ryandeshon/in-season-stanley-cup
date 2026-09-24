@@ -60,8 +60,9 @@ function mockSeasons({ emptyArchive = false } = {}) {
 }
 function switchSeason(number) {
   cy.get('[data-test="navigation-menu"]').click();
-  cy.get('[data-test="season-select"] input').focus();
-  cy.press(String(number));
+  // Vuetify disables pointer events on this keyboard input; target it directly.
+  cy.get('[data-test="season-select"] input').focus().type(String(number), { force: true });
+  cy.get('[data-test="season-select"]').should('contain', String(number));
   cy.get('[data-test="navigation-menu"]').click();
 }
 

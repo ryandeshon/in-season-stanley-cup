@@ -9,7 +9,7 @@ import {
 export function useDraftRealtime({
   onDraftUpdate,
   onRefresh,
-  pollMs = 30000,
+  pollMs = 5000,
 } = {}) {
   const { isConnected, lastMessage } = useSocket();
   const isDisconnected = ref(false);
@@ -48,7 +48,7 @@ export function useDraftRealtime({
     initSocket();
     if (onRefresh) {
       pollTimer = setInterval(() => {
-        if (!isConnected.value) refresh();
+        refresh();
       }, pollMs);
     }
   });

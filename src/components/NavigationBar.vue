@@ -1,12 +1,30 @@
 <template>
   <v-app-bar app color="primary" class="px-2">
-    <router-link to="/" class="mr-2 h-10">
+    <router-link
+      v-if="arcade"
+      to="/"
+      class="arcade-brand"
+      aria-label="In Season Cup home"
+      ><img class="brand-mark" :src="arcadeCup" alt="" />
+      <span
+        ><img
+          class="arcade-wordmark"
+          :src="arcadeLogo"
+          alt="In Season Cup"
+        /><small>SEASON 03</small></span
+      ></router-link
+    >
+    <router-link v-else to="/" class="mr-2 h-10">
       <img :src="currentLogo" alt="In Season Cup Logo" class="h-10" />
     </router-link>
     <v-spacer></v-spacer>
-
     <!-- Mobile Menu Button -->
-    <v-menu location="bottom end" :close-on-content-click="false">
+    <v-menu
+      :transition="false"
+      v-model="menuOpen"
+      location="bottom end"
+      :close-on-content-click="false"
+    >
       <template v-slot:activator="{ props }">
         <v-btn
           data-test="navigation-menu"
@@ -19,6 +37,7 @@
 
       <v-list class="py-0" min-width="200">
         <!-- Navigation Items -->
+        <v-list-item to="/" prepend-icon="mdi-home" title="Arena" />
         <v-list-item
           to="/standings"
           prepend-icon="mdi-trophy"
@@ -34,6 +53,8 @@
 
         <v-divider />
 
+        <v-list-item to="/draft" title="Draft" />
+        <v-list-item to="/story" title="Story" />
         <!-- Settings Section -->
         <v-list-subheader>Settings</v-list-subheader>
 
@@ -81,14 +102,26 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useSeasonStore } from '@/store/seasonStore';
+import arcadeCup from '@/assets/arcade/icons/championship-cup.svg';
+import arcadeLogo from '@/assets/arcade/icons/in-season-cup-logo.svg';
 import season1Logo from '@/assets/in-season-logo-season1.png';
 import season2Logo from '@/assets/in-season-logo-season2.png';
 
 const { isDarkTheme, toggleTheme } = useTheme();
 const seasonStore = useSeasonStore();
+const menuOpen = ref(false);
+const route = useRoute();
+watch(
+  () => route.fullPath,
+  () => {
+    menuOpen.value = false;
+  }
+);
 const selectedSeason = ref(seasonStore.currentSeason);
+const arcade = computed(() => seasonStore.currentSeason === 'season3');
 
 // Computed property for current logo based on season
 const currentLogo = computed(() => {
@@ -107,7 +140,9 @@ const handleSeasonChange = (newSeason) => {
 // Function to update CSS variables for fonts
 const updateFontForSeason = (season) => {
   const root = document.documentElement;
-  if (season === 'season1') {
+  if (season === 'season3') {
+    root.style.setProperty('--font-heading', "'Press Start 2P', monospace");
+  } else if (season === 'season1') {
     root.style.setProperty('--font-heading', "'Roboto Condensed', sans-serif");
   } else {
     root.style.setProperty(

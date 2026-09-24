@@ -1,11 +1,29 @@
 import './commands';
 
 beforeEach(() => {
+  // Vuetify menu transitions can defer a resize notification to the next paint.
+  // Tolerate a bounded transient only; persistent loops and other errors still fail.
+  // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
+  let deferredResizeNotifications = 0;
+  cy.on('uncaught:exception', (error) => {
+    if (
+      error.message ===
+      'ResizeObserver loop completed with undelivered notifications.'
+    ) {
+      deferredResizeNotifications += 1;
+      Cypress.log({
+        name: 'resize notification',
+        message: String(deferredResizeNotifications),
+      });
+      if (deferredResizeNotifications <= 3) return false;
+    }
+  });
+
   // Register first: scenario stubs registered later take precedence.
   cy.intercept('**', (req) => {
     const url = new URL(req.url);
     const localAsset =
-      url.origin === 'http://localhost:8080' &&
+      url.origin === new URL(Cypress.config('baseUrl')).origin &&
       !/^\/(api|nhl)(\/|$)/.test(url.pathname);
     if (localAsset && !['fetch', 'xhr'].includes(req.resourceType)) {
       req.continue();
@@ -14,15 +32,18 @@ beforeEach(() => {
     throw new Error(`Unstubbed request: ${req.method} ${req.url}`);
   });
 
-  cy.intercept('GET', 'http://localhost:8080/api/seasons', {
-    body: {
-      defaultSeason: 'season2',
-      seasons: [
-        { id: 'season1', label: 'Season 1', status: 'archived' },
-        { id: 'season2', label: 'Season 2', status: 'active' },
-      ],
-    },
-  });
+  cy.intercept(
+    { method: 'GET', hostname: 'localhost', pathname: '/api/seasons' },
+    {
+      body: {
+        defaultSeason: 'season2',
+        seasons: [
+          { id: 'season1', label: 'Season 1', status: 'archived' },
+          { id: 'season2', label: 'Season 2', status: 'active' },
+        ],
+      },
+    }
+  );
 
   // Electron's browser process can fetch a dictionary even with webContents
   // spellcheck disabled. Stub only this browser-owned download, never app APIs.
