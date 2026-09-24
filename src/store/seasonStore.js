@@ -66,10 +66,26 @@ export const useSeasonStore = defineStore('season', {
             catalog.seasons.length
         )
           throw new Error('Invalid season catalog');
-        this.seasons = catalog.seasons;
+        this.seasons = [...catalog.seasons].sort(
+          (a, b) => Number(a.id.slice(6)) - Number(b.id.slice(6))
+        );
         this.storageVersion = catalog.storageVersion || 'legacy';
         this.currentSeason = catalog.defaultSeason;
         this.catalogError = null;
+        // Move returning visitors to the new default once per season rollover.
+        // Later archive selections remain explicit and survive reloads.
+        if (
+          !hostedPreview &&
+          this.storageVersion === 'v2' &&
+          localStorage.getItem('selectedSeasonCatalogDefault') !==
+            catalog.defaultSeason
+        ) {
+          this.setSeason(catalog.defaultSeason);
+          localStorage.setItem(
+            'selectedSeasonCatalogDefault',
+            catalog.defaultSeason
+          );
+        }
       } catch (error) {
         // Compatibility only for the old API lacking the catalog route.
         if (error.status !== 404) {
