@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.1.0
+
+### Minor Changes
+
+- 60ccfdb: Add Mortal Kombat audio cues, sequenced finishers and a persistent Fatality overlay, simplify arena controls, and center Game Details headings.
+
+### Patch Changes
+
+- df67a58: Use the prologue green for the selected draft player and current picker.
+- 16024cd: Use the dedicated hurt-final sound for the losing fighter during fatalities.
+- 9f8aa56: Replace random draft order with the locked Season 2 standings order, enforced by the server and retained after reset.
+- 4079121: Use supplied Mortal Kombat display fonts, share the prologue's green selection styling with the game, and keep the app footer at 50px.
+- 64e46bd: Update the Season 3 header wordmark using the supplied Mortal Kombat font.
+- 5206fac: Hide the Champion Timeline during preseason before the draft.
+- 09b800a: Sort the season menu numerically and move existing browser selections to Season 3 once on rollover, while preserving later explicit archive selections.
+
 ## 3.0.0
 
 ### Major Changes
