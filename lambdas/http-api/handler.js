@@ -20,6 +20,7 @@ function createLegacyHandler({
   const context = {
     ...createConfig(env),
     env,
+    lockedDraftOrderNames: season?.draftOrderNames,
     dynamoDB,
     https,
     DraftStateValidationError,

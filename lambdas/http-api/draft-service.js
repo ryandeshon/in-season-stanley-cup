@@ -12,6 +12,7 @@ export function createDraftService({
   getPlayerById,
   mapPlayerWithTeams,
   listPlayers,
+  lockedDraftOrderNames,
   normalizeDraftState,
   normalizeDraftTeam,
   normalizePickHistory,
@@ -19,6 +20,36 @@ export function createDraftService({
   shouldDisableAutoPick,
   shouldRefreshAutoPickDeadline,
 }) {
+  async function applyOrderPolicy(state) {
+    if (!Array.isArray(lockedDraftOrderNames) || !lockedDraftOrderNames.length)
+      return state;
+    const players = await listPlayers();
+    const order = lockedDraftOrderNames.map((name) => {
+      const matches = players.filter((player) => player.name === name);
+      if (matches.length !== 1)
+        throw new DraftStateValidationError(
+          'Locked draft order does not match the season roster'
+        );
+      return coerceId(matches[0].id);
+    });
+    if (
+      order.length !== players.length ||
+      new Set(order).size !== players.length
+    )
+      throw new DraftStateValidationError(
+        'Locked draft order must include every player once'
+      );
+    const sameOrder =
+      JSON.stringify(state.pickOrder.map(coerceId)) === JSON.stringify(order);
+    return {
+      ...state,
+      pickOrder: state.draftStarted ? state.pickOrder : order,
+      pickOrderLocked: true,
+      configuredPickOrder: order,
+      draftOrderPendingReset: state.draftStarted && !sameOrder,
+    };
+  }
+
   async function ensureDraftState() {
     const res = await dynamoDB
       .get({
@@ -38,7 +69,7 @@ export function createDraftService({
         }
       );
 
-      return state;
+      return applyOrderPolicy(state);
     }
 
     const state = {
@@ -54,7 +85,7 @@ export function createDraftService({
       version: 0,
     };
 
-    return state;
+    return applyOrderPolicy(state);
   }
 
   function getDraftStateVersionCondition() {
@@ -106,6 +137,54 @@ export function createDraftService({
     const patchWithoutVersion = { ...patch };
     delete patchWithoutVersion.version;
     delete patchWithoutVersion.updatedAt;
+
+    if (current.pickOrderLocked) {
+      if (current.draftStarted && patch.draftStarted === false)
+        throw new DraftStateValidationError(
+          'Use reset to restart a locked draft'
+        );
+      const expectedOrder = current.pickOrder.map(coerceId);
+      if (
+        patch.pickOrder !== undefined &&
+        (!Array.isArray(patch.pickOrder) ||
+          JSON.stringify(patch.pickOrder.map(coerceId)) !==
+            JSON.stringify(expectedOrder))
+      )
+        throw new DraftStateValidationError(
+          'Draft order is locked to the previous season standings'
+        );
+      if (
+        current.draftStarted &&
+        ['currentPicker', 'currentPickNumber'].some(
+          (key) =>
+            patch[key] !== undefined &&
+            String(patch[key]) !== String(current[key])
+        )
+      )
+        throw new DraftStateValidationError(
+          'Use pick or undo to advance the locked draft order'
+        );
+      if (
+        !current.draftStarted &&
+        patch.draftStarted &&
+        ((patch.currentPicker !== undefined &&
+          coerceId(patch.currentPicker) !== expectedOrder[0]) ||
+          (patch.currentPickNumber !== undefined &&
+            Number(patch.currentPickNumber) !== 1))
+      )
+        throw new DraftStateValidationError(
+          'The first pick must follow the locked draft order'
+        );
+      patchWithoutVersion.pickOrder = current.pickOrder;
+      patchWithoutVersion.pickOrderLocked = true;
+      patchWithoutVersion.configuredPickOrder = current.configuredPickOrder;
+      patchWithoutVersion.draftOrderPendingReset =
+        current.draftOrderPendingReset;
+      if (!current.draftStarted && patch.draftStarted) {
+        patchWithoutVersion.currentPicker = expectedOrder[0];
+        patchWithoutVersion.currentPickNumber = 1;
+      }
+    }
 
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
@@ -428,12 +507,14 @@ export function createDraftService({
         current
       );
     const players = await listPlayers(playersTable);
-    const state = normalizeDraftState({
-      ...DEFAULT_DRAFT_STATE,
-      availableTeams: [...NHL_TEAMS],
-      version: expected + 1,
-      updatedAt: new Date().toISOString(),
-    });
+    const state = await applyOrderPolicy(
+      normalizeDraftState({
+        ...DEFAULT_DRAFT_STATE,
+        availableTeams: [...NHL_TEAMS],
+        version: expected + 1,
+        updatedAt: new Date().toISOString(),
+      })
+    );
     try {
       await dynamoDB
         .transactWrite({
