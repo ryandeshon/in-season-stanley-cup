@@ -73,7 +73,7 @@ export default createVuetify({
         colors: {
           background: '#e8e9e3',
           surface: '#f4f4ee',
-          primary: '#344c38',
+          primary: '#38651d',
           secondary: '#4c6147',
           error: '#a42626',
           info: '#1e5480',
@@ -86,8 +86,8 @@ export default createVuetify({
         colors: {
           background: '#101112',
           surface: '#242628',
-          primary: '#E4BD58',
-          secondary: '#a0c7ac',
+          primary: '#85ed34',
+          secondary: '#c8ff80',
           error: '#f29383',
           info: '#9ecbff',
           success: '#80c996',
