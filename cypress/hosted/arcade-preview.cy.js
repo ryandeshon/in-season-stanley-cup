@@ -61,7 +61,13 @@ describe('Hosted arcade preview isolation', () => {
     cy.get('.fighter.left').should('contain', 'Boz');
     cy.get('.fighter.right').should('contain', 'Terry');
     cy.contains('button', 'Shutout final').click();
-    cy.get('[data-test="flawless-victory"]').should('be.visible');
+    // Flawless follows Finish Him, the finishing attack, and Fatality.
+    cy.get('[data-test="fatality-overlay"]', { timeout: 10000 }).should(
+      'be.visible'
+    );
+    cy.get('[data-test="flawless-victory"]', { timeout: 10000 }).should(
+      'be.visible'
+    );
     cy.get('.victory-heading').should('contain', 'Boz');
     cy.get('[data-test="navigation-menu"]').click();
     cy.get('[data-test="navigation-menu"]').should(
