@@ -120,6 +120,7 @@ describe('Season 3 launch', () => {
       'Enter the draft'
     );
     cy.get('[data-test="champion-team-fallback"]').should('not.exist');
+    cy.get('[data-test="champion-timeline"]').should('not.exist');
     cy.visit('/about');
     cy.contains('h1', 'About').should('be.visible');
     cy.contains('Drafting Teams').should('be.visible');
