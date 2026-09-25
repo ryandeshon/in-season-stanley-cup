@@ -1,6 +1,10 @@
 import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const preview = vi.hoisted(() => ({ testDraftEnabled: false }));
+vi.mock('@/utilities/previewConfig', () => preview);
+import { draftSocketOnly, draftEventCount } from '@/utilities/draftTestState';
+
 vi.mock('@/services/socketClient', async () => {
   const { ref } = await import('vue');
   const socketState = {
@@ -31,6 +35,9 @@ describe('useDraftRealtime', () => {
   afterEach(() => vi.useRealTimers());
   beforeEach(() => {
     vi.clearAllMocks();
+    preview.testDraftEnabled = false;
+    draftSocketOnly.value = true;
+    draftEventCount.value = 0;
     __socketState.isConnected.value = true;
     __socketState.lastMessage.value = null;
   });
@@ -89,5 +96,24 @@ describe('useDraftRealtime', () => {
 
     expect(__socketState.closeSocket).toHaveBeenCalledTimes(1);
     expect(__socketState.clearSocketHandlers).toHaveBeenCalledTimes(1);
+  });
+  it('pauses Test polling while still receiving socket events, then restores fallback polling', async () => {
+    vi.useFakeTimers();
+    preview.testDraftEnabled = true;
+    const onRefresh = vi.fn().mockResolvedValue();
+    const onDraftUpdate = vi.fn();
+    const mounted = await mountComposable(() =>
+      useDraftRealtime({ onRefresh, onDraftUpdate })
+    );
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(onRefresh).not.toHaveBeenCalled();
+    __socketState.lastMessage.value = { type: 'draftUpdate', payload: {} };
+    await nextTick();
+    expect(onDraftUpdate).toHaveBeenCalledTimes(1);
+    expect(draftEventCount.value).toBe(1);
+    draftSocketOnly.value = false;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await mounted.unmount();
   });
 });

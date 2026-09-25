@@ -1,4 +1,8 @@
-import { hostedPreview } from '@/utilities/previewConfig';
+import {
+  hostedPreview,
+  testDraftEnabled,
+  testDraftSocketUrl,
+} from '@/utilities/previewConfig';
 import { ref } from 'vue';
 
 const socket = ref(null);
@@ -10,7 +14,10 @@ let reconnectAttempts = 0; // Track the number of reconnection attempts
 const maxReconnectAttempts = 10; // Set the maximum number of attempts
 
 export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
-  if (hostedPreview || !process.env.VUE_APP_WEB_SOCKET_URL) {
+  const url = testDraftEnabled
+    ? testDraftSocketUrl
+    : process.env.VUE_APP_WEB_SOCKET_URL;
+  if ((hostedPreview && !testDraftEnabled) || !url) {
     console.warn('WebSocket URL not configured; skipping socket init');
     isConnected.value = false; // Explicitly set disconnected state
     return null;
@@ -22,7 +29,7 @@ export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
   )
     return socket.value;
 
-  socket.value = new WebSocket(process.env.VUE_APP_WEB_SOCKET_URL);
+  socket.value = new WebSocket(url);
 
   socket.value.onopen = () => {
     isConnected.value = true;

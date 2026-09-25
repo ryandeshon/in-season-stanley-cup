@@ -1,3 +1,9 @@
+import { testDraftEnabled } from '@/utilities/previewConfig';
+import {
+  draftSocketOnly,
+  draftEventCount,
+  draftLastEventAt,
+} from '@/utilities/draftTestState';
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import {
   initSocket,
@@ -39,6 +45,10 @@ export function useDraftRealtime({
 
   const stopMessageWatch = watch(lastMessage, (data) => {
     if (data?.type === 'draftUpdate') {
+      if (testDraftEnabled) {
+        draftEventCount.value++;
+        draftLastEventAt.value = new Date().toLocaleTimeString();
+      }
       onDraftUpdate?.(data.payload, data);
     }
   });
@@ -48,7 +58,7 @@ export function useDraftRealtime({
     initSocket();
     if (onRefresh) {
       pollTimer = setInterval(() => {
-        refresh();
+        if (!testDraftEnabled || !draftSocketOnly.value) refresh();
       }, pollMs);
     }
   });

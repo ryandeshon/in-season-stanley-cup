@@ -463,7 +463,9 @@
       </template>
 
       <ChampionTimeline
-        v-if="!isSeasonOver"
+        v-if="
+          !isSeasonOver && seasonStore.selectedSeason?.status !== 'preseason'
+        "
         :entries="championHistory"
         :streak="championStreak"
         :loading="championHistoryLoading"
