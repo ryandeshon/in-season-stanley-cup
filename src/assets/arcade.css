@@ -626,19 +626,55 @@
 .phase-impact .is-receiver .portrait-visual {
   animation: recoil 0.4s ease-out both;
 }
-.finished-plaque {
+.fatality-plaque {
   position: absolute;
-  bottom: 12%;
+  bottom: 16%;
   left: 0;
   right: 0;
-  padding: 15px 4px;
-  background: #101310ee;
-  border-block: 2px solid #b2864f;
+  padding: 10px 0 16px;
   font:
-    12px 'Press Start 2P',
-    monospace;
-  color: #e4bd58;
-  z-index: 3;
+    400 clamp(22px, 4vw, 44px)/1 'Mortal Kombat 1',
+    serif;
+  letter-spacing: 1px;
+  color: #ed111a;
+  -webkit-text-stroke: 1px #720008;
+  text-shadow:
+    1px 2px #ff5353,
+    2px 4px #670009,
+    0 3px 8px #000;
+  background: linear-gradient(transparent, #090000a8, transparent);
+  z-index: 6;
+  pointer-events: none;
+}
+.fatality-plaque::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 72%;
+  height: 13px;
+  background: linear-gradient(#b5000c, #780009);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 15%,
+    90% 15%,
+    88% 75%,
+    86% 15%,
+    75% 15%,
+    72% 100%,
+    69% 15%,
+    54% 15%,
+    52% 55%,
+    50% 15%,
+    34% 15%,
+    31% 85%,
+    28% 15%,
+    15% 15%,
+    12% 100%,
+    9% 15%,
+    0 15%
+  );
 }
 .phase-finish .is-receiver .portrait-visual {
   animation: finish-sink 2.5s ease both;
@@ -823,9 +859,7 @@
   .victory-heading h2 {
     font-size: 16px;
   }
-  .finished-plaque {
-    font-size: 8px;
-  }
+
   .arcade-dossier {
     grid-template-columns: 72px 1fr;
     gap: 14px;
