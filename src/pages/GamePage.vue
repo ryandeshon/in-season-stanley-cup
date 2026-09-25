@@ -6,7 +6,7 @@
   </template>
   <template v-else-if="errorMessage">
     <v-container class="max-w-screen-md">
-      <h1 class="text-4xl font-bold mb-4">Game Details</h1>
+      <h1 class="text-4xl font-bold mb-4 text-center">Game Details</h1>
       <v-alert type="error" variant="tonal" data-test="game-error">
         {{ errorMessage }}
       </v-alert>
@@ -14,7 +14,7 @@
   </template>
   <template v-else-if="!gameDetails">
     <v-container class="max-w-screen-md">
-      <h1 class="text-4xl font-bold mb-4">Game Details</h1>
+      <h1 class="text-4xl font-bold mb-4 text-center">Game Details</h1>
       <v-alert type="warning" variant="tonal" data-test="game-empty">
         Game details are not available yet.
       </v-alert>
@@ -22,7 +22,7 @@
   </template>
   <template v-else>
     <v-container class="max-w-screen-md">
-      <h1 class="text-4xl font-bold mb-4">Game Details</h1>
+      <h1 class="text-4xl font-bold mb-4 text-center">Game Details</h1>
       <v-row>
         <v-col cols="6" class="text-center">
           <TeamLogo

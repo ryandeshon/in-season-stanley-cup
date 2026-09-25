@@ -25,7 +25,12 @@ beforeEach(() => {
     const localAsset =
       url.origin === new URL(Cypress.config('baseUrl')).origin &&
       !/^\/(api|nhl)(\/|$)/.test(url.pathname);
-    if (localAsset && !['fetch', 'xhr'].includes(req.resourceType)) {
+    if (
+      localAsset &&
+      (!['fetch', 'xhr'].includes(req.resourceType) ||
+        (req.method === 'GET' &&
+          /^\/media\/[a-z0-9.-]+\.mp3$/.test(url.pathname)))
+    ) {
       req.continue();
       return;
     }
