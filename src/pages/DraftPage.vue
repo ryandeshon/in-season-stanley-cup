@@ -7,45 +7,37 @@
     results in Standings.</v-alert
   >
   <template v-else>
-    <transition name="fade">
-      <v-alert
-        v-if="isDisconnected"
-        type="warning"
-        class="draft-notice draft-notice-gold text-center mb-4"
-      >
-        Disconnected. Trying to reconnect...
-      </v-alert>
-    </transition>
-    <transition name="fade">
-      <v-alert
-        v-if="isYourTurn && !isDraftOver && !isDraftLocked"
-        type="success"
-        class="draft-notice draft-notice-green text-center mb-4"
-        closable
-      >
-        It's your turn to pick a team!
-      </v-alert>
-    </transition>
-    <transition name="fade">
-      <v-alert
-        v-if="showIsNotYourTurn"
-        type="error"
-        class="draft-notice draft-notice-red text-center mb-4"
-        closable
-      >
-        It's not your turn!
-      </v-alert>
-    </transition>
-    <transition name="fade">
-      <v-alert
-        v-if="draftState?.isLocked && draftState?.draftStarted"
-        type="warning"
-        class="draft-notice draft-notice-gold text-center mb-4"
-        data-test="draft-player-locked-banner"
-      >
-        Draft is locked by an admin.
-      </v-alert>
-    </transition>
+    <v-alert
+      v-if="isDisconnected"
+      type="warning"
+      class="draft-notice draft-notice-gold text-center mb-4"
+    >
+      Disconnected. Trying to reconnect...
+    </v-alert>
+    <v-alert
+      v-if="isYourTurn && !isDraftOver && !isDraftLocked"
+      type="success"
+      class="draft-notice draft-notice-green text-center mb-4"
+      closable
+    >
+      It's your turn to pick a team!
+    </v-alert>
+    <v-alert
+      v-if="showIsNotYourTurn"
+      type="error"
+      class="draft-notice draft-notice-red text-center mb-4"
+      closable
+    >
+      It's not your turn!
+    </v-alert>
+    <v-alert
+      v-if="draftState?.isLocked && draftState?.draftStarted"
+      type="warning"
+      class="draft-notice draft-notice-gold text-center mb-4"
+      data-test="draft-player-locked-banner"
+    >
+      Draft is locked by an admin.
+    </v-alert>
     <v-snackbar
       v-model="snackbar.visible"
       :color="snackbar.color"
@@ -614,13 +606,5 @@ watch(isYourTurn, (newVal) => {
   border-color: var(--arcade-select, #2196f3) !important;
   box-shadow: 0 0 14px
     color-mix(in srgb, var(--arcade-select, #2196f3) 30%, transparent);
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>
