@@ -572,10 +572,12 @@ watch(isYourTurn, (newVal) => {
   pointer-events: none;
 }
 .border-success {
-  border-color: #4caf50 !important;
+  border-color: var(--arcade-select, #4caf50) !important;
 }
 .border-primary {
-  border-color: #2196f3 !important;
+  border-color: var(--arcade-select, #2196f3) !important;
+  box-shadow: 0 0 14px
+    color-mix(in srgb, var(--arcade-select, #2196f3) 30%, transparent);
 }
 .fade-enter-active,
 .fade-leave-active {
