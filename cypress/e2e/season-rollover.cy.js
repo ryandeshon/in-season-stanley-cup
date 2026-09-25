@@ -138,3 +138,43 @@ describe('Season 3 launch', () => {
       .should('eq', 'private-test-code');
   });
 });
+
+describe('Locked Season 3 draft order', () => {
+  it('shows the standings order before starting and submits Terry as the first picker', () => {
+    cy.mockDraftScenario('draft-not-started');
+    cy.intercept(apiRoute('GET', '/seasons'), { body: catalog });
+    cy.intercept(apiRoute('GET', '/players'), {
+      body: ['Ryan', 'Cooper', 'Terry', 'Boz'].map((name, id) => ({
+        id,
+        name,
+        teams: [],
+      })),
+    });
+    const state = {
+      version: 3,
+      draftStarted: false,
+      pickOrder: [2, 3, 1, 0],
+      configuredPickOrder: [2, 3, 1, 0],
+      pickOrderLocked: true,
+      currentPicker: null,
+      currentPickNumber: 0,
+      availableTeams: ['ANA', 'BOS'],
+      pickHistory: [],
+      autoPickEnabled: false,
+    };
+    cy.intercept(apiRoute('GET', '/draft/state'), (req) => req.reply(state));
+    cy.intercept(apiRoute('PATCH', '/draft/state'), (req) => {
+      expect(req.body.pickOrder).to.deep.equal([2, 3, 1, 0]);
+      expect(req.body.currentPicker).to.equal(2);
+      Object.assign(state, req.body, { version: 4 });
+      req.reply(state);
+    }).as('lockedStart');
+    cy.visit('/draft/admin');
+    cy.get('[data-test="draft-locked-order"]').should(
+      'contain',
+      'Terry → Boz → Cooper → Ryan'
+    );
+    cy.get('[data-test="draft-admin-start"]').click();
+    cy.wait('@lockedStart');
+  });
+});
