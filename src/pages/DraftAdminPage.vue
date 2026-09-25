@@ -7,15 +7,13 @@
     results in Standings.</v-alert
   >
   <template v-else>
-    <transition name="fade">
-      <v-alert
-        v-if="isDisconnected"
-        type="warning"
-        class="fixed m-auto w-full text-center mb-4 z-50"
-      >
-        Disconnected. Trying to reconnect...
-      </v-alert>
-    </transition>
+    <v-alert
+      v-if="isDisconnected"
+      type="warning"
+      class="draft-notice draft-notice-gold text-center mb-4"
+    >
+      Disconnected. Trying to reconnect...
+    </v-alert>
     <v-snackbar
       v-model="snackbar.visible"
       :color="snackbar.color"
@@ -26,7 +24,7 @@
       {{ snackbar.message }}
     </v-snackbar>
 
-    <v-container class="max-w-screen-lg">
+    <v-container class="max-w-screen-lg draft-page">
       <v-text-field
         v-if="seasonStore.storageVersion === 'v2'"
         v-model="adminToken"
@@ -60,11 +58,15 @@
         <v-alert
           v-if="draftState?.pickOrderLocked"
           type="info"
-          class="mb-6"
+          class="mb-6 draft-notice draft-notice-gold"
           data-test="draft-locked-order"
         >
           Locked draft order:
-          {{ draftState.configuredPickOrder.map(getPlayerName).join(' → ') }}.
+          {{
+            (draftState.configuredPickOrder || draftState.pickOrder)
+              .map(getPlayerName)
+              .join(' → ')
+          }}.
           <span v-if="draftState.draftOrderPendingReset"
             >This practice draft keeps its current order. Reset it to apply the
             new order.</span
@@ -75,12 +77,8 @@
           >
         </v-alert>
         <v-row justify="center" class="mb-8">
-          <v-col cols="12" md="8">
+          <v-col cols="12">
             <v-card class="pa-6">
-              <v-card-title class="text-xl font-bold mb-4">
-                Draft Controls
-              </v-card-title>
-
               <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-2">Draft Status</h3>
                 <v-chip
@@ -216,12 +214,8 @@
         </v-row>
 
         <v-row justify="center" class="mb-8">
-          <v-col cols="12" md="8">
+          <v-col cols="12">
             <v-card class="pa-6">
-              <v-card-title class="text-xl font-bold mb-4">
-                Draft Progress
-              </v-card-title>
-
               <div v-if="draftState?.draftStarted">
                 <p class="mb-4">
                   <strong>Pick Number:</strong>
@@ -261,10 +255,10 @@
                 Current Player Status
               </v-card-title>
 
-              <v-row dense>
+              <v-row class="draft-rosters">
                 <v-col
                   v-for="player in orderedPlayers"
-                  :key="player.playerId"
+                  :key="player.id"
                   cols="12"
                   sm="6"
                   md="3"
@@ -274,10 +268,12 @@
                     :player="player"
                     image-type="Happy"
                     :show-team-logo="false"
-                    class="border-4"
+                    class="border-4 draft-player-card"
                     :class="{
                       'border-success': currentPickerId === player.id,
-                      'border-warning': player.teams?.length === 0,
+                      'border-warning':
+                        player.teams?.length === 0 &&
+                        currentPickerId !== player.id,
                     }"
                   />
                   <div class="text-caption my-2 font-italic">
@@ -334,6 +330,7 @@
 </template>
 
 <script setup>
+import '@/assets/draft.css';
 import { useDraftCountdown } from '@/composables/useDraftCountdown';
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import {
@@ -434,11 +431,7 @@ const {
   autoPickSecondsRemaining,
   showAutoPickCountdown,
   autoPickCountdownLabel,
-} = useDraftCountdown(
-  draftState,
-  isDraftOver,
-  () => seasonStore.currentSeason === 'season3'
-);
+} = useDraftCountdown(draftState, isDraftOver);
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;
@@ -819,14 +812,6 @@ async function confirmResetTeams() {
   border-color: var(--arcade-select, #4caf50) !important;
 }
 .border-warning {
-  border-color: #ff9800 !important;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+  border-color: var(--arcade-gold, #ff9800) !important;
 }
 </style>
