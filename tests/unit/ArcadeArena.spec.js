@@ -173,14 +173,15 @@ describe('reusable arena choreography', () => {
     expect(wrapper.classes()).toContain('phase-idle');
     expect(wrapper.findAll('.fighter-label a')).toHaveLength(2);
   });
-  it('reduced motion uses static impact and sound starts off', async () => {
+  it('reduced motion uses static impact and an accessible sound icon', async () => {
     window.matchMedia = vi.fn(() => ({
       matches: true,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     }));
     const { wrapper, game } = mountArena();
-    expect(wrapper.text()).toContain('Sound off');
+    expect(wrapper.find('button[aria-label="Mute sound"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('Effects on');
     await wrapper.setProps({
       game: { ...game, homeTeam: { abbrev: 'BOS', score: 2 } },
     });
@@ -195,11 +196,17 @@ describe('reusable arena choreography', () => {
     await wrapper.setProps({ game: scoring, leftTeam: scoring.homeTeam });
     const final = { ...scoring, gameState: 'FINAL' };
     await wrapper.setProps({ game: final });
-    expect(wrapper.classes()).toContain('phase-finish');
-    await vi.advanceTimersByTimeAsync(500);
+    expect(wrapper.classes()).toContain('phase-finish-call');
+    expect(wrapper.find('[data-test="fatality-overlay"]').exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(1200);
     await wrapper.setProps({ game: { ...final, gameState: 'OFF' } });
     expect(wrapper.classes()).toContain('phase-finish');
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(4400);
     expect(wrapper.classes()).toContain('phase-idle');
+    expect(wrapper.find('[data-test="fatality-overlay"]').text()).toBe(
+      'FATALITY'
+    );
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(wrapper.find('[data-test="fatality-overlay"]').exists()).toBe(true);
   });
 });

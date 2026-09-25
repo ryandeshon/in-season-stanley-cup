@@ -56,6 +56,9 @@
       {{ snackbar.message }}
     </v-snackbar>
     <v-container class="max-w-screen-lg">
+      <div class="text-right">
+        <SoundToggle v-if="seasonStore.currentSeason === 'season3'" />
+      </div>
       <section
         v-if="!playerName && !isLoading"
         class="text-center my-6"
@@ -67,6 +70,7 @@
           :key="player.id"
           :to="`/draft/${encodeURIComponent(player.name)}`"
           class="ma-2"
+          @click="selectPlayerSound"
           color="primary"
           >{{ player.name }}</v-btn
         >
@@ -262,9 +266,20 @@ import { useDraftRealtime } from '@/composables/useDraftRealtime';
 import { useSeasonStore } from '@/store/seasonStore';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
+import {
+  useArcadeSound,
+  unlockArcadeSound,
+} from '@/composables/useArcadeSound';
+import SoundToggle from '@/components/arcade/SoundToggle.vue';
 import successSoundFile from '@/assets/sounds/woohoo_success.mp3';
 import errorSoundFile from '@/assets/sounds/doh_error.mp3';
 
+const playerSound = useArcadeSound();
+async function selectPlayerSound() {
+  await unlockArcadeSound();
+  playerSound.stop();
+  playerSound.play('select');
+}
 const draftToken = ref('');
 const isLoading = ref(true);
 const loadError = ref('');
@@ -353,7 +368,8 @@ const isDraftLocked = computed(() => Boolean(draftState.value?.isLocked));
 
 const { showAutoPickCountdown, autoPickCountdownLabel } = useDraftCountdown(
   draftState,
-  isDraftOver
+  isDraftOver,
+  () => seasonStore.currentSeason === 'season3'
 );
 
 const { isDisconnected } = useDraftRealtime({
@@ -438,7 +454,12 @@ watch(
   () => draftState.value?.draftStarted,
   (newVal, oldVal) => {
     // If draft just started, play success sound and show notification
-    if (newVal && !oldVal && audioReady.value) {
+    if (
+      newVal &&
+      !oldVal &&
+      audioReady.value &&
+      seasonStore.currentSeason !== 'season3'
+    ) {
       successSound.play();
     }
   }
@@ -453,7 +474,12 @@ watch(
       isYourTurn.value = currentPlayer.value.id === newPickerId;
 
       // If it just became this player's turn, play sound
-      if (isYourTurn.value && !wasYourTurn && audioReady.value) {
+      if (
+        isYourTurn.value &&
+        !wasYourTurn &&
+        audioReady.value &&
+        seasonStore.currentSeason !== 'season3'
+      ) {
         successSound.play();
       }
     }
@@ -478,7 +504,7 @@ async function selectTeam(team) {
     currentPlayer.value.id !== currentPickerId.value
   ) {
     showIsNotYourTurn.value = true;
-    if (audioReady.value) {
+    if (audioReady.value && seasonStore.currentSeason !== 'season3') {
       errorSound.play();
     }
     setTimeout(() => {
@@ -552,7 +578,7 @@ const orderedPlayers = computed(() => {
 });
 
 watch(isYourTurn, (newVal) => {
-  if (newVal && audioReady.value) {
+  if (newVal && audioReady.value && seasonStore.currentSeason !== 'season3') {
     successSound.play();
   }
 });

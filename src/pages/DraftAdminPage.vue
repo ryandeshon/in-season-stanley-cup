@@ -434,7 +434,11 @@ const {
   autoPickSecondsRemaining,
   showAutoPickCountdown,
   autoPickCountdownLabel,
-} = useDraftCountdown(draftState, isDraftOver);
+} = useDraftCountdown(
+  draftState,
+  isDraftOver,
+  () => seasonStore.currentSeason === 'season3'
+);
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;

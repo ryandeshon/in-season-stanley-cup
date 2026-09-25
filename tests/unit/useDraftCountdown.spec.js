@@ -1,6 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { mountComposable } from './helpers/mountComposable';
+const tick = vi.hoisted(() => vi.fn());
+vi.mock('@/composables/useArcadeSound', () => ({
+  useArcadeSound: () => ({ play: tick, stop() {} }),
+}));
 import { useDraftCountdown } from '@/composables/useDraftCountdown';
 afterEach(() => vi.useRealTimers());
 it('counts down once per second, responds to lock state deadlines, and cleans up', async () => {
@@ -41,5 +45,32 @@ it('hides invalid and disabled deadlines', async () => {
   expect(mounted.result.autoPickCountdownLabel.value).toBe('--:--');
   state.value.autoPickEnabled = false;
   expect(mounted.result.autoPickSecondsRemaining.value).toBeNull();
+  await mounted.unmount();
+});
+
+it('ticks only the last ten unlocked seconds, with urgent ticks for the final three', async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+  const state = ref({
+    draftStarted: true,
+    autoPickEnabled: true,
+    autoPickDeadlineAt: '2030-01-01T00:00:11Z',
+  });
+  const mounted = await mountComposable(() =>
+    useDraftCountdown(state, ref(false), () => true)
+  );
+  await vi.advanceTimersByTimeAsync(11000);
+  expect(tick.mock.calls.map(([name]) => name)).toEqual([
+    ...Array(7).fill('tick'),
+    ...Array(3).fill('tick2'),
+  ]);
+  tick.mockClear();
+  state.value = {
+    ...state.value,
+    isLocked: true,
+    autoPickDeadlineAt: '2030-01-01T00:00:20Z',
+  };
+  await vi.advanceTimersByTimeAsync(9000);
+  expect(tick).not.toHaveBeenCalled();
   await mounted.unmount();
 });

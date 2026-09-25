@@ -67,7 +67,10 @@
       Final result awaiting confirmed scores.
     </div>
     <div v-if="result" class="victory-heading">
-      <span v-if="result.flawless" class="flawless" data-test="flawless-victory"
+      <span
+        v-if="result.flawless && !finishing"
+        class="flawless"
+        data-test="flawless-victory"
         >FLAWLESS VICTORY</span
       ><span v-else>VICTORY</span>
       <h2>
@@ -116,9 +119,7 @@
           :disabled="final"
           :aria-label="`Preview matchups if ${side.team?.abbrev || 'this team'} wins`"
           :aria-pressed="selected === side.key"
-          @click="
-            emit('select', side.key === 'left' ? 'champion' : 'challenger')
-          "
+          @click="selectFighter(side)"
         >
           <ExpressivePortrait
             v-if="!broken[side.player?.name] && art(side.player)"
@@ -136,10 +137,14 @@
           ></span>
           <span
             v-if="
-              phase === 'finish' && side.team?.abbrev === result?.loser.abbrev
+              result &&
+              !mirror &&
+              fatalityVisible &&
+              side.team?.abbrev === result.loser.abbrev
             "
-            class="finished-plaque"
-            >FINISHED</span
+            class="fatality-plaque"
+            data-test="fatality-overlay"
+            >FATALITY</span
           >
         </button>
         <div class="fighter-foot">
@@ -154,7 +159,7 @@
       </div>
       <span class="arena-vs" aria-hidden="true">VS</span>
       <AttackCanvas
-        :enabled="effects && !reducedMotion && !hidden && !suspended"
+        :enabled="!reducedMotion && !hidden && !suspended"
         :phase="phase"
         :attack="attack"
         :side="attackingSide"
@@ -177,37 +182,20 @@
       <button
         v-if="result && !mirror"
         class="arcade-button secondary"
-        :disabled="!effects"
         @click="playFinish"
       >
         Replay fatality
       </button>
-      <button
-        class="quiet-control"
-        :aria-pressed="effects"
-        @click="
-          effects = !effects;
-          clearAction();
-        "
-      >
-        Effects {{ effects ? 'on' : 'off' }}
-      </button>
-      <button
-        class="quiet-control"
-        :aria-pressed="sound"
-        @click="sound = !sound"
-      >
-        Sound {{ sound ? 'on' : 'off' }}
-      </button>
+      <SoundToggle />
     </div>
-    <p class="arena-caption">
+    <p v-if="result || !live" class="arena-caption">
       {{
         result
           ? mirror
             ? 'One owner. Two teams. The cup stays in the same hands.'
             : `${characters[winnerName]?.finisher || 'Victory'} · ${result.winner.abbrev} wins ${result.winner.score}–${result.loser.score}`
           : live
-            ? 'The cup is on the line.'
+            ? ''
             : 'Select a fighter to preview the next defense.'
       }}
     </p>
@@ -219,6 +207,14 @@
 <script setup>
 import { arenaForOwner } from '@/utilities/arcadeArenas';
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import SoundToggle from './SoundToggle.vue';
+import {
+  useArcadeSound,
+  randomCue,
+  audioReady,
+  soundEnabled,
+  unlockArcadeSound,
+} from '@/composables/useArcadeSound';
 import TeamLogo from '@/components/TeamLogo.vue';
 import AttackCanvas from './AttackCanvas.vue';
 import ExpressivePortrait from './ExpressivePortrait.vue';
@@ -278,9 +274,12 @@ const shouldFlip = (side) =>
   (livePoseManifest[side.player?.name]?.facing || 'right') !==
   (side.key === 'left' ? 'right' : 'left');
 const broken = ref({});
-const effects = ref(true);
+const sounds = useArcadeSound();
+const introSounds = useArcadeSound();
+const selectionSounds = useArcadeSound();
+const finishing = ref(false);
+const fatalityVisible = ref(true);
 const pixiReady = ref(false);
-const sound = ref(false);
 const reducedMotion = ref(false);
 const hidden = ref(false);
 const phase = ref('idle');
@@ -289,7 +288,7 @@ const attackingSide = ref('');
 const beforeHit = ref('Happy');
 const announcement = ref('');
 let timers = [];
-let audio;
+let actionVersion = 0;
 let media;
 let played = new Set();
 try {
@@ -300,54 +299,117 @@ try {
   /* restricted storage uses the in-memory latch */
 }
 const track = createArenaTracker(played);
-const clearAction = () => {
+const clearAction = (stopSound = true) => {
+  actionVersion++;
   timers.forEach(clearTimeout);
   timers = [];
   phase.value = 'idle';
   attackingSide.value = '';
+  finishing.value = false;
+  fatalityVisible.value = true;
+  if (stopSound) {
+    sounds.stop();
+    introSounds.stop();
+  }
 };
 function later(fn, delay) {
   timers.push(setTimeout(fn, delay));
 }
-function cue() {
-  if (!sound.value || hidden.value) return;
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  audio ||= new AudioContext();
-  audio.resume().catch(() => {});
-  const oscillator = audio.createOscillator();
-  const gain = audio.createGain();
-  oscillator.type = 'triangle';
-  oscillator.frequency.setValueAtTime(180, audio.currentTime);
-  oscillator.frequency.exponentialRampToValueAtTime(
-    60,
-    audio.currentTime + 0.18
-  );
-  gain.gain.setValueAtTime(0.05, audio.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.2);
-  oscillator.connect(gain);
-  gain.connect(audio.destination);
-  oscillator.start();
-  oscillator.stop(audio.currentTime + 0.22);
+async function selectFighter(side) {
+  emit('select', side.key === 'left' ? 'champion' : 'challenger');
+  await unlockArcadeSound();
+  selectionSounds.stop();
+  selectionSounds.play('select');
+}
+function afterCue(cue, minimumDuration, next) {
+  const ticket = actionVersion;
+  Promise.all([
+    cue,
+    new Promise((resolve) => later(resolve, minimumDuration)),
+  ]).then(() => {
+    if (ticket === actionVersion) next();
+  });
 }
 function playFinish() {
   clearAction();
-  if (
-    !result.value ||
-    mirror.value ||
-    !effects.value ||
-    hidden.value ||
-    reducedMotion.value
-  )
-    return;
+  introSounds.stop();
+  if (!result.value || mirror.value || hidden.value || props.suspended) return;
+  finishing.value = true;
+  fatalityVisible.value = false;
   attackingSide.value = sides.value.find(
     (s) => s.team?.abbrev === result.value.winner.abbrev
   )?.key;
   attack.value = characters[winnerName.value]?.attack || 'fire';
-  phase.value = 'finish';
-  cue();
-  later(clearAction, 2500);
+  phase.value = 'finish-call';
+  afterCue(sounds.play('finish-him'), 1100, () => {
+    phase.value = 'finish';
+    afterCue(
+      sounds.sequence([
+        `${winnerName.value.toLowerCase()}-attack`,
+        randomCue('hurt', 7),
+      ]),
+      3100,
+      () => {
+        fatalityVisible.value = true;
+        afterCue(sounds.play('fatality'), 1400, () => {
+          finishing.value = false;
+          phase.value = 'idle';
+          attackingSide.value = '';
+          if (result.value?.flawless) sounds.play('flawless-victory');
+        });
+      }
+    );
+  });
 }
+let startedGames = new Set();
+try {
+  startedGames = new Set(
+    JSON.parse(sessionStorage.getItem('arcade-started-games') || '[]')
+  );
+} catch {
+  /* optional storage */
+}
+const mounted = ref(false);
+watch(
+  [
+    () => props.game.id,
+    live,
+    mounted,
+    audioReady,
+    soundEnabled,
+    () => props.leftPlayer?.name,
+  ],
+  () => {
+    const key = `${props.season}:${props.game.id}`;
+    if (
+      !mounted.value ||
+      !live.value ||
+      !audioReady.value ||
+      !soundEnabled.value ||
+      !props.leftPlayer?.name ||
+      hidden.value ||
+      props.suspended ||
+      startedGames.has(key)
+    )
+      return;
+    startedGames.add(key);
+    try {
+      sessionStorage.setItem(
+        'arcade-started-games',
+        JSON.stringify([...startedGames])
+      );
+    } catch {
+      /* optional storage */
+    }
+    introSounds.stop();
+    introSounds.sequence(
+      props.leftPlayer.name === 'Ryan'
+        ? [randomCue('ryan-talk', 3), 'fight']
+        : ['fight']
+    );
+  },
+  { immediate: true }
+);
 function portraitEmotion(side) {
   if (result.value)
     return side.team?.abbrev === result.value.winner.abbrev ? 'Happy' : 'Sad';
@@ -410,7 +472,12 @@ watch(
       return;
     }
     const side = sides.value.find((s) => s.team?.abbrev === event.team);
-    if (!side || !effects.value) return;
+    if (!side) return;
+    introSounds.stop();
+    sounds.sequence([
+      `${side.player?.name?.toLowerCase()}-attack`,
+      randomCue('hurt', 7),
+    ]);
     const prior = previous?.[0];
     const priorTeams = [prior?.homeTeam, prior?.awayTeam];
     const priorScorer = priorTeams.find((t) => t?.abbrev === event.team);
@@ -422,17 +489,16 @@ watch(
     announcement.value = `Goal for ${event.team}. ${side.player?.name || 'The scoring owner'} attacks.`;
     if (reducedMotion.value) {
       phase.value = 'impact';
-      later(clearAction, 700);
+      later(() => clearAction(false), 700);
       return;
     }
     phase.value = 'windup';
     later(() => {
       phase.value = 'travel';
-      cue();
     }, 150);
     later(() => (phase.value = 'impact'), 400);
     later(() => (phase.value = 'recover'), 800);
-    later(clearAction, 1400);
+    later(() => clearAction(false), 1400);
   },
   { immediate: true }
 );
@@ -459,11 +525,11 @@ onMounted(() => {
   media.addEventListener('change', motion);
   visibility();
   document.addEventListener('visibilitychange', visibility);
+  mounted.value = true;
 });
 onBeforeUnmount(() => {
   clearAction();
   media?.removeEventListener('change', motion);
   document.removeEventListener('visibilitychange', visibility);
-  audio?.close();
 });
 </script>
