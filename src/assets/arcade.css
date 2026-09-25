@@ -1,10 +1,28 @@
 @font-face {
+  font-family: 'Mortal Kombat 1';
+  src: url('./fonts/mk1.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Mortal Kombat 2';
+  src: url('./fonts/mk2.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+[data-season='season3'],
+.story-page {
+  --arcade-select: #85ed34;
+  --arcade-select-text: #c8ff80;
+  --arcade-select-surface: #282c25;
+}
+@font-face {
   font-family: 'Press Start 2P';
   src: url('./arcade/press-start-2p.ttf') format('truetype');
   font-display: swap;
 }
 [data-season='season3'] {
-  --font-heading: 'Press Start 2P', monospace;
+  --font-heading: 'Mortal Kombat 2', 'Press Start 2P', sans-serif;
   --font-body: Arial, sans-serif;
   --arcade-ivory: #f0efe5;
   --arcade-muted: #b1b5ad;
@@ -55,7 +73,7 @@
 }
 [data-season='season3'] :focus-visible,
 .story-page :focus-visible {
-  outline: 3px solid #84d79b !important;
+  outline: 3px solid var(--arcade-select) !important;
   outline-offset: 4px;
 }
 [data-season='season3'] .v-card,
@@ -114,7 +132,12 @@
   object-fit: contain;
   flex: 0 0 auto;
 }
-.arcade-wordmark { display: block; width: 205px; max-width: 48vw; height: auto; }
+.arcade-wordmark {
+  display: block;
+  width: 205px;
+  max-width: 48vw;
+  height: auto;
+}
 .arcade-navigation {
   display: flex;
   gap: 28px;
@@ -127,8 +150,8 @@
   border-bottom: 2px solid transparent;
 }
 .arcade-navigation .router-link-exact-active {
-  color: #e4bd58;
-  border-color: #e4bd58;
+  color: var(--arcade-select-text);
+  border-color: var(--arcade-select);
 }
 .page-eyebrow,
 .eyebrow {
@@ -294,7 +317,8 @@
   overflow: hidden;
   background:
     linear-gradient(#060d0899, #08120999),
-    var(--arena-background, url('./arcade/black-rink-arena-v2.png')) center/cover;
+    var(--arena-background, url('./arcade/black-rink-arena-v2.png'))
+      center/cover;
 }
 .fighter {
   min-width: 0;
@@ -361,12 +385,14 @@
   pointer-events: none;
 }
 .fighter.selected .portrait-button {
-  outline: 3px solid #76cc8b;
+  outline: 3px solid var(--arcade-select);
+  border-color: var(--arcade-select);
+  box-shadow: 0 0 18px #85ed3440;
   outline-offset: 4px;
 }
 .fighter.selected .fighter-label > span::after {
   content: ' · PREVIEW';
-  color: #94e6a8;
+  color: var(--arcade-select-text);
 }
 .fighter-foot {
   display: flex;
@@ -983,11 +1009,113 @@
 }
 
 /* Recoil belongs to the incoming attack, not the defender's own power. */
-.phase-impact.attack-fire .is-receiver .portrait-visual { animation: recoil-fire 0.4s ease-out both; }
-.phase-impact.attack-lightning .is-receiver .portrait-visual { animation: recoil-lightning 0.4s ease-out both; }
-.phase-impact.attack-acid .is-receiver .portrait-visual { animation: recoil-acid 0.4s ease-out both; }
-.phase-impact.attack-orb .is-receiver .portrait-visual { animation: recoil-orb 0.4s ease-out both; }
-@keyframes recoil-fire { 35% { transform: translateY(5px) rotate(-2deg); filter: sepia(0.5) saturate(1.6); } }
-@keyframes recoil-lightning { 25% { transform: translateX(-3px) rotate(-1deg); filter: sepia(0.5) hue-rotate(150deg); } 55% { transform: translateX(3px); } }
-@keyframes recoil-acid { 35% { transform: translateY(7px) scale(0.98); filter: sepia(0.5) hue-rotate(35deg); } }
-@keyframes recoil-orb { 35% { transform: translateY(3px) scale(0.95); filter: brightness(1.15); } }
+.phase-impact.attack-fire .is-receiver .portrait-visual {
+  animation: recoil-fire 0.4s ease-out both;
+}
+.phase-impact.attack-lightning .is-receiver .portrait-visual {
+  animation: recoil-lightning 0.4s ease-out both;
+}
+.phase-impact.attack-acid .is-receiver .portrait-visual {
+  animation: recoil-acid 0.4s ease-out both;
+}
+.phase-impact.attack-orb .is-receiver .portrait-visual {
+  animation: recoil-orb 0.4s ease-out both;
+}
+@keyframes recoil-fire {
+  35% {
+    transform: translateY(5px) rotate(-2deg);
+    filter: sepia(0.5) saturate(1.6);
+  }
+}
+@keyframes recoil-lightning {
+  25% {
+    transform: translateX(-3px) rotate(-1deg);
+    filter: sepia(0.5) hue-rotate(150deg);
+  }
+  55% {
+    transform: translateX(3px);
+  }
+}
+@keyframes recoil-acid {
+  35% {
+    transform: translateY(7px) scale(0.98);
+    filter: sepia(0.5) hue-rotate(35deg);
+  }
+}
+@keyframes recoil-orb {
+  35% {
+    transform: translateY(3px) scale(0.95);
+    filter: brightness(1.15);
+  }
+}
+
+/* Shared prologue selection language and locally hosted MK display fonts. */
+[data-season='season3'] h1 {
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.25;
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+[data-season='season3'] h2 {
+  font-size: 28px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+[data-season='season3'] h3 {
+  font-size: 24px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+.hud-team,
+.fighter-label a,
+.fighter-label strong {
+  font-family: 'Mortal Kombat 2', sans-serif;
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+.hud-score strong,
+.arena-vs {
+  font-family: 'Mortal Kombat 1', sans-serif;
+  font-size: 44px;
+  font-weight: 400;
+}
+.arcade-button {
+  background: var(--arcade-select-surface);
+  border: 3px outset #a2a2a2;
+  color: #fff !important;
+}
+.arcade-button:not(:disabled):hover,
+.arcade-button:not(:disabled):focus-visible,
+.arcade-arena button[aria-pressed='true'],
+[data-season='season3'] .v-btn--active,
+[data-season='season3'] .v-list-item--active {
+  background-color: var(--arcade-select-surface) !important;
+  color: var(--arcade-select-text) !important;
+  box-shadow: inset 0 0 0 3px var(--arcade-select);
+  text-shadow: 2px 2px #0b1704;
+}
+.fighter.selected .fighter-label a {
+  color: var(--arcade-select-text);
+}
+[data-season='season3'][data-mode='light']
+  .arcade-navigation
+  .router-link-exact-active {
+  color: #315d13;
+}
+@media (max-width: 600px) {
+  .hud-team,
+  .fighter-label a,
+  .fighter-label strong {
+    font-size: 22px;
+  }
+  .hud-score strong {
+    font-size: 34px;
+  }
+  .arena-vs {
+    font-size: 28px;
+  }
+  [data-season='season3'] h2 {
+    font-size: 24px;
+  }
+}
