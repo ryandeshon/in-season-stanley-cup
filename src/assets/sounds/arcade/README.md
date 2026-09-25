@@ -12,3 +12,6 @@ MP3 files supplied by the user in `sounds.zip` on September 25, 2026.
 - `tick`: draft countdown seconds 10–4; `tick2`: seconds 3–1. No ticks while locked.
 
 Sound unlocks on a user gesture, respects the shared mute setting, and stops when its view is hidden or unmounted. Final animations also respect reduced motion.
+
+`draft-pick1.mp3`, `draft-pick2.mp3`, and `draft-pick3.mp3` were supplied by the
+user for a random cue after each accepted draft pick (including auto-picks).
