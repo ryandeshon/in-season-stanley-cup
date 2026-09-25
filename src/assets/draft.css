@@ -1,0 +1,93 @@
+/* Keep draft controls and portraits within their responsive grid cells. */
+.draft-page .v-btn {
+  height: auto !important;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  max-width: 100%;
+}
+.draft-page .v-btn__content {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.draft-page .draft-rosters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+}
+.draft-page .draft-rosters > * {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+.draft-page .draft-player-card {
+  width: 100%;
+  min-width: 0 !important;
+}
+.draft-page .draft-player-card .avatar {
+  width: 100%;
+  max-width: 100%;
+}
+.draft-page .draft-player-card .v-card-text {
+  padding: 12px 8px 8px;
+}
+.draft-page .v-chip {
+  margin-bottom: 8px;
+}
+[data-season='season3'] .draft-page .v-chip {
+  background: #342c17 !important;
+  color: #e4bd58 !important;
+  border: 1px solid currentColor;
+}
+[data-season='season3']
+  .draft-page
+  .v-chip:is(.text-primary, .text-success, .bg-primary, .bg-success) {
+  background: #253b19 !important;
+  color: var(--arcade-select) !important;
+}
+[data-season='season3'] .draft-page .v-btn:is(.bg-primary, .bg-success) {
+  background: var(--arcade-select) !important;
+  color: #101609 !important;
+}
+[data-season='season3']
+  .draft-page
+  .v-btn:is(.bg-secondary, .bg-info, .bg-warning) {
+  background: #e4bd58 !important;
+  color: #201806 !important;
+}
+[data-season='season3'] .draft-page .v-btn.bg-error {
+  background: #951f28 !important;
+  color: #fff0df !important;
+}
+[data-season='season3'] .draft-notice {
+  border: 1px solid currentColor;
+  border-left-width: 4px;
+  border-radius: 0;
+}
+[data-season='season3'] .draft-notice-green {
+  background: #24351b !important;
+  color: #c8ff80 !important;
+}
+[data-season='season3'] .draft-notice-gold {
+  background: #342c17 !important;
+  color: #e4bd58 !important;
+}
+[data-season='season3'] .draft-notice-red {
+  background: #48191d !important;
+  color: #ffc0ad !important;
+}
+@media (max-width: 900px) {
+  .draft-page .draft-rosters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .draft-page .draft-rosters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

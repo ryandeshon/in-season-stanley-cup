@@ -78,11 +78,54 @@ describe('Hosted Test local draft', () => {
       ).to.be.greaterThan(0);
     });
     control('lock-toggle').click();
-    player()
-      .find('[data-test="draft-player-locked-banner"]')
-      .should('exist');
+    player().find('[data-test="draft-player-locked-banner"]').should('exist');
     player()
       .find('[data-test="test-socket-events"]')
       .should('not.contain', 'Events received: 0');
+  });
+  it('fits controls and player portraits at desktop, tablet and phone widths', () => {
+    cy.visit('/draft/admin', {
+      onBeforeLoad(win) {
+        win.localStorage.removeItem(key);
+      },
+    });
+    control('start').should('be.visible');
+    cy.contains('.v-card-title', 'Draft Controls').should('not.exist');
+    cy.contains('.v-card-title', 'Draft Progress').should('not.exist');
+    [1280, 820, 390].forEach((width) => {
+      cy.viewport(width, 900);
+      cy.get('.draft-page .v-btn').each((button) => {
+        const label = button[0]
+          .querySelector('.v-btn__content')
+          .getBoundingClientRect();
+        const box = button[0].getBoundingClientRect();
+        expect(label.left).to.be.at.least(box.left);
+        expect(label.right).to.be.at.most(box.right + 1);
+        expect(label.bottom).to.be.at.most(box.bottom + 1);
+      });
+      cy.get('.draft-player-card').should((cards) => {
+        expect(cards.length).to.eq(4);
+        const boxes = [...cards].map((card) => card.getBoundingClientRect());
+        boxes.forEach((box) => expect(box.width).to.be.greaterThan(130));
+        boxes.forEach((box, index) =>
+          boxes.slice(index + 1).forEach((other) => {
+            expect(
+              box.right <= other.left ||
+                other.right <= box.left ||
+                box.bottom <= other.top ||
+                other.bottom <= box.top,
+              'portraits do not overlap'
+            ).to.eq(true);
+          })
+        );
+      });
+    });
+    cy.get('.draft-rosters').screenshot('draft-rosters-phone');
+    cy.viewport(1280, 900);
+    cy.get('.draft-rosters').screenshot('draft-rosters-desktop');
+    control('start').click();
+    cy.visit('/draft/Terry');
+    cy.contains('.v-chip', 'Unlocked').should('not.exist');
+    cy.contains('.draft-notice-green', "It's your turn").should('be.visible');
   });
 });

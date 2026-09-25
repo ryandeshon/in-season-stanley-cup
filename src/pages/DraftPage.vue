@@ -11,16 +11,16 @@
       <v-alert
         v-if="isDisconnected"
         type="warning"
-        class="fixed m-auto w-full text-center mb-4 z-50"
+        class="draft-notice draft-notice-gold text-center mb-4"
       >
         Disconnected. Trying to reconnect...
       </v-alert>
     </transition>
     <transition name="fade">
       <v-alert
-        v-if="isYourTurn && !isDraftOver"
+        v-if="isYourTurn && !isDraftOver && !isDraftLocked"
         type="success"
-        class="fixed m-auto w-full text-center mb-4 z-50"
+        class="draft-notice draft-notice-green text-center mb-4"
         closable
       >
         It's your turn to pick a team!
@@ -30,7 +30,7 @@
       <v-alert
         v-if="showIsNotYourTurn"
         type="error"
-        class="fixed m-auto w-full text-center mb-4 z-50"
+        class="draft-notice draft-notice-red text-center mb-4"
         closable
       >
         It's not your turn!
@@ -40,7 +40,7 @@
       <v-alert
         v-if="draftState?.isLocked && draftState?.draftStarted"
         type="warning"
-        class="fixed m-auto w-full text-center mb-4 z-50"
+        class="draft-notice draft-notice-gold text-center mb-4"
         data-test="draft-player-locked-banner"
       >
         Draft is locked by an admin.
@@ -55,7 +55,7 @@
     >
       {{ snackbar.message }}
     </v-snackbar>
-    <v-container class="max-w-screen-lg">
+    <v-container class="max-w-screen-lg draft-page">
       <div class="text-right">
         <SoundToggle v-if="seasonStore.currentSeason === 'season3'" />
       </div>
@@ -112,7 +112,7 @@
           <h1 class="text-4xl font-bold mb-10">Draft is Over</h1>
           <v-row
             v-for="player in orderedPlayers"
-            :key="player.playerId"
+            :key="player.id"
             cols="6"
             sm="3"
             justify="center"
@@ -152,11 +152,12 @@
             </div>
             <div class="mt-2">
               <v-chip
-                :color="draftState?.isLocked ? 'warning' : 'success'"
+                v-if="draftState?.isLocked"
+                color="warning"
                 size="small"
                 class="mr-2"
               >
-                {{ draftState?.isLocked ? 'Locked' : 'Unlocked' }}
+                Picks Paused
               </v-chip>
               <v-chip
                 v-if="showAutoPickCountdown"
@@ -184,10 +185,10 @@
             </div>
           </div>
 
-          <v-row class="mb-10" dense>
+          <v-row class="mb-10 draft-rosters">
             <v-col
               v-for="player in orderedPlayers"
-              :key="player.playerId"
+              :key="player.id"
               cols="12"
               sm="6"
               md="3"
@@ -197,7 +198,7 @@
                 :player="player"
                 image-type="Happy"
                 :show-team-logo="false"
-                class="border-4"
+                class="border-4 draft-player-card"
                 :class="{
                   'border-success': currentPickerId === player.id,
                   'border-primary':
@@ -253,6 +254,8 @@
 </template>
 
 <script setup>
+import '@/assets/draft.css';
+import { useDraftPickSound } from '@/composables/useDraftPickSound';
 import { testDraftEnabled } from '@/utilities/previewConfig';
 import { useDraftCountdown } from '@/composables/useDraftCountdown';
 import { ref, computed, watch, onMounted } from 'vue';
@@ -328,6 +331,7 @@ const currentPlayer = ref(null);
 const allPlayersData = ref([]);
 const currentPickerId = ref('');
 const draftState = ref(null);
+useDraftPickSound(draftState, () => seasonStore.currentSeason === 'season3');
 const availableTeams = ref([]);
 const isYourTurn = ref(false);
 const isDraftOver = ref(false);
