@@ -22,7 +22,9 @@ import cue18 from '@/assets/sounds/arcade/start.mp3';
 import cue19 from '@/assets/sounds/arcade/terry-attack.mp3';
 import cue20 from '@/assets/sounds/arcade/tick.mp3';
 import cue21 from '@/assets/sounds/arcade/tick2.mp3';
+import fatalityHurt from '@/assets/sounds/arcade/hurt-final.mp3';
 const urls = {
+  'hurt-final': fatalityHurt,
   'boz-attack': cue0,
   'cooper-attack': cue1,
   fatality: cue2,

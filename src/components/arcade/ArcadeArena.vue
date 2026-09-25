@@ -346,7 +346,7 @@ function playFinish() {
     afterCue(
       sounds.sequence([
         `${winnerName.value.toLowerCase()}-attack`,
-        randomCue('hurt', 7),
+        'hurt-final',
       ]),
       3100,
       () => {

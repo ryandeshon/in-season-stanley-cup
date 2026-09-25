@@ -91,7 +91,7 @@ it('pairs an attack with hurt, then orders the shutout finale and retains Fatali
   expect(calls).toEqual([['finish-him']]);
   expect(wrapper.find('[data-test="flawless-victory"]').exists()).toBe(false);
   await vi.advanceTimersByTimeAsync(1100);
-  expect(calls[1]).toEqual(['ryan-attack', 'hurt1']);
+  expect(calls[1]).toEqual(['ryan-attack', 'hurt-final']);
   await vi.advanceTimersByTimeAsync(3100);
   expect(calls[2]).toEqual(['fatality']);
   expect(wrapper.find('[data-test="fatality-overlay"]').exists()).toBe(true);
