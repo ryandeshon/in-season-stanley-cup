@@ -1,3 +1,4 @@
+import { testDraftEnabled } from '@/utilities/previewConfig';
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '../pages/HomePage.vue';
 import StandingsPage from '../pages/StandingsPage.vue';
@@ -50,6 +51,11 @@ const router = createRouter({
     if (to.path === '/story' || from.path === '/story')
       return savedPosition || { top: 0 };
   },
+});
+
+router.beforeEach((to) => {
+  if (testDraftEnabled && to.query.draftTest !== '1')
+    return { ...to, query: { ...to.query, draftTest: '1' } };
 });
 
 export default router;

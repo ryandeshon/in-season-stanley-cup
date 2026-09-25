@@ -1,10 +1,16 @@
 <template>
-  <aside class="preview-controls" aria-label="Design preview controls">
+  <DraftTestControls v-if="testDraftEnabled" />
+  <aside v-else class="preview-controls" aria-label="Design preview controls">
     <strong>DESIGN PREVIEW · SAMPLE DATA</strong
     ><span
       >Sample data only. Scenarios stay in this browser. Reset restores the live
       game.</span
     >
+    <div>
+      <a v-if="testDraftApiBase" href="/draft/admin?draftTest=1"
+        >Test the draft and WebSockets ↗</a
+      >
+    </div>
     <div aria-label="Game scenarios">
       <strong>Game scenario</strong>
       <button
@@ -44,7 +50,12 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
-import { previewBase } from '@/utilities/previewConfig';
+import DraftTestControls from './DraftTestControls.vue';
+import {
+  previewBase,
+  testDraftEnabled,
+  testDraftApiBase,
+} from '@/utilities/previewConfig';
 const scenario = ref('live');
 const scenarios = [
   ['live', 'Live game'],
@@ -90,6 +101,7 @@ async function send(action, extra = {}) {
   }
 }
 onMounted(async () => {
+  if (testDraftEnabled) return;
   try {
     const status = await fetch(`${previewBase}/preview`);
     if (status.ok) scenario.value = (await status.json()).scenario;
