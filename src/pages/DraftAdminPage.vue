@@ -812,7 +812,7 @@ async function confirmResetTeams() {
 
 <style scoped>
 .border-success {
-  border-color: #4caf50 !important;
+  border-color: var(--arcade-select, #4caf50) !important;
 }
 .border-warning {
   border-color: #ff9800 !important;
