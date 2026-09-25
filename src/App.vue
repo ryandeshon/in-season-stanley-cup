@@ -14,6 +14,8 @@
 
     <!-- Footer -->
     <v-footer
+      class="app-footer"
+      height="50"
       :key="seasonStore.currentSeason"
       :app="seasonStore.currentSeason !== 'season3'"
       color="primary"
@@ -115,6 +117,15 @@ watch(
 @import '@/assets/style.css';
 @import '@/assets/arcade.css';
 
+.app-footer {
+  flex: 0 0 50px !important;
+  height: 50px !important;
+  min-height: 0 !important;
+  max-height: 50px !important;
+  padding: 6px 16px !important;
+  font-size: 12px;
+  line-height: 18px;
+}
 .app-version-link {
   color: inherit;
   text-decoration: underline;
