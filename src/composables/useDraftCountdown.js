@@ -1,6 +1,13 @@
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 
-export function useDraftCountdown(draftState, isDraftOver) {
+import { useArcadeSound } from '@/composables/useArcadeSound';
+
+export function useDraftCountdown(
+  draftState,
+  isDraftOver,
+  arcade = () => false
+) {
+  const ticks = useArcadeSound();
   const nowMs = ref(Date.now());
   let timer;
   const autoPickSecondsRemaining = computed(() => {
@@ -20,6 +27,19 @@ export function useDraftCountdown(draftState, isDraftOver) {
     const remaining = autoPickSecondsRemaining.value;
     if (remaining === null) return '--:--';
     return `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+  });
+  watch(autoPickSecondsRemaining, (remaining, previous) => {
+    if (
+      !arcade() ||
+      !showAutoPickCountdown.value ||
+      draftState.value?.isLocked ||
+      remaining <= 0 ||
+      remaining > 10 ||
+      previous !== remaining + 1
+    )
+      return;
+    ticks.stop();
+    ticks.play(remaining <= 3 ? 'tick2' : 'tick');
   });
   onMounted(() => {
     timer = window.setInterval(() => {

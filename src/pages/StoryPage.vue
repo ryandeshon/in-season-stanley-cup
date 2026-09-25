@@ -58,6 +58,7 @@
           />
         </label>
         <div class="br-controls">
+          <SoundToggle />
           <button @click="togglePlay">
             {{
               playing
@@ -89,6 +90,11 @@
   </div>
 </template>
 <script setup>
+import SoundToggle from '@/components/arcade/SoundToggle.vue';
+import {
+  useArcadeSound,
+  unlockArcadeSound,
+} from '@/composables/useArcadeSound';
 import {
   ref,
   computed,
@@ -173,6 +179,7 @@ function startY() {
   );
 }
 function seek(time) {
+  storySound.stop();
   playing.value = false;
   elapsed.value = time;
   window.scrollTo({
@@ -188,12 +195,17 @@ function scrollStory() {
   if (Math.abs(window.scrollY - lastScrollY) < 2) return;
   lastScrollY = window.scrollY;
   playing.value = false;
+  storySound.stop();
   elapsed.value = Math.max(
     0,
     Math.min(60, ((window.scrollY - startY()) / 2400) * 60)
   );
 }
+const storySound = useArcadeSound();
 function togglePlay() {
+  if (!playing.value && (elapsed.value === 0 || elapsed.value >= 60)) {
+    unlockArcadeSound().then(() => storySound.play('start'));
+  } else if (playing.value) storySound.stop();
   hasPlayed.value = true;
   lastScrollY = window.scrollY;
   if (elapsed.value >= 60) elapsed.value = 0;

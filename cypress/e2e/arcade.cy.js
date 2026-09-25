@@ -49,9 +49,9 @@ describe('Season 3 arcade review', () => {
         );
       });
     cy.get('[data-test="navigation-menu"]').click();
-    cy.get('.quiet-control')
-      .contains('Sound off')
-      .should('have.attr', 'aria-pressed', 'false');
+    cy.get('.sound-toggle')
+      .should('have.attr', 'aria-label')
+      .and('match', /Mute sound|Enable sound/);
     cy.get('[data-test="challenger-select-card"] button').click();
     cy.get('[data-test="conditional-matchups-section"]').should(
       'contain',
@@ -68,7 +68,10 @@ describe('Season 3 arcade review', () => {
     );
     cy.screenshot('arcade-desktop', { capture: 'fullPage' });
     cy.get('.fighter-label a').contains('Cooper').click();
-    cy.get('[data-test=character-dossier]').should('contain', 'The Former Steward');
+    cy.get('[data-test=character-dossier]').should(
+      'contain',
+      'The Former Steward'
+    );
     cy.get('[data-test="player-profile-trend-panel"]').should('be.visible');
   });
   it('fits both fighters and readable scoreboard on a 320px phone', () => {
