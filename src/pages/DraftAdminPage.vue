@@ -57,6 +57,23 @@
           </p>
         </div>
 
+        <v-alert
+          v-if="draftState?.pickOrderLocked"
+          type="info"
+          class="mb-6"
+          data-test="draft-locked-order"
+        >
+          Locked draft order:
+          {{ draftState.configuredPickOrder.map(getPlayerName).join(' → ') }}.
+          <span v-if="draftState.draftOrderPendingReset"
+            >This practice draft keeps its current order. Reset it to apply the
+            new order.</span
+          >
+          <span v-else
+            >Based on Season 2 wins, fewest first. This order repeats each
+            round.</span
+          >
+        </v-alert>
         <v-row justify="center" class="mb-8">
           <v-col cols="12" md="8">
             <v-card class="pa-6">
@@ -540,33 +557,22 @@ function getPlayerName(playerId) {
   return player ? player.name : playerId;
 }
 
-function shuffle(array) {
-  let currentIndex = array.length;
-  while (currentIndex !== 0) {
-    const randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex],
-      array[currentIndex],
-    ];
-  }
-  return array;
-}
-
 async function startDraft() {
   try {
     const players = await getDraftPlayers({
       season: seasonStore.currentSeason,
     });
-    const shuffled = shuffle(players.map((p) => p.id));
+    const order = draftState.value?.pickOrderLocked
+      ? [...draftState.value.pickOrder]
+      : players.map((p) => p.id);
     const autoPickSeconds = normalizeAutoPickSeconds(
       autoPickSecondsControl.value
     );
     autoPickSecondsControl.value = autoPickSeconds;
 
     const newState = {
-      pickOrder: shuffled,
-      currentPicker: shuffled[0],
+      pickOrder: order,
+      currentPicker: order[0],
       currentPickNumber: 1,
       draftStarted: true,
       isLocked: false,
