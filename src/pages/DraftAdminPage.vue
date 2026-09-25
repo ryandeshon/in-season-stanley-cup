@@ -25,9 +25,6 @@
     </v-snackbar>
 
     <v-container class="max-w-screen-lg draft-page">
-      <div class="text-right">
-        <SoundToggle v-if="seasonStore.currentSeason === 'season3'" />
-      </div>
       <v-text-field
         v-if="!testDraftEnabled && seasonStore.storageVersion === 'v2'"
         v-model="adminToken"
@@ -334,8 +331,6 @@
 
 <script setup>
 import '@/assets/draft.css';
-import SoundToggle from '@/components/arcade/SoundToggle.vue';
-import { useDraftPickSound } from '@/composables/useDraftPickSound';
 import { testDraftEnabled } from '@/utilities/previewConfig';
 import { useDraftCountdown } from '@/composables/useDraftCountdown';
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
@@ -383,7 +378,6 @@ function showSnackbar(message, color = 'error') {
 const allPlayersData = ref([]);
 const currentPickerId = ref('');
 const draftState = ref(null);
-useDraftPickSound(draftState, () => seasonStore.currentSeason === 'season3');
 const availableTeams = ref([]);
 const isDraftOver = ref(false);
 const autoPickEnabledControl = ref(false);
@@ -438,11 +432,7 @@ const {
   autoPickSecondsRemaining,
   showAutoPickCountdown,
   autoPickCountdownLabel,
-} = useDraftCountdown(
-  draftState,
-  isDraftOver,
-  () => seasonStore.currentSeason === 'season3'
-);
+} = useDraftCountdown(draftState, isDraftOver);
 
 const orderedPlayers = computed(() => {
   if (!draftState.value?.pickOrder?.length) return allPlayersData.value;

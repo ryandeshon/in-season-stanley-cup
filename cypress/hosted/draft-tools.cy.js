@@ -49,9 +49,35 @@ describe('Hosted Test local draft', () => {
     control('start').should('be.visible');
   });
   it('delivers countdown picks to a second browser context through local storage events', () => {
+    let adminAudioSources = 0;
     cy.visit('/draft/admin', {
       onBeforeLoad(win) {
         win.localStorage.removeItem(key);
+        win.localStorage.setItem('arcade-sound', 'on');
+        win.AudioContext = class {
+          state = 'running';
+          destination = {};
+          resume() {
+            return Promise.resolve();
+          }
+          decodeAudioData() {
+            return Promise.resolve({});
+          }
+          createGain() {
+            return { gain: {}, connect() {}, disconnect() {} };
+          }
+          createBufferSource() {
+            adminAudioSources++;
+            return {
+              connect() {},
+              disconnect() {},
+              start() {
+                this.onended?.();
+              },
+              stop() {},
+            };
+          }
+        };
       },
     });
     control('start').should('be.visible');
@@ -80,6 +106,9 @@ describe('Hosted Test local draft', () => {
         JSON.parse(win.localStorage.getItem(key)).state.pickHistory.length
       ).to.be.greaterThan(0);
     });
+    cy.then(() =>
+      expect(adminAudioSources, 'Admin never plays picks or ticks').to.eq(0)
+    );
     control('lock-toggle').click();
     player().find('[data-test="draft-player-locked-banner"]').should('exist');
     player()
