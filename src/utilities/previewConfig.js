@@ -8,10 +8,6 @@ export const previewBase = hostedPreview
   ? `${window.location.origin}/__arcade-preview`
   : 'http://localhost:8091';
 
-// Explicit Test-only mode. Missing endpoints fail closed instead of using prod.
+// Every draft route on hosted Test uses browser-local practice data.
 export const testDraftEnabled =
-  hostedPreview &&
-  new URLSearchParams(window.location.search).get('draftTest') === '1';
-export const testDraftApiBase = process.env.VUE_APP_TEST_DRAFT_API_BASE || '';
-export const testDraftSocketUrl =
-  process.env.VUE_APP_TEST_DRAFT_SOCKET_URL || '';
+  hostedPreview && /^\/draft(?:\/|$)/.test(window.location.pathname);

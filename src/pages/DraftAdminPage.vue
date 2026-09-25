@@ -28,7 +28,7 @@
 
     <v-container class="max-w-screen-lg">
       <v-text-field
-        v-if="seasonStore.storageVersion === 'v2'"
+        v-if="!testDraftEnabled && seasonStore.storageVersion === 'v2'"
         v-model="adminToken"
         type="password"
         label="Admin token"
@@ -334,6 +334,7 @@
 </template>
 
 <script setup>
+import { testDraftEnabled } from '@/utilities/previewConfig';
 import { useDraftCountdown } from '@/composables/useDraftCountdown';
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import {
