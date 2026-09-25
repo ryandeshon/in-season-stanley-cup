@@ -7,9 +7,7 @@
       game.</span
     >
     <div>
-      <a v-if="testDraftApiBase" href="/draft/admin?draftTest=1"
-        >Test the draft and WebSockets ↗</a
-      >
+      <a href="/draft/admin?draftTest=1">Test the draft locally ↗</a>
     </div>
     <div aria-label="Game scenarios">
       <strong>Game scenario</strong>
@@ -51,11 +49,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import DraftTestControls from './DraftTestControls.vue';
-import {
-  previewBase,
-  testDraftEnabled,
-  testDraftApiBase,
-} from '@/utilities/previewConfig';
+import { previewBase, testDraftEnabled } from '@/utilities/previewConfig';
 const scenario = ref('live');
 const scenarios = [
   ['live', 'Live game'],

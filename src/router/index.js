@@ -1,4 +1,4 @@
-import { testDraftEnabled } from '@/utilities/previewConfig';
+import { hostedPreview, testDraftEnabled } from '@/utilities/previewConfig';
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '../pages/HomePage.vue';
 import StandingsPage from '../pages/StandingsPage.vue';
@@ -54,8 +54,10 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  if (testDraftEnabled && to.query.draftTest !== '1')
-    return { ...to, query: { ...to.query, draftTest: '1' } };
+  if (hostedPreview && /^\/draft(?:\/|$)/.test(to.path) !== testDraftEnabled) {
+    window.location.assign(to.fullPath);
+    return false;
+  }
 });
 
 export default router;

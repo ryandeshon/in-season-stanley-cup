@@ -1,34 +1,56 @@
-import { afterEach, expect, it, vi } from 'vitest';
-const preview = vi.hoisted(() => ({
+import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+vi.mock('@/utilities/previewConfig', () => ({
   hostedPreview: true,
-  previewBase: 'https://test.example/__arcade-preview',
   testDraftEnabled: true,
-  testDraftApiBase: '',
 }));
-vi.mock('@/utilities/previewConfig', () => preview);
 import { apiRequest } from '@/services/apiClient';
+let fetch;
+beforeEach(() => {
+  const values = new Map();
+  vi.stubGlobal('localStorage', {
+    getItem: (key) => values.get(key),
+    setItem: (key, value) => values.set(key, value),
+  });
+  vi.stubGlobal('navigator', {
+    locks: { request: (_key, callback) => callback() },
+  });
+  vi.stubEnv('VUE_APP_API_BASE', 'https://production.example');
+  fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+});
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
-it('fails closed when the dedicated Test API is missing instead of using the inherited production API', async () => {
-  vi.stubEnv('VUE_APP_API_BASE', 'https://production.example');
-  const fetch = vi.fn();
-  vi.stubGlobal('fetch', fetch);
-  preview.testDraftApiBase = '';
-  await expect(apiRequest('/draft/state')).rejects.toThrow('not configured');
+it('reads and writes only local storage even with a production API configured', async () => {
+  const state = await apiRequest('/draft/state');
+  const started = await apiRequest('/draft/state', {
+    method: 'PATCH',
+    body: { version: state.version, draftStarted: true },
+  });
+  expect(started.draftStarted).toBe(true);
+  expect((await apiRequest('/draft/state')).version).toBe(1);
   expect(fetch).not.toHaveBeenCalled();
 });
-it('routes draft mode requests only to the dedicated Test API', async () => {
-  preview.testDraftApiBase = 'https://dedicated-test.example/test';
-  const fetch = vi
-    .fn()
-    .mockResolvedValue(
-      new Response('{}', { headers: { 'content-type': 'application/json' } })
-    );
-  vi.stubGlobal('fetch', fetch);
-  await apiRequest('/draft/state', { query: { season: 'season3' } });
-  expect(fetch.mock.calls[0][0]).toBe(
-    'https://dedicated-test.example/test/draft/state?season=season3'
-  );
+it('fails closed for unsupported routes and unavailable storage', async () => {
+  await expect(
+    apiRequest('/unknown', { method: 'POST' })
+  ).rejects.toMatchObject({ status: 405 });
+  vi.stubGlobal('localStorage', {
+    getItem() {
+      throw Error('Storage blocked');
+    },
+  });
+  await expect(apiRequest('/draft/state')).rejects.toThrow('Storage blocked');
+  expect(fetch).not.toHaveBeenCalled();
+});
+it('fails closed when cross-tab write locking is unavailable', async () => {
+  vi.stubGlobal('navigator', {});
+  await expect(
+    apiRequest('/draft/state', {
+      method: 'PATCH',
+      body: { version: 0, draftStarted: true },
+    })
+  ).rejects.toThrow('Web Locks');
+  expect(fetch).not.toHaveBeenCalled();
 });

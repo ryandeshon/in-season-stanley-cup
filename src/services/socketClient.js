@@ -1,22 +1,29 @@
-import {
-  hostedPreview,
-  testDraftEnabled,
-  testDraftSocketUrl,
-} from '@/utilities/previewConfig';
+import { subscribeLocalDraft } from './localDraft';
+import { hostedPreview, testDraftEnabled } from '@/utilities/previewConfig';
 import { ref } from 'vue';
 
 const socket = ref(null);
 const isConnected = ref(false);
 const lastMessage = ref(null);
 let messageHandlers = [];
+let unsubscribeLocal = null;
 let reconnectTimeout = null;
 let reconnectAttempts = 0; // Track the number of reconnection attempts
 const maxReconnectAttempts = 10; // Set the maximum number of attempts
 
 export function initSocket({ onMessage, onOpen, onClose, onError } = {}) {
-  const url = testDraftEnabled
-    ? testDraftSocketUrl
-    : process.env.VUE_APP_WEB_SOCKET_URL;
+  if (testDraftEnabled) {
+    if (!unsubscribeLocal)
+      unsubscribeLocal = subscribeLocalDraft((data) => {
+        lastMessage.value = data;
+        onMessage?.(data);
+        messageHandlers.forEach((fn) => fn(data));
+      });
+    isConnected.value = true;
+    onOpen?.();
+    return null;
+  }
+  const url = process.env.VUE_APP_WEB_SOCKET_URL;
   if ((hostedPreview && !testDraftEnabled) || !url) {
     console.warn('WebSocket URL not configured; skipping socket init');
     isConnected.value = false; // Explicitly set disconnected state
@@ -76,6 +83,7 @@ function scheduleReconnect() {
 }
 
 export function sendSocketMessage(action, payload) {
+  if (testDraftEnabled) return;
   if (socket.value && socket.value.readyState === WebSocket.OPEN) {
     socket.value.send(JSON.stringify({ action, payload }));
   } else {
@@ -84,6 +92,8 @@ export function sendSocketMessage(action, payload) {
 }
 
 export function closeSocket() {
+  unsubscribeLocal?.();
+  unsubscribeLocal = null;
   clearTimeout(reconnectTimeout);
   reconnectTimeout = null;
   reconnectAttempts = 0;

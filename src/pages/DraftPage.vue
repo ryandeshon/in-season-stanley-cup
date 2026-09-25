@@ -76,7 +76,12 @@
         >
       </section>
       <v-text-field
-        v-if="playerName && seasonStore.storageVersion === 'v2' && !isDraftOver"
+        v-if="
+          !testDraftEnabled &&
+          playerName &&
+          seasonStore.storageVersion === 'v2' &&
+          !isDraftOver
+        "
         v-model="draftToken"
         type="password"
         label="Your draft access code"
@@ -248,6 +253,7 @@
 </template>
 
 <script setup>
+import { testDraftEnabled } from '@/utilities/previewConfig';
 import { useDraftCountdown } from '@/composables/useDraftCountdown';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';

@@ -65,13 +65,14 @@ it('reconnects after an unexpected disconnect', async () => {
   expect(instances).toHaveLength(2);
 });
 
-it('keeps fixture previews disconnected and uses only the dedicated Test socket in draft mode', () => {
+it('keeps fixture previews disconnected and uses local sync without a Test WebSocket', () => {
   preview.hostedPreview = true;
   expect(initSocket()).toBeNull();
+  expect(useSocket().isConnected.value).toBe(false);
   preview.testDraftEnabled = true;
   expect(initSocket()).toBeNull();
-  preview.testDraftSocketUrl = 'wss://dedicated-test.example/test';
-  initSocket();
-  expect(instances).toHaveLength(1);
-  expect(instances[0].url).toBe(preview.testDraftSocketUrl);
+  expect(useSocket().isConnected.value).toBe(true);
+  expect(instances).toHaveLength(0);
+  closeSocket();
+  expect(useSocket().isConnected.value).toBe(false);
 });
