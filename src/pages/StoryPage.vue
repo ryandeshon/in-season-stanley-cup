@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
 }
 .story-console h1 {
   font:
-    22px/1.4 'Press Start 2P',
+    32px/1.2 'Mortal Kombat 2',
     monospace !important;
   border: 0 !important;
   margin: 8px 0 !important;
@@ -329,9 +329,9 @@ onBeforeUnmount(() => {
   background-image: linear-gradient(#ffffff18, #ffffff18), var(--stone);
 }
 .story-console button[aria-pressed='true'] {
-  background: #282c25;
-  border: 3px solid #85ed34;
-  color: #c8ff80;
+  background: var(--arcade-select-surface);
+  border: 3px solid var(--arcade-select);
+  color: var(--arcade-select-text);
   text-shadow: 2px 2px #0b1704;
 }
 .story-console button:disabled {
