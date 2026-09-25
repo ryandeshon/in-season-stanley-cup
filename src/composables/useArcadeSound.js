@@ -23,7 +23,13 @@ import cue19 from '@/assets/sounds/arcade/terry-attack.mp3';
 import cue20 from '@/assets/sounds/arcade/tick.mp3';
 import cue21 from '@/assets/sounds/arcade/tick2.mp3';
 import fatalityHurt from '@/assets/sounds/arcade/hurt-final.mp3';
+import draftPick1 from '@/assets/sounds/arcade/draft-pick1.mp3';
+import draftPick2 from '@/assets/sounds/arcade/draft-pick2.mp3';
+import draftPick3 from '@/assets/sounds/arcade/draft-pick3.mp3';
 const urls = {
+  'draft-pick1': draftPick1,
+  'draft-pick2': draftPick2,
+  'draft-pick3': draftPick3,
   'hurt-final': fatalityHurt,
   'boz-attack': cue0,
   'cooper-attack': cue1,
