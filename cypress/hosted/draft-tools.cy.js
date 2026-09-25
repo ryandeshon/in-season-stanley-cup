@@ -1,7 +1,10 @@
 const key = 'inseason-local-draft-v1';
 const control = (name) => cy.get(`[data-test="draft-admin-${name}"]`);
-const state = () =>
-  cy.window().then((win) => JSON.parse(win.localStorage.getItem(key)).state);
+const expectState = (field, assertion, expected) =>
+  cy.window().should((win) => {
+    const current = JSON.parse(win.localStorage.getItem(key)).state;
+    expect(current[field]).to[assertion](expected);
+  });
 describe('Hosted Test local draft', () => {
   it('starts, picks, persists, locks, undoes and resets without backend traffic or codes', () => {
     cy.intercept({ hostname: /execute-api\..*amazonaws\.com$/ }, () => {
@@ -22,24 +25,24 @@ describe('Hosted Test local draft', () => {
     cy.contains('BROWSER-LOCAL PRACTICE').should('be.visible');
     cy.contains('label', 'Admin token').should('not.exist');
     control('start').click();
-    state().its('currentPicker').should('eq', 4);
+    expectState('currentPicker', 'eq', 4);
     control('advance').click();
-    state().its('pickHistory').should('have.length', 1);
+    expectState('pickHistory', 'length', 1);
     cy.reload();
     control('lock-toggle').click();
-    state().its('isLocked').should('eq', true);
+    expectState('isLocked', 'eq', true);
     control('lock-toggle').click();
     control('undo').click();
-    state().its('pickHistory').should('have.length', 0);
+    expectState('pickHistory', 'length', 0);
     cy.visit('/draft/Terry?draftTest=1');
     cy.get('[data-test="draft-access-code"]').should('not.exist');
     cy.get('[data-test="draft-team-card-ANA"]').click();
-    state().its('pickHistory').should('have.length', 1);
+    expectState('pickHistory', 'length', 1);
     cy.visit('/draft/admin');
     control('reset').click();
     control('reset-confirm').click();
-    state().its('draftStarted').should('eq', false);
-    state().its('pickHistory').should('have.length', 0);
+    expectState('draftStarted', 'eq', false);
+    expectState('pickHistory', 'length', 0);
     cy.contains('a', 'Back to game scenarios').click();
     cy.contains('DESIGN PREVIEW').should('be.visible');
     cy.contains('a', 'Test the draft locally').click();

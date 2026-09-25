@@ -7,15 +7,13 @@
     results in Standings.</v-alert
   >
   <template v-else>
-    <transition name="fade">
-      <v-alert
-        v-if="isDisconnected"
-        type="warning"
-        class="draft-notice draft-notice-gold text-center mb-4"
-      >
-        Disconnected. Trying to reconnect...
-      </v-alert>
-    </transition>
+    <v-alert
+      v-if="isDisconnected"
+      type="warning"
+      class="draft-notice draft-notice-gold text-center mb-4"
+    >
+      Disconnected. Trying to reconnect...
+    </v-alert>
     <v-snackbar
       v-model="snackbar.visible"
       :color="snackbar.color"
@@ -826,13 +824,5 @@ async function confirmResetTeams() {
 }
 .border-warning {
   border-color: var(--arcade-gold, #ff9800) !important;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>
