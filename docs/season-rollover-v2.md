@@ -100,7 +100,9 @@ must contain seasonId, expectedRevision and status. Supported transitions:
 
 - preseason → preseason: enables writes, after authorization prerequisites pass.
 - preseason → active: requires a complete 32-team draft, starting `champion`,
-  `regularSeasonEnd` and `playoffsStart`. It pins draft version and all rosters.
+  `regularSeasonEnd`, plus `regularSeasonStart` for calendar progress. Set
+  `playoffsStart` only when officially announced; null is allowed because the cup
+  tracks regular-season games only. It pins draft version and all rosters.
 - active → archived: requires final game completed, no active game, and pins the
   game ledger marker, rosters and defense counters. A retry does not award again.
 
