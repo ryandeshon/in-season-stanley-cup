@@ -9,7 +9,13 @@ async function transition(
   tables,
   id,
   expectedRevision,
-  { status, champion, regularSeasonEnd, playoffsStart } = {}
+  {
+    status,
+    champion,
+    regularSeasonStart,
+    regularSeasonEnd,
+    playoffsStart = null,
+  } = {}
 ) {
   const season = await get(db, tables.catalog, { id });
   if (
@@ -54,17 +60,23 @@ async function transition(
     if (!players.some((p) => p.teams.includes(champion)))
       throw new Error('Starting champion has no owner');
     if (
-      ![regularSeasonEnd, playoffsStart].every(
+      ![
+        regularSeasonEnd,
+        ...(regularSeasonStart ? [regularSeasonStart] : []),
+        ...(playoffsStart ? [playoffsStart] : []),
+      ].every(
         (d) =>
           /^\d{4}-\d{2}-\d{2}$/.test(d || '') && Number.isFinite(Date.parse(d))
       ) ||
-      playoffsStart <= regularSeasonEnd
+      (regularSeasonStart && regularSeasonStart >= regularSeasonEnd) ||
+      (playoffsStart && playoffsStart <= regularSeasonEnd)
     )
       throw new Error('Explicit season dates required');
     next = {
       ...season,
       status: 'active',
       writersEnabled: true,
+      ...(regularSeasonStart ? { regularSeasonStart } : {}),
       regularSeasonEnd,
       playoffsStart,
     };
