@@ -51,7 +51,7 @@ describe('Pinned story screen', () => {
             expect(rect.height).to.be.greaterThan(70);
             expect(rect.bottom).to.be.at.most(height - 10);
           });
-          cy.get('input[type=range]').should('have.value', String(progress * 60));
+          cy.get('input[type=range]').should('have.value', String(progress * 30));
           if (progress === 0.5) cy.screenshot(`story-pinned-${width}`, { capture: 'viewport' });
         }
         cy.scrollTo(0, start + 2600);
