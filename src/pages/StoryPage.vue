@@ -11,7 +11,7 @@
       <section
         ref="consoleEl"
         class="story-console"
-        aria-label="The Black Rink one-minute prologue"
+        aria-label="The Black Rink 30-second prologue"
       >
         <header>
           <span>IN-SEASON STANLEY CUP</span>
@@ -22,7 +22,7 @@
             v-for="(scene, index) in scenes"
             :key="scene.title"
             :aria-pressed="active === index"
-            @click="seek(index * 20)"
+            @click="seek(index * SCENE_SECONDS)"
           >
             {{ ['I', 'II', 'III'][index] }} · {{ scene.title }}
           </button>
@@ -49,10 +49,10 @@
           <input
             type="range"
             min="0"
-            max="60"
+            :max="TOTAL_SECONDS"
             step="0.1"
             :value="elapsed"
-            :style="{ '--progress': `${(elapsed / 60) * 100}%` }"
+            :style="{ '--progress': `${(elapsed / TOTAL_SECONDS) * 100}%` }"
             aria-label="Story time in seconds"
             @input="seek(Number($event.target.value))"
           />
@@ -63,7 +63,7 @@
             {{
               playing
                 ? 'Pause'
-                : elapsed >= 60
+                : elapsed >= TOTAL_SECONDS
                   ? 'Replay'
                   : hasPlayed
                     ? 'Resume'
@@ -74,12 +74,12 @@
             @click="fullText = true"
           >
             Full text</button
-          ><output>{{ timecode }} / 01:00</output>
+          ><output>{{ timecode }} / 00:30</output>
         </div>
         <footer>
-          <span>Scroll through the story, or play the one-minute intro.</span
+          <span>Scroll through the story, or play the 30-second intro.</span
           ><span role="status">{{
-            elapsed >= 60
+            elapsed >= TOTAL_SECONDS
               ? 'The gates are closed. The tournament awaits.'
               : `Scene ${active + 1} of 3`
           }}</span>
@@ -127,6 +127,9 @@ const scenes = [
   },
 ];
 
+const SCENE_SECONDS = 10;
+const TOTAL_SECONDS = scenes.length * SCENE_SECONDS;
+
 const page = ref(null),
   consoleEl = ref(null),
   copyEl = ref(null),
@@ -137,10 +140,12 @@ const page = ref(null),
   reducedMotion = ref(false),
   stickyTop = ref(74);
 const active = computed(() =>
-  Math.min(2, Math.floor((elapsed.value + 0.00001) / 20))
+  Math.min(2, Math.floor((elapsed.value + 0.00001) / SCENE_SECONDS))
 );
 const scene = computed(() => scenes[active.value]);
-const fraction = computed(() => (elapsed.value - active.value * 20) / 20);
+const fraction = computed(
+  () => (elapsed.value - active.value * SCENE_SECONDS) / SCENE_SECONDS
+);
 const camera = computed(() =>
   reducedMotion.value
     ? 'none'
@@ -148,12 +153,12 @@ const camera = computed(() =>
 );
 const visibleCopy = computed(() =>
   playing.value && !fullText.value && !reducedMotion.value
-    ? scene.value.copy.slice(0, Math.floor(fraction.value * 20 * 36))
+    ? scene.value.copy.slice(0, Math.floor(fraction.value * SCENE_SECONDS * 36))
     : scene.value.copy
 );
 const timecode = computed(() =>
-  elapsed.value >= 60
-    ? '01:00'
+  elapsed.value >= TOTAL_SECONDS
+    ? '00:30'
     : `00:${String(Math.floor(elapsed.value)).padStart(2, '0')}`
 );
 watch(active, () => {
@@ -183,7 +188,7 @@ function seek(time) {
   playing.value = false;
   elapsed.value = time;
   window.scrollTo({
-    top: Math.max(0, startY() + (time / 60) * 2400),
+    top: Math.max(0, startY() + (time / TOTAL_SECONDS) * 2400),
     behavior: 'instant',
   });
   // A second scroll can arrive before the browser dispatches the seek's event.
@@ -198,17 +203,23 @@ function scrollStory() {
   storySound.stop();
   elapsed.value = Math.max(
     0,
-    Math.min(60, ((window.scrollY - startY()) / 2400) * 60)
+    Math.min(
+      TOTAL_SECONDS,
+      ((window.scrollY - startY()) / 2400) * TOTAL_SECONDS
+    )
   );
 }
 const storySound = useArcadeSound();
 function togglePlay() {
-  if (!playing.value && (elapsed.value === 0 || elapsed.value >= 60)) {
+  if (
+    !playing.value &&
+    (elapsed.value === 0 || elapsed.value >= TOTAL_SECONDS)
+  ) {
     unlockArcadeSound().then(() => storySound.play('start'));
   } else if (playing.value) storySound.stop();
   hasPlayed.value = true;
   lastScrollY = window.scrollY;
-  if (elapsed.value >= 60) elapsed.value = 0;
+  if (elapsed.value >= TOTAL_SECONDS) elapsed.value = 0;
   playing.value = !playing.value;
   last = performance.now();
 }
@@ -237,8 +248,11 @@ onMounted(() => {
   timer = setInterval(() => {
     const now = performance.now();
     if (playing.value && !document.hidden) {
-      elapsed.value = Math.min(60, elapsed.value + (now - last) / 1000);
-      if (elapsed.value >= 60) playing.value = false;
+      elapsed.value = Math.min(
+        TOTAL_SECONDS,
+        elapsed.value + (now - last) / 1000
+      );
+      if (elapsed.value >= TOTAL_SECONDS) playing.value = false;
     }
     last = now;
   }, 100);
