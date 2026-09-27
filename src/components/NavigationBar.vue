@@ -51,10 +51,14 @@
           class="no-underline"
         />
 
-        <v-divider />
+        <v-list-item
+          to="/story"
+          prepend-icon="mdi-book-open-page-variant"
+          title="Story"
+          class="no-underline"
+        />
 
-        <v-list-item to="/draft" title="Draft" />
-        <v-list-item to="/story" title="Story" />
+        <v-divider />
         <!-- Settings Section -->
         <v-list-subheader>Settings</v-list-subheader>
 

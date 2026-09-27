@@ -124,10 +124,23 @@ describe('Season 3 arcade review', () => {
       'aria-expanded',
       'true'
     );
+    cy.get('.v-overlay--active a[href="/draft"]').should('not.exist');
+    cy.get('.v-overlay--active a[href="/about"]')
+      .next()
+      .should('have.attr', 'href', '/story');
+    cy.get(
+      '.v-overlay--active a[href="/story"] .mdi-book-open-page-variant'
+    ).should('exist');
     cy.contains('.v-overlay--active .v-list-item', 'Story')
       .should('be.visible')
       .click();
     cy.get('.story-scene:visible').should('have.length', 1);
+    cy.get('[aria-label="Story time in seconds"]').should(
+      'have.attr',
+      'max',
+      '30'
+    );
+    cy.get('.br-controls output').should('contain', '/ 00:30');
     cy.get('.story-scene').should('contain', 'Ryan claimed the championship');
     cy.get('.br-controls').scrollIntoView();
     cy.contains('button', 'Play intro').click({ scrollBehavior: false });
@@ -137,7 +150,7 @@ describe('Season 3 arcade review', () => {
     cy.scrollTo(0, 0);
     cy.contains('button', 'III · The trap').click({ scrollBehavior: false });
     cy.get('.story-scene:visible').should('contain', 'The gates close');
-    cy.get('[aria-label="Story time in seconds"]').should('have.value', '40');
+    cy.get('[aria-label="Story time in seconds"]').should('have.value', '20');
     cy.scrollTo(0, 0);
     cy.get('.story-scene').should('contain', 'Ryan claimed the championship');
     cy.screenshot('arcade-story', { capture: 'fullPage' });
