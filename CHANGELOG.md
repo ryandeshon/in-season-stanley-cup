@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.2
+
+### Patch Changes
+
+- Open archived season homepages on the last recorded cup matchup using their original theme and portraits. Make the season winner celebration optional with a return-to-matchup button, preserving its original audio.
+
 ## 3.0.1
 
 ### Patch Changes
