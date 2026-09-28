@@ -6,10 +6,10 @@
     <h1
       v-if="!arcade"
       class="text-4xl font-bold mb-4"
-      :class="{ 'text-center': isSeasonOver }"
+      :class="{ 'text-center': showSeasonWinner }"
       data-test="home-title"
     >
-      In Season Cup <span v-if="isSeasonOver">Champion</span>
+      In Season Cup <span v-if="showSeasonWinner">Champion</span>
     </h1>
     <v-alert
       v-if="homeErrorMessage"
@@ -47,8 +47,33 @@
         >
         <p class="mt-4">Past seasons remain available in the season menu.</p>
       </section>
-      <SeasonChampion v-else-if="isSeasonOver" />
-      <p v-if="isSeasonOver && !arcade" class="text-center my-6">
+      <template v-else-if="isSeasonOver">
+        <div
+          class="text-center mb-4 season-winner-controls"
+          :class="{ 'winner-open': showSeasonWinner }"
+        >
+          <v-btn
+            data-test="season-winner-toggle"
+            :prepend-icon="showSeasonWinner ? 'mdi-arrow-left' : 'mdi-trophy'"
+            color="primary"
+            :variant="showSeasonWinner ? 'flat' : 'outlined'"
+            @click="toggleSeasonWinner"
+            >{{
+              showSeasonWinner ? 'Back to matchup' : 'View season winner'
+            }}</v-btn
+          >
+        </div>
+        <SeasonChampion v-if="showSeasonWinner" />
+        <ArchivedMatchup
+          v-else
+          :records="gameRecords"
+          :players="playersList"
+          :season-label="seasonStore.seasonDisplayName"
+          :loading="seasonDataLoading"
+          :error="seasonDataError"
+        />
+      </template>
+      <p v-if="showSeasonWinner && !arcade" class="text-center my-6">
         <router-link to="/story"
           >Enter the Black Rink · Watch the Season 3 prologue ↗</router-link
         >
@@ -480,7 +505,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useCurrentSeasonData } from '@/composables/useCurrentSeasonData';
 import { useCupGameState } from '@/composables/useCupGameState';
 import { useLiveGameFeed } from '@/composables/useLiveGameFeed';
@@ -493,9 +518,19 @@ import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import ChampionTimeline from '@/components/ChampionTimeline.vue';
 import SeasonChampion from '@/pages/SeasonChampion.vue';
+import ArchivedMatchup from '@/components/ArchivedMatchup.vue';
 
-const { players: allPlayersData, error: seasonDataError } =
-  useCurrentSeasonData();
+const {
+  players: allPlayersData,
+  gameRecords,
+  loading: seasonDataLoading,
+  error: seasonDataError,
+} = useCurrentSeasonData();
+const showSeasonWinner = ref(false);
+function toggleSeasonWinner() {
+  showSeasonWinner.value = !showSeasonWinner.value;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
 const seasonStore = useSeasonStore();
 const arcade = computed(() => seasonStore.currentSeason === 'season3');
 
@@ -725,4 +760,12 @@ onMounted(async () => {
 });
 </script>
 
-<style></style>
+<style scoped>
+.season-winner-controls.winner-open {
+  position: fixed;
+  top: calc(var(--v-layout-top, 64px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+</style>

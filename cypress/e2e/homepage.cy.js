@@ -267,9 +267,12 @@ describe('In Season Cup - Homepage', () => {
       cy.mockApiScenario('season-over');
     });
 
-    it('shows the season-over homepage branch with flashy champion experience', () => {
+    it('opens the season winner celebration only when requested', () => {
       cy.visit('/');
-      cy.wait(['@getSeasonMeta', '@getChampion', '@getPlayers']);
+      cy.wait(['@getSeasonMeta', '@getPlayers']);
+      cy.get('[data-test="season-champion-flash"]').should('not.exist');
+      cy.get('[data-test="season-winner-toggle"]').click();
+      cy.wait('@getChampion');
       cy.contains('h1', 'In Season Cup Champion');
       cy.contains("What's Next").should('not.exist');
       cy.get('[data-test="champion-timeline"]').should('not.exist');
