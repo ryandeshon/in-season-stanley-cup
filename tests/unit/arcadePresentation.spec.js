@@ -77,16 +77,16 @@ describe('arcade event playback', () => {
   it('suppresses catch-up after disconnect, long gaps, hidden tabs and intermission', () => {
     const track = createArenaTracker();
     track(game(), { now: 0 });
-    expect(track(game('LIVE', 3, 1), { now: 50000 }).type).toBe('settle');
+    expect(track(game('LIVE', 3, 1), { now: 200000 }).type).toBe('settle');
     expect(
-      track(game('LIVE', 4, 1), { now: 51000, suspended: true }).type
+      track(game('LIVE', 4, 1), { now: 201000, suspended: true }).type
     ).toBe('settle');
-    expect(track(game('LIVE', 5, 1), { now: 52000 }).type).toBe('settle');
+    expect(track(game('LIVE', 5, 1), { now: 202000 }).type).toBe('settle');
     const intermission = game('LIVE', 6, 1);
     intermission.clock.inIntermission = true;
-    expect(track(intermission, { now: 53000 }).type).toBe('settle');
-    expect(track(game('LIVE', 7, 1), { now: 54000 }).type).toBe('settle');
-    expect(track(game('LIVE', 8, 1), { now: 55000 }).type).toBe('goal');
+    expect(track(intermission, { now: 203000 }).type).toBe('settle');
+    expect(track(game('LIVE', 7, 1), { now: 204000 }).type).toBe('settle');
+    expect(track(game('LIVE', 8, 1), { now: 205000 }).type).toBe('goal');
   });
   it('plays final once, preserves animation across identical polls and cancels corrected results', () => {
     const played = new Set(),
@@ -120,4 +120,11 @@ describe('arcade event playback', () => {
     value.homeTeam.score++;
     expect(track(value)).toMatchObject({ type: 'goal', team: 'BOS' });
   });
+});
+
+it('plays attacks and finals from minute-spaced broadcasts', () => {
+  const track = createArenaTracker();
+  track(game(), { now: 0 });
+  expect(track(game('LIVE', 3, 1), { now: 60000 }).type).toBe('goal');
+  expect(track(game('FINAL', 3, 1), { now: 120000 }).type).toBe('finish');
 });

@@ -2,6 +2,10 @@ import { nextTick, ref } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClientError } from '@/services/apiClient';
 
+vi.mock('@/services/dynamodbService', () => ({
+  getGameRecords: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('@/services/nhlApi', () => ({
   default: {
     getGameInfo: vi.fn(),
@@ -22,6 +26,7 @@ vi.mock('@/store/seasonStore', () => ({
   }),
 }));
 
+import { getGameRecords } from '@/services/dynamodbService';
 import nhlApi from '@/services/nhlApi';
 import {
   areSeasonContractEndpointsEnabled,
@@ -35,6 +40,7 @@ import { useCupGameState } from '@/composables/useCupGameState';
 describe('useCupGameState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getGameRecords.mockResolvedValue([]);
     if (typeof window !== 'undefined' && window.sessionStorage) {
       window.sessionStorage.clear();
     }
@@ -426,4 +432,56 @@ describe('useCupGameState', () => {
     expect(state.getGoalScorers('TOR')).toEqual([]);
     expect(state.getGoalScorers('BOS')).toEqual([]);
   });
+});
+
+it('restores a committed final when the checker has cleared the active game', async () => {
+  getGameId.mockResolvedValue(null);
+  getCurrentChampion.mockResolvedValue('BOS');
+  getGameRecords.mockResolvedValue([
+    { id: 'finished', wTeam: 'BOS', savedAt: new Date().toISOString() },
+  ]);
+  const state = useCupGameState();
+  await state.refreshChampionAndGameState();
+  expect(state.cupGameId.value).toBe('finished');
+  expect(state.currentChampion.value).toBe('BOS');
+});
+
+it('keeps the original matchup after a challenger wins and releases it after the window', async () => {
+  const now = vi
+    .spyOn(Date, 'now')
+    .mockReturnValue(Date.parse('2026-09-29T23:30:00-04:00'));
+  const state = useCupGameState({
+    findPlayerByTeam: (team) => ({ name: team }),
+  });
+  getGameId.mockResolvedValue('finished');
+  getCurrentChampion.mockResolvedValue('TOR');
+  getGameRecords.mockResolvedValue([]);
+  await state.refreshChampionAndGameState();
+  state.applyGameUpdate({
+    id: 'finished',
+    gameState: 'LIVE',
+    homeTeam: { abbrev: 'TOR', score: 1 },
+    awayTeam: { abbrev: 'BOS', score: 2 },
+  });
+  getCurrentChampion.mockResolvedValue('BOS');
+  getGameId.mockResolvedValue(null);
+  getGameRecords.mockResolvedValue([
+    { id: 'finished', wTeam: 'BOS', savedAt: '2026-09-29T23:30:00-04:00' },
+  ]);
+  state.applyGameUpdate({
+    id: 'finished',
+    gameState: 'FINAL',
+    homeTeam: { abbrev: 'TOR', score: 1 },
+    awayTeam: { abbrev: 'BOS', score: 2 },
+  });
+  await state.refreshChampionAndGameState();
+  expect(state.currentChampion.value).toBe('TOR');
+  expect(state.isGameOver.value).toBe(true);
+  expect(state.cupGameId.value).toBe('finished');
+  now.mockReturnValue(Date.parse('2026-09-30T01:31:00-04:00'));
+  await state.refreshChampionAndGameState();
+  expect(state.cupGameId.value).toBeNull();
+  expect(state.isGameOver.value).toBe(false);
+  expect(state.currentChampion.value).toBe('BOS');
+  now.mockRestore();
 });

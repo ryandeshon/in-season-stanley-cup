@@ -2,6 +2,8 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { DateTime } from 'luxon';
 import { getPresentationResult } from '@/utilities/arcadePresentation';
 import nhlApi from '@/services/nhlApi';
+import { getGameRecords } from '@/services/dynamodbService';
+import { postgameUntil, recentFinalRecord } from '@/utilities/postgameWindow';
 import {
   areSeasonContractEndpointsEnabled,
   getCurrentChampion,
@@ -216,6 +218,8 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   const recentGoalAgainst = ref({ home: false, away: false });
   const goalTimers = ref({ home: null, away: null });
   const seasonMetaWarning = ref('');
+  let retainedFinal = null;
+  let identityLoaded = false;
 
   const lifecycleHandlers = {
     onChampionNotPlaying: null,
@@ -337,19 +341,48 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   async function refreshChampionAndGameState(options = {}) {
     try {
       const seasonOptions = withSeasonOptions(options);
-      const [champion, activeGameId] = await Promise.all([
+      const [champion, activeGameId, records] = await Promise.all([
         getCurrentChampion(seasonOptions),
         getGameId(seasonOptions),
+        getGameRecords(seasonOptions).catch(() => []),
       ]);
       const recovering = Boolean(homeError.value);
       homeError.value = '';
-      currentChampion.value = champion;
-      gameID.value = activeGameId;
-      cupGameId.value = activeGameId;
-      if (!selectedGameId.value || options?.forceGameSelectionReset) {
-        selectedGameId.value = activeGameId;
+      // The checker clears the active id as soon as it commits a final. Keep
+      // presentation independent of that write, including on a fresh page load.
+      const recent = recentFinalRecord(records);
+      if (recent) {
+        const sameGame = String(todaysGame.value.id) === String(recent.id);
+        retainedFinal = {
+          id: recent.id,
+          champion: sameGame ? currentChampion.value : recent.wTeam,
+          until: postgameUntil(recent.savedAt),
+        };
       }
-      if (recovering && activeGameId) await getGameInfo(activeGameId);
+      if (retainedFinal?.until <= Date.now()) retainedFinal = null;
+      const presentationId = retainedFinal?.id || activeGameId;
+      const identityChanged =
+        identityLoaded &&
+        String(selectedGameId.value) !== String(presentationId);
+      identityLoaded = true;
+      currentChampion.value = retainedFinal?.champion || champion;
+      gameID.value = presentationId;
+      cupGameId.value = presentationId;
+      selectedGameId.value = presentationId;
+      if (!presentationId) {
+        isGameToday.value = false;
+        isGameOver.value = false;
+        isGameLive.value = false;
+        todaysGame.value = {};
+        playerChampion.value = resolvePlayerByTeam(champion) || {};
+        if (identityChanged || recovering) {
+          lifecycleHandlers.onChampionNotPlaying?.({
+            currentChampionAbbrev: champion,
+          });
+        }
+      } else if (recovering || identityChanged) {
+        await getGameInfo(presentationId);
+      }
     } catch (error) {
       homeError.value =
         'Unable to refresh champion/game status right now. Retrying automatically.';
@@ -498,6 +531,16 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     if (isGameOver.value) {
       if (!setGameOutcome(gameData)) return;
       if (!wasGameOver) {
+        if (
+          !retainedFinal ||
+          String(retainedFinal.id) !== String(gameData.id)
+        ) {
+          retainedFinal = {
+            id: gameData.id,
+            champion: currentChampion.value,
+            until: postgameUntil(new Date().toISOString()),
+          };
+        }
         refreshChampionAndGameState({ bustCache: true });
       }
       lifecycleHandlers.onGameOver?.({

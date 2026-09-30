@@ -512,7 +512,7 @@ import { useLiveGameFeed } from '@/composables/useLiveGameFeed';
 import { useUpcomingMatchups } from '@/composables/useUpcomingMatchups';
 import { useChampionTimeline } from '@/composables/useChampionTimeline';
 import { useSeasonStore } from '@/store/seasonStore';
-import { previewEnabled, hostedPreview } from '@/utilities/previewConfig';
+import { previewEnabled } from '@/utilities/previewConfig';
 import ArcadeArena from '@/components/arcade/ArcadeArena.vue';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
@@ -675,13 +675,7 @@ const {
   setupVisibilityRefresh,
 } = liveGameFeed;
 
-const arenaSuspended = computed(
-  () =>
-    Boolean(homeError.value) ||
-    (!hostedPreview &&
-      Boolean(process.env.VUE_APP_WEB_SOCKET_URL) &&
-      liveGameFeed.isDisconnected.value)
-);
+const arenaSuspended = computed(() => Boolean(homeError.value));
 
 setLifecycleHandlers({
   onChampionNotPlaying: ({ currentChampionAbbrev, gameData }) => {
