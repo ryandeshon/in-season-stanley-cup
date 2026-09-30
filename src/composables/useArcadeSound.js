@@ -78,6 +78,9 @@ export async function unlockArcadeSound() {
   if (!AudioContext) return;
   try {
     context ||= new AudioContext();
+    context.onstatechange = () => {
+      audioReady.value = context.state === 'running';
+    };
     await context.resume();
     audioReady.value = context.state === 'running';
     if (audioReady.value) Object.keys(urls).forEach((name) => bufferFor(name));

@@ -180,7 +180,9 @@ describe('reusable arena choreography', () => {
       removeEventListener: vi.fn(),
     }));
     const { wrapper, game } = mountArena();
-    expect(wrapper.find('button[aria-label="Mute sound"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Enable sound"]').exists()).toBe(
+      true
+    );
     expect(wrapper.text()).not.toContain('Effects on');
     await wrapper.setProps({
       game: { ...game, homeTeam: { abbrev: 'BOS', score: 2 } },

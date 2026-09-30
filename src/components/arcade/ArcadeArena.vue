@@ -48,7 +48,9 @@
             : final
               ? 'AWAITING CONFIRMATION'
               : live
-                ? `PERIOD ${period || '—'} · ${clock}`
+                ? game.clock?.inIntermission
+                  ? `INT · ${clock}`
+                  : `PERIOD ${period || '—'} · ${clock}`
                 : 'FACEOFF'
         }}</small>
       </div>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.3
+
+### Patch Changes
+
+- Keep the final cup matchup visible until midnight Eastern or two hours after the result is committed, whichever is later, including after reloading.
+- Restore attack effects and sounds for normal live-feed intervals and polling fallback. Make the sound icon reflect whether browser audio is ready and allow one click to enable it.
+- Display INT and the countdown during intermission without a period number. Title-defense totals continue to update when the checker commits the final result.
+
 ## 3.0.2
 
 ### Patch Changes

@@ -37,6 +37,7 @@ export async function getPlayerData(name, options = {}) {
 export async function getGameRecords(options = {}) {
   return apiRequest('/game-records', {
     query: withSeasonQuery(options.season),
+    bustCache: options.bustCache,
     retries: 1,
   });
 }

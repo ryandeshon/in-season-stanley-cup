@@ -101,3 +101,25 @@ it('pairs an attack with hurt, then orders the shutout finale and retains Fatali
   await wrapper.setProps({ game: { ...scored, gameState: 'OFF' } });
   expect(calls).toHaveLength(4);
 });
+
+it('plays a projectile and attack audio after a normal 60-second feed interval', async () => {
+  const game = setup();
+  await vi.advanceTimersByTimeAsync(60000);
+  calls.length = 0;
+  const scored = { ...game, homeTeam: { ...game.homeTeam, score: 2 } };
+  await wrapper.setProps({ game: scored, leftTeam: scored.homeTeam });
+  expect(calls).toContainEqual(['ryan-attack', 'hurt1']);
+  expect(wrapper.classes()).toContain('phase-windup');
+  await vi.advanceTimersByTimeAsync(150);
+  expect(wrapper.classes()).toContain('phase-travel');
+});
+it('shows INT and countdown without the previous period during intermission', async () => {
+  const game = setup();
+  await wrapper.setProps({
+    game: { ...game, clock: { inIntermission: true } },
+    period: 2,
+    clock: '17:20',
+  });
+  expect(wrapper.find('.hud-score').text()).toContain('INT · 17:20');
+  expect(wrapper.find('.hud-score').text()).not.toContain('PERIOD');
+});

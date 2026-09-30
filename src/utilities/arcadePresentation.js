@@ -1,5 +1,7 @@
 const finalStates = ['FINAL', 'OFF'];
 const liveStates = ['LIVE', 'CRIT'];
+// Allow normal minute-spaced broadcasts and polling without replaying long gaps.
+const MAX_EVENT_GAP_MS = 150000;
 const validScore = (score) => Number.isInteger(score) && score >= 0;
 
 export function getPresentationResult(game = {}) {
@@ -54,7 +56,7 @@ export function createArenaTracker(played = new Set()) {
         liveStates.includes(before.state) &&
         !suspended &&
         !before.suspended &&
-        now - before.at <= 45000;
+        now - before.at <= MAX_EVENT_GAP_MS;
       const canPlay = result && witnessed && !played.has(next.key);
       played.add(next.key);
       return canPlay
@@ -64,7 +66,7 @@ export function createArenaTracker(played = new Set()) {
     if (
       suspended ||
       before.suspended ||
-      now - before.at > 45000 ||
+      now - before.at > MAX_EVENT_GAP_MS ||
       !liveStates.includes(next.state) ||
       !liveStates.includes(before.state) ||
       next.intermission ||
