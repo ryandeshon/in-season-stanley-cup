@@ -231,6 +231,20 @@ onMounted(() => {
   flex: 0 0 auto;
 }
 @media (max-width: 600px) {
+  .standings-table-shell :deep(table) {
+    table-layout: fixed;
+  }
+  .standings-table-shell :deep(th:nth-child(1)),
+  .standings-table-shell :deep(th:nth-child(3)) {
+    width: 28%;
+  }
+  .standings-table-shell :deep(th:nth-child(2)) {
+    width: 44%;
+  }
+  .standings-table-shell :deep(td) {
+    padding: 12px 8px !important;
+  }
+
   .standing-identity,
   .standing-player {
     flex-direction: column;

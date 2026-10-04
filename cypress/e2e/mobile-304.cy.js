@@ -46,6 +46,18 @@ describe('3.0.4 mobile spacing', () => {
       cy.get('.compact-mobile-table th').each((th) =>
         expect(parseFloat(th.css('font-size'))).to.equal(12)
       );
+      cy.get('tbody tr')
+        .first()
+        .find('td')
+        .eq(1)
+        .find('.v-img')
+        .then((logos) => {
+          expect(logos).to.have.length(8);
+          const first = logos[0].getBoundingClientRect();
+          const second = logos[1].getBoundingClientRect();
+          expect(second.top).to.equal(first.top);
+          expect(second.left).to.be.greaterThan(first.left);
+        });
       noOverflow();
       cy.screenshot(`304-standings-${width}`, { capture: 'viewport' });
     });
