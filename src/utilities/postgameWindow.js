@@ -1,12 +1,15 @@
 import { DateTime } from 'luxon';
 
-// Keep the result through the end of its Eastern calendar day, with at least
-// two hours for late finishes. savedAt is the checker's committed final time.
+// Overnight finals expire at noon Eastern rather than lasting another full day.
+// Evening finishes retain the midnight / two-hour window.
 export function postgameUntil(finalizedAt) {
   const final = DateTime.fromISO(finalizedAt || '', {
     zone: 'America/New_York',
   });
   if (!final.isValid) return 0;
+  if (final.hour < 12) {
+    return final.startOf('day').set({ hour: 12 }).toMillis();
+  }
   return Math.max(
     final.plus({ hours: 2 }).toMillis(),
     final.endOf('day').toMillis()

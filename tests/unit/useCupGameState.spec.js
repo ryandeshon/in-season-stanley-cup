@@ -485,3 +485,28 @@ it('keeps the original matchup after a challenger wins and releases it after the
   expect(state.currentChampion.value).toBe('BOS');
   now.mockRestore();
 });
+
+it('automatically releases an overnight final at noon while the page stays open', async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-10-04T11:59:59-04:00'));
+  getCurrentChampion.mockResolvedValue('BOS');
+  getGameId.mockResolvedValue(null);
+  getGameRecords.mockResolvedValue([
+    { id: 'overnight', wTeam: 'BOS', savedAt: '2026-10-04T00:45:00-04:00' },
+  ]);
+  const state = useCupGameState();
+  const onChampionNotPlaying = vi.fn();
+  state.setLifecycleHandlers({ onChampionNotPlaying });
+  try {
+    await state.refreshChampionAndGameState();
+    expect(state.cupGameId.value).toBe('overnight');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(state.cupGameId.value).toBeNull();
+    expect(state.isGameOver.value).toBe(false);
+    expect(onChampionNotPlaying).toHaveBeenCalledWith({
+      currentChampionAbbrev: 'BOS',
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});

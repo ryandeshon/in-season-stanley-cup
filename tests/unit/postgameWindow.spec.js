@@ -30,3 +30,18 @@ describe('postgame display window', () => {
     ).toBeUndefined();
   });
 });
+
+it.each([
+  ['2026-10-04T00:45:00-04:00', '2026-10-04T16:00:00Z'],
+  ['2026-10-04T11:30:00-04:00', '2026-10-04T16:00:00Z'],
+  ['2026-11-01T00:45:00-04:00', '2026-11-01T17:00:00Z'],
+  ['2027-03-14T00:45:00-05:00', '2027-03-14T16:00:00Z'],
+])(
+  'ends an overnight final at local noon, including DST: %s',
+  (savedAt, noon) => {
+    expect(postgameUntil(savedAt)).toBe(Date.parse(noon));
+    const record = { id: 7, savedAt };
+    expect(recentFinalRecord([record], Date.parse(noon) - 1)).toEqual(record);
+    expect(recentFinalRecord([record], Date.parse(noon))).toBeUndefined();
+  }
+);
