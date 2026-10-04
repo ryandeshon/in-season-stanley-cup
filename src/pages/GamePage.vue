@@ -5,7 +5,7 @@
     </div>
   </template>
   <template v-else-if="errorMessage">
-    <v-container class="max-w-screen-md">
+    <v-container class="max-w-screen-md game-details-summary">
       <h1 class="text-4xl font-bold mb-4 text-center">Game Details</h1>
       <v-alert type="error" variant="tonal" data-test="game-error">
         {{ errorMessage }}
@@ -13,7 +13,7 @@
     </v-container>
   </template>
   <template v-else-if="!gameDetails">
-    <v-container class="max-w-screen-md">
+    <v-container class="max-w-screen-md game-details-summary">
       <h1 class="text-4xl font-bold mb-4 text-center">Game Details</h1>
       <v-alert type="warning" variant="tonal" data-test="game-empty">
         Game details are not available yet.
@@ -21,9 +21,9 @@
     </v-container>
   </template>
   <template v-else>
-    <v-container class="max-w-screen-md">
+    <v-container class="max-w-screen-md game-details-summary">
       <h1 class="text-4xl font-bold mb-4 text-center">Game Details</h1>
-      <v-row>
+      <v-row class="game-matchup">
         <v-col cols="6" class="text-center">
           <TeamLogo
             :team="gameDetails.awayTeam.abbrev"
@@ -70,7 +70,7 @@
     </v-container>
     <v-container
       v-if="gameDetails?.gameState !== 'FUT'"
-      class="max-w-screen-xl"
+      class="max-w-screen-xl game-details-rosters"
     >
       <v-row class="mt-4">
         <v-col cols="12" sm="6">
@@ -242,5 +242,46 @@ const formatNumber = (num) => {
 </script>
 
 <style scoped>
-/* Add any styles you need here */
+@media (max-width: 600px) {
+  .v-container.game-details-summary,
+  .v-container.game-details-rosters {
+    padding: 16px 12px 12px;
+  }
+  .game-details-summary h1 {
+    margin-bottom: 12px !important;
+  }
+  .game-details-summary .v-col,
+  .game-details-rosters .v-col {
+    padding: 8px;
+  }
+  .game-details-summary .game-matchup h2 {
+    font-size: 20px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .game-matchup :deep(.v-img) {
+    width: 64px !important;
+    height: 64px !important;
+  }
+  .game-details-summary p {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .game-details-summary h3,
+  .game-details-rosters h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  .game-details-summary .v-row.mt-4,
+  .game-details-rosters .v-row.mt-4 {
+    margin-top: 8px !important;
+  }
+  .game-details-rosters :deep(th) {
+    font-size: 12px !important;
+  }
+  .game-details-rosters :deep(td) {
+    padding: 8px !important;
+    font-size: 13px;
+  }
+}
 </style>

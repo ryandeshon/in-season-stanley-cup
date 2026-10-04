@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.4
+
+### Patch Changes
+
+- Stack standings portraits, names, and champion badges consistently on mobile; reduce mobile standings and upcoming-game table headings.
+- End overnight postgame displays at noon Eastern and refresh open pages at the cutoff. Preserve the evening midnight/two-hour window.
+- Tighten mobile Game Details spacing, logos, headings, and roster rows.
+
 ## 3.0.3
 
 ### Patch Changes

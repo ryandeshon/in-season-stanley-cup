@@ -220,6 +220,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   const seasonMetaWarning = ref('');
   let retainedFinal = null;
   let identityLoaded = false;
+  let postgameTimer = null;
 
   const lifecycleHandlers = {
     onChampionNotPlaying: null,
@@ -360,6 +361,13 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
         };
       }
       if (retainedFinal?.until <= Date.now()) retainedFinal = null;
+      clearTimeout(postgameTimer);
+      postgameTimer = retainedFinal
+        ? setTimeout(
+            () => refreshChampionAndGameState({ bustCache: true }),
+            retainedFinal.until - Date.now()
+          )
+        : null;
       const presentationId = retainedFinal?.id || activeGameId;
       const identityChanged =
         identityLoaded &&
@@ -590,6 +598,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
   );
 
   onBeforeUnmount(() => {
+    clearTimeout(postgameTimer);
     Object.values(goalTimers.value).forEach((timer) => {
       if (timer) {
         clearTimeout(timer);

@@ -45,7 +45,9 @@
         <v-btn to="/story" variant="outlined" class="ma-2"
           >Watch the prologue</v-btn
         >
-        <p class="mt-4">Past seasons remain available in the season menu.</p>
+        <p class="mt-4 compact-mobile-table">
+          Past seasons remain available in the season menu.
+        </p>
       </section>
       <template v-else-if="isSeasonOver">
         <div
@@ -328,7 +330,7 @@
               </div>
             </template>
             <template v-else-if="conditionalMatchups.length">
-              <v-table class="mt-4">
+              <v-table class="mt-4 compact-mobile-table">
                 <thead>
                   <tr>
                     <th class="text-center"><strong>Date</strong></th>
@@ -430,7 +432,10 @@
           >
             {{ possibleMatchupsError }}
           </p>
-          <v-table v-else-if="possibleMatchUps.length" class="mt-4">
+          <v-table
+            v-else-if="possibleMatchUps.length"
+            class="mt-4 compact-mobile-table"
+          >
             <thead>
               <tr>
                 <th class="text-center"><strong>Date</strong></th>

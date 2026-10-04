@@ -13,7 +13,7 @@
     </template>
     <div v-else>
       <div class="standings-table-shell overflow-x-auto">
-        <v-table>
+        <v-table class="compact-mobile-table">
           <thead>
             <tr class="font-bold text-lg">
               <th class="text-left">Player</th>
@@ -28,20 +28,24 @@
               class="py-2"
             >
               <td class="text-left font-bold align-middle">
-                <router-link :to="`/player/${standing.name}`"
-                  ><img
-                    v-if="arcade && characters[standing.name]"
-                    :src="characters[standing.name].portrait"
-                    alt=""
-                    class="rank-portrait"
-                  />{{ standing.name }}</router-link
-                >
-                <img
-                  v-if="standing.name === currentChampion?.name"
-                  :src="arcade ? championBadge : Crown"
-                  alt="Current champion"
-                  class="inline ml-1 w-8 h-8"
-                />
+                <div class="standing-identity">
+                  <router-link
+                    class="standing-player"
+                    :to="`/player/${standing.name}`"
+                    ><img
+                      v-if="arcade && characters[standing.name]"
+                      :src="characters[standing.name].portrait"
+                      alt=""
+                      class="rank-portrait"
+                    /><span>{{ standing.name }}</span></router-link
+                  >
+                  <img
+                    v-if="standing.name === currentChampion?.name"
+                    :src="arcade ? championBadge : Crown"
+                    alt="Current champion"
+                    class="standing-champion"
+                  />
+                </div>
               </td>
               <td class="align-top">
                 <div
@@ -209,5 +213,38 @@ onMounted(() => {
 .standings-table-shell {
   border-radius: var(--border-radius);
   overflow: hidden;
+}
+.standing-identity,
+.standing-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.standing-player .rank-portrait {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.standing-champion {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+@media (max-width: 600px) {
+  .standing-identity,
+  .standing-player {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+  }
+  .standing-player .rank-portrait {
+    width: 40px;
+    height: 40px;
+  }
+  .standing-champion {
+    width: 30px;
+    height: 30px;
+  }
 }
 </style>
