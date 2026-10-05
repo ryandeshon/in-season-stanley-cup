@@ -64,7 +64,13 @@
         />
       </div>
     </div>
-    <div v-if="!live && !final" class="arena-start">{{ startTime }}</div>
+    <div v-if="!live && !final" class="arena-start">
+      <GameCountdown
+        v-if="game.startTimeUTC"
+        :start-time-u-t-c="game.startTimeUTC"
+      />
+      <span v-else>{{ startTime }}</span>
+    </div>
     <div v-if="final && !result" class="arena-notice" role="status">
       Final result awaiting confirmed scores.
     </div>
@@ -217,6 +223,7 @@ import {
   soundEnabled,
   unlockArcadeSound,
 } from '@/composables/useArcadeSound';
+import GameCountdown from '@/components/GameCountdown.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import AttackCanvas from './AttackCanvas.vue';
 import ExpressivePortrait from './ExpressivePortrait.vue';

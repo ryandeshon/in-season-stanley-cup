@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { DateTime } from 'luxon';
+import { formatLocalTime } from '@/utilities/localTime';
 import nhlApi from '@/services/nhlApi';
 
 /**
@@ -187,9 +188,7 @@ export function useUpcomingMatchups({
 
           return {
             ...game,
-            dateTime: DateTime.fromISO(game.startTimeUTC).toFormat(
-              'MM/dd h:mm a ZZZZ'
-            ),
+            dateTime: formatLocalTime(game.startTimeUTC, true),
             opponentTeam,
           };
         })
@@ -253,8 +252,7 @@ export function useUpcomingMatchups({
               id,
               homeTeam,
               awayTeam,
-              dateTime:
-                DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
+              dateTime: formatLocalTime(startTimeUTC, true),
               startTimeUTC,
             });
           }
@@ -269,8 +267,8 @@ export function useUpcomingMatchups({
         )
         .map(({ startTimeUTC, ...game }) => ({
           ...game,
-          dateTime:
-            DateTime.fromISO(startTimeUTC).toFormat('MM/dd h:mm a ZZZZ'),
+          startTimeUTC,
+          dateTime: formatLocalTime(startTimeUTC, true),
         }));
     } catch (err) {
       console.error('Failed to load possible matchups', err);

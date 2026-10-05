@@ -190,7 +190,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import nhlApi from '@/services/nhlApi';
-import { DateTime } from 'luxon';
+import { formatLocalTime } from '@/utilities/localTime';
 import TeamLogo from '@/components/TeamLogo.vue';
 
 const loading = ref(true);
@@ -209,9 +209,7 @@ onMounted(async () => {
   try {
     const response = await nhlApi.getGameInfo(gameId);
     gameDetails.value = response.data;
-    localStartTime.value = DateTime.fromISO(
-      gameDetails.value.startTimeUTC
-    ).toLocaleString(DateTime.DATETIME_FULL);
+    localStartTime.value = formatLocalTime(gameDetails.value.startTimeUTC);
     if (!gameDetails.value?.playerByGameStats?.homeTeam) return;
     homeTeamPlayers.value =
       gameDetails.value.playerByGameStats.homeTeam.forwards.concat(
