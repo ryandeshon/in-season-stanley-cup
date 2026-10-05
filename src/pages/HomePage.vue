@@ -221,7 +221,7 @@
             </div>
             <div v-else class="text-center">
               <h3 class="text-xl font-bold">Game Information</h3>
-              <p>{{ localStartTime }}</p>
+              <GameCountdown :start-time-u-t-c="todaysGame.startTimeUTC" />
             </div>
             <div v-if="isMirrorMatch" class="text-center">
               <h2 class="text-xl font-bold mb-2">Mirror Match</h2>
@@ -413,6 +413,17 @@
           data-test="whats-next-panel"
         >
           <h2 class="text-xl font-bold">What's Next</h2>
+          <GameCountdown
+            v-if="
+              !isGameToday &&
+              !isGameOver &&
+              !potentialLoading &&
+              !possibleMatchupsError &&
+              possibleMatchUps.length
+            "
+            class="my-3"
+            :start-time-u-t-c="possibleMatchUps[0].startTimeUTC"
+          />
           <p class="text-sm mb-2">Possible Upcoming Match-ups</p>
           <template v-if="potentialLoading">
             <div
@@ -519,6 +530,7 @@ import { useChampionTimeline } from '@/composables/useChampionTimeline';
 import { useSeasonStore } from '@/store/seasonStore';
 import { previewEnabled } from '@/utilities/previewConfig';
 import ArcadeArena from '@/components/arcade/ArcadeArena.vue';
+import GameCountdown from '@/components/GameCountdown.vue';
 import PlayerCard from '@/components/PlayerCard.vue';
 import TeamLogo from '@/components/TeamLogo.vue';
 import ChampionTimeline from '@/components/ChampionTimeline.vue';

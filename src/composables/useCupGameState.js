@@ -1,4 +1,5 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { formatLocalTime } from '@/utilities/localTime';
 import { DateTime } from 'luxon';
 import { getPresentationResult } from '@/utilities/arcadePresentation';
 import nhlApi from '@/services/nhlApi';
@@ -517,9 +518,7 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
     lastLiveUpdateAt.value = Date.now();
 
     if (gameData.startTimeUTC) {
-      localStartTime.value = DateTime.fromISO(
-        gameData.startTimeUTC
-      ).toLocaleString(DateTime.DATETIME_FULL);
+      localStartTime.value = formatLocalTime(gameData.startTimeUTC);
     }
 
     const championPlaying = getTeamsInfo(gameData);

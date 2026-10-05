@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.5
+
+### Patch Changes
+
+- Enlarge mobile matchup header logos and add live faceoff countdowns before games and on champion off days.
+- Display game timestamps consistently in the viewer’s local timezone.
+
 ## 3.0.4
 
 ### Patch Changes
