@@ -30,6 +30,7 @@ async function bootstrap() {
   }
   await seasonStore.loadCatalog();
   app.use(router);
+  await router.isReady();
   app.mount('#app');
 }
 bootstrap().catch(() => {

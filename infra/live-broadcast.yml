@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Read-only active-season live game WebSocket broadcasts
+Parameters:
+  CatalogTable:
+    Type: String
+    Default: isc-season-v3-catalog
+  OptionsTable:
+    Type: String
+    Default: isc-season-v3-options
+  ConnectionsTable:
+    Type: String
+    Default: SocketConnections
+  SocketApiId:
+    Type: String
+    Default: ul86529ski
+  SocketStage:
+    Type: String
+    Default: prod
+  ScheduleState:
+    Type: String
+    AllowedValues: [ENABLED, DISABLED]
+    Default: DISABLED
+Resources:
+  Logs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/inseason-live-broadcast
+      RetentionInDays: 14
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BroadcastActiveGame
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem]
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${CatalogTable}
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${OptionsTable}
+              - Effect: Allow
+                Action: [dynamodb:Scan, dynamodb:DeleteItem]
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ConnectionsTable}
+              - Effect: Allow
+                Action: execute-api:ManageConnections
+                Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SocketApiId}/${SocketStage}/POST/@connections/*
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub '${Logs.Arn}:*'
+  Publisher:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: inseason-live-broadcast
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt Role.Arn
+      Timeout: 30
+      MemorySize: 256
+      ReservedConcurrentExecutions: 1
+      Code: ../live-broadcast.deploy.zip
+      Environment:
+        Variables:
+          SEASON_CATALOG_TABLE: !Ref CatalogTable
+          SEASON_OPTIONS_TABLE: !Ref OptionsTable
+          SOCKET_CONNECTIONS_TABLE: !Ref ConnectionsTable
+          WEBSOCKET_ENDPOINT: !Sub https://${SocketApiId}.execute-api.${AWS::Region}.amazonaws.com/${SocketStage}
+  Schedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: inseason-live-broadcast
+      ScheduleExpression: rate(1 minute)
+      State: !Ref ScheduleState
+      Targets:
+        - Id: LiveBroadcast
+          Arn: !GetAtt Publisher.Arn
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 60
+            MaximumRetryAttempts: 0
+  Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Publisher
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt Schedule.Arn
+Outputs:
+  PublisherArn:
+    Value: !GetAtt Publisher.Arn
