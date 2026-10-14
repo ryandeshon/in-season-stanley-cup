@@ -4,8 +4,43 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" sizes="any" href="<%= BASE_URL %>arcade-favicon.svg" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      sizes="any"
+      href="<%= BASE_URL %>arcade-favicon.svg"
+    />
     <title>In Season Cup</title>
+    <meta name="theme-color" content="#141a14" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #141a14;
+        color: #e8e8d8;
+      }
+      #startup-shell {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        gap: 16px;
+        padding: 24px;
+        box-sizing: border-box;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+      #startup-shell strong {
+        color: #b8ef6b;
+        letter-spacing: 3px;
+        font-size: 22px;
+      }
+      #startup-shell p {
+        margin: 0;
+      }
+    </style>
     <meta
       name="description"
       content="In Season Cup - A game where NHL teams battle for daily glory and you compete to become the ultimate season champion!"
@@ -21,6 +56,14 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto+Condensed:wght@700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media = 'all'"
+    />
+    <link
+      href="https://fonts.cdnfonts.com/css/homer-simpson-revised"
+      rel="stylesheet"
+      media="print"
+      onload="this.media = 'all'"
     />
     <% if (process.env.VUE_APP_HOSTED_ARCADE_PREVIEW !== 'true') { %>
     <!-- Google tag (gtag.js) -->
@@ -46,7 +89,12 @@
         enabled. Please enable it to continue.</strong
       >
     </noscript>
-    <div id="app"></div>
+    <div id="app">
+      <div id="startup-shell" role="status" aria-live="polite">
+        <strong>IN SEASON CUP</strong>
+        <p>Loading the rink…</p>
+      </div>
+    </div>
     <!-- built files will be auto injected -->
   </body>
 </html>

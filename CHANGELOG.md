@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.6
+
+### Patch Changes
+
+- Restore minute-by-minute WebSocket broadcasts using the active season and cup game, with stale connection cleanup. Keep polling as a fallback.
+- Show a themed startup screen before JavaScript and season data finish loading; correct saved-app background and theme colors.
+
 ## 3.0.5
 
 ### Patch Changes

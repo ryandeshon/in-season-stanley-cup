@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../..');
-for (const name of ['http-api', 'check-game']) {
+for (const name of ['http-api', 'check-game', 'live-broadcast']) {
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), `isc-${name}-`));
   const output = path.join(root, `${name}.deploy.zip`);
   try {
@@ -13,7 +13,7 @@ for (const name of ['http-api', 'check-game']) {
       path.join(stage, 'index.js'),
       name === 'http-api'
         ? "exports.handler = async (...args) => (await import('./http-api/index.js')).handler(...args);\n"
-        : "module.exports = require('./check-game/index.js');\n"
+        : `module.exports = require('./${name}/index.js');\n`
     );
     for (const folder of [name, 'shared']) {
       fs.mkdirSync(path.join(stage, folder));
