@@ -23,7 +23,7 @@ describe('3.0.7 game-first loading', () => {
         metadataFinished,
         'champion request starts before metadata finishes'
       ).to.eq(false);
-      req.reply({ body: { champion: 'VAN' } });
+      req.reply({ body: { champion: 'BOS' } });
     });
     cy.intercept(apiRoute('GET', '/champion/history'), (req) => {
       req.on('after:response', () => {
