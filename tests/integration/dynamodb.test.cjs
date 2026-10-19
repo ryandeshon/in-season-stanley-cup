@@ -8,15 +8,7 @@ const {
   DeleteTableCommand,
   waitUntilTableExists,
 } = require('@aws-sdk/client-dynamodb');
-const {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  UpdateCommand,
-  ScanCommand,
-  QueryCommand,
-  TransactWriteCommand,
-} = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
 const { createChecker } = require('../../lambdas/check-game/handler.cjs');
 const realAws = process.env.DYNAMODB_TEST_AWS === 'true';
 const endpoint = process.env.DYNAMODB_TEST_ENDPOINT || 'http://localhost:8000';
@@ -48,34 +40,20 @@ const tables = Object.fromEntries(
   ])
 );
 const created = [];
-const commandTypes = {
-  get: GetCommand,
-  put: PutCommand,
-  update: UpdateCommand,
-  scan: ScanCommand,
-  query: QueryCommand,
-  transactWrite: TransactWriteCommand,
-};
+let adapter;
 const db = Object.fromEntries(
-  Object.entries(commandTypes).map(([name, Command]) => [
+  ['get', 'put', 'update', 'scan', 'query', 'transactWrite'].map((name) => [
     name,
-    (params) => ({
-      promise: async () => {
-        const targets = params.TransactItems?.map(
-          (item) => Object.values(item)[0].TableName
-        ) || [params.TableName];
-        assert.ok(
-          targets.every((table) => table.startsWith(prefix)),
-          'Every operation must target this run’s disposable tables'
-        );
-        try {
-          return await doc.send(new Command(params));
-        } catch (error) {
-          error.code = error.name;
-          throw error;
-        }
-      },
-    }),
+    (params) => {
+      const targets = params.TransactItems?.map(
+        (item) => Object.values(item)[0].TableName
+      ) || [params.TableName];
+      assert.ok(
+        targets.every((table) => table.startsWith(prefix)),
+        'Every operation must target disposable tables'
+      );
+      return adapter[name](params);
+    },
   ])
 );
 const env = {
@@ -102,6 +80,9 @@ const draft = {
 };
 let api;
 before(async () => {
+  const { documentAdapter } =
+    await import('../../lambdas/http-api/document-adapter.js');
+  adapter = documentAdapter(doc);
   for (const [name, TableName] of Object.entries(tables)) {
     const numeric = name !== 'options';
     await client.send(
@@ -478,9 +459,8 @@ test('real closeout script is dry-safe and concurrent reruns award one champions
     );
   try {
     await seedGame(9999);
-    await assert.rejects(
-      run(false, { CLOSEOUT_TEST_STORAGE: 'v2' }),
-      (error) => error.stdout.includes('refusing legacy closeout')
+    await assert.rejects(run(false, { CLOSEOUT_TEST_STORAGE: 'v2' }), (error) =>
+      error.stdout.includes('refusing legacy closeout')
     );
     await run(true);
     assert.equal((await readPlayer()).championships, 2);

@@ -739,29 +739,24 @@ onBeforeUnmount(() => {
 onMounted(async () => {
   if (preview)
     window.addEventListener('arcade-preview-refresh', previewRefresh);
-  await refreshSeasonMeta();
+  // Resolve season status and the matchup together; history is secondary.
+  await Promise.all([refreshSeasonMeta(), refreshChampionAndGameState()]);
 
   if (isSeasonOver.value) {
     loading.value = false;
     return;
   }
 
-  await loadChampionHistory();
-
-  try {
-    await refreshChampionAndGameState();
-  } catch (error) {
-    console.error('Error fetching getCurrentChampion or getGameId:', error);
-  }
+  loadChampionHistory();
   startChampionRefresh();
   setupVisibilityRefresh();
 
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
     await getGameInfo(cupGameId.value);
-    await loadMatchupOptions();
     initLiveFeed();
     startPolling();
+    loadMatchupOptions();
   } else {
     matchupOptions.value = [];
     playerChampion.value = findPlayerByTeam(currentChampion.value) || {};

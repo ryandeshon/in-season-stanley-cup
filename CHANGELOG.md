@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.7
+
+### Patch Changes
+
+- Fetch season status and the matchup in parallel, share simultaneous game-record reads, and keep champion history and upcoming options off the game loading path.
+- Load secondary pages on demand and include only the Vuetify components used by the app.
+- Replace the HTTP API’s legacy AWS SDK with the runtime SDK and initialize it before handling requests.
+
 ## 3.0.6
 
 ### Patch Changes

@@ -34,12 +34,22 @@ export async function getPlayerData(name, options = {}) {
   return hydratePlayerTeam(player, options.season);
 }
 
-export async function getGameRecords(options = {}) {
-  return apiRequest('/game-records', {
+// Share only simultaneous reads, never a stored result. Refreshes still fetch
+// current records, and forced refreshes cannot reuse an ordinary request.
+const pendingGameRecords = new Map();
+export function getGameRecords(options = {}) {
+  const key = JSON.stringify([
+    options.season || '',
+    Boolean(options.bustCache),
+  ]);
+  if (pendingGameRecords.has(key)) return pendingGameRecords.get(key);
+  const request = apiRequest('/game-records', {
     query: withSeasonQuery(options.season),
     bustCache: options.bustCache,
     retries: 1,
-  });
+  }).finally(() => pendingGameRecords.delete(key));
+  pendingGameRecords.set(key, request);
+  return request;
 }
 
 export async function getDraftState(options = {}) {

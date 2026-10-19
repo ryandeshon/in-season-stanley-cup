@@ -52,10 +52,10 @@ all runtime modules at the archive root, and excludes tests. The HTTP package
 includes its ESM `package.json`; checker remains CommonJS. Do not deploy only the
 small new `index.js` files: their sibling modules are required.
 
-Entrypoints remain `index.handler`. Runtime code still uses the existing AWS SDK
-v2 dependency supplied by the deployment/layer. The new SDK v3 dev dependencies
-are for persistence tests and are not included in these ZIPs. Verify the deployed
-runtime/layer provides `aws-sdk` before a separately approved deployment.
+Entrypoints remain `index.handler`. The checker still uses AWS SDK v2 supplied
+by its deployment/layer. HTTP API and live broadcaster use the Node.js 22
+runtime’s SDK v3. Dependencies are not included in these ZIPs; preserve the
+checker’s SDK v2 layer when deploying it.
 
 Finalization now uses one DynamoDB transaction for a conditional game-record Put,
 GameOptions Update, and (when an owner exists) player-counter Update. Verify the
@@ -76,3 +76,16 @@ Rollback restores those artifacts; it does not delete game records or decrement
 counters. Reverting the checker restores its old partial-write risk, so pause
 writers and reconcile any failures before resuming. A future schema migration
 needs its own backup/restore rehearsal and cutover review.
+
+### HTTP API runtime (3.0.7)
+
+The HTTP package is ESM at its root and statically exports `index.handler`.
+Use Node.js 22's AWS SDK v3; the HTTP function no longer needs the legacy
+`custom-aws-sdk-layer`. The document adapter preserves `.promise()` and
+conditional-write error codes used by the repositories. Integration tests run
+this same adapter against disposable DynamoDB tables.
+
+Deploy the complete `http-api.deploy.zip`, wait for the Lambda update to finish,
+and verify `/seasons`, `/season/meta`, `/champion`, `/gameid`, `/players`, and
+`/game-records` before deploying the frontend. Keep the previous package and
+configuration for rollback. Do not change season data as part of this rollout.

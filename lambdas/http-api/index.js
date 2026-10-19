@@ -1,10 +1,17 @@
 import https from 'https';
-import AWS from 'aws-sdk';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { documentAdapter } from './document-adapter.js';
 import { createHttpHandler } from './handler.js';
 
 export const handler = createHttpHandler({
   https,
-  dynamoDB: new AWS.DynamoDB.DocumentClient({
-    region: process.env.AWS_REGION || 'us-east-1',
-  }),
+  dynamoDB: documentAdapter(
+    DynamoDBDocumentClient.from(
+      new DynamoDBClient({
+        region: process.env.AWS_REGION || 'us-east-1',
+      }),
+      { marshallOptions: { removeUndefinedValues: true } }
+    )
+  ),
 });

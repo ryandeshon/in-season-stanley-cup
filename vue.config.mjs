@@ -7,6 +7,10 @@ const { version } = require('./package.json');
 
 export default defineConfig({
   transpileDependencies: true,
+  chainWebpack(config) {
+    // Keep secondary routes from competing with game data on mobile startup.
+    config.plugins.delete('prefetch');
+  },
   configureWebpack: {
     plugins: [
       new webpack.DefinePlugin({
