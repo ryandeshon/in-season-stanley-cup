@@ -1,45 +1,38 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '../pages/HomePage.vue';
-import StandingsPage from '../pages/StandingsPage.vue';
-import AboutPage from '../pages/AboutPage.vue';
-import PlayerProfile from '../pages/PlayerProfile.vue';
-import GamePage from '../pages/GamePage.vue';
-import DraftPage from '../pages/DraftPage.vue';
-import DraftAdminPage from '../pages/DraftAdminPage.vue';
-import ChampionTest from '../pages/ChampionTest.vue';
 
 const routes = [
   { path: '/', component: HomePage },
   { path: '/story', component: () => import('../pages/StoryPage.vue') },
-  { path: '/standings', component: StandingsPage },
-  { path: '/about', component: AboutPage },
+  { path: '/standings', component: () => import('../pages/StandingsPage.vue') },
+  { path: '/about', component: () => import('../pages/AboutPage.vue') },
   {
     path: '/player/:name', // Dynamic route using player's name
     name: 'PlayerProfile',
-    component: PlayerProfile,
+    component: () => import('../pages/PlayerProfile.vue'),
     props: true, // Pass the name parameter as a prop
   },
   {
     path: '/game/:id', // Add a new route for game details
     name: 'GamePage',
-    component: GamePage,
+    component: () => import('../pages/GamePage.vue'),
     props: true,
   },
   {
     path: '/draft/:name?', // Make the :name parameter optional
     name: 'DraftPage',
-    component: DraftPage,
+    component: () => import('../pages/DraftPage.vue'),
     props: true,
   },
   {
     path: '/draft/admin',
     name: 'DraftAdminPage',
-    component: DraftAdminPage,
+    component: () => import('../pages/DraftAdminPage.vue'),
   },
   {
     path: '/champion-test',
     name: 'ChampionTest',
-    component: ChampionTest,
+    component: () => import('../pages/ChampionTest.vue'),
   },
 ];
 

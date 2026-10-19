@@ -12,9 +12,16 @@ for (const name of ['http-api', 'check-game', 'live-broadcast']) {
     fs.writeFileSync(
       path.join(stage, 'index.js'),
       name === 'http-api'
-        ? "exports.handler = async (...args) => (await import('./http-api/index.js')).handler(...args);\n"
+        ? "export { handler } from './http-api/index.js';\n"
         : `module.exports = require('./${name}/index.js');\n`
     );
+    if (name === 'http-api') {
+      fs.writeFileSync(
+        path.join(stage, 'package.json'),
+        JSON.stringify({ type: 'module' })
+      );
+      files.push('package.json');
+    }
     for (const folder of [name, 'shared']) {
       fs.mkdirSync(path.join(stage, folder));
       for (const file of fs
