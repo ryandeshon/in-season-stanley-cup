@@ -211,6 +211,14 @@ describe('useLiveGameFeed', () => {
     composable.stopPolling();
   });
 
+  it('rechecks a final result immediately on return so a hidden noon cutoff is not delayed', () => {
+    const { composable, deps } = createComposable({ isGameOver: ref(true) });
+    composable.setupVisibilityRefresh();
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(deps.refreshChampionAndGameState).toHaveBeenCalledTimes(1);
+    composable.clearVisibilityRefresh();
+  });
+
   it('runs champion refresh interval on schedule', () => {
     vi.useFakeTimers();
     const { composable, deps } = createComposable();
