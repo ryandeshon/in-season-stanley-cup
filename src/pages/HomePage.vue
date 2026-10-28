@@ -675,6 +675,8 @@ const {
 });
 
 const liveGameFeed = useLiveGameFeed({
+  homeError,
+  gameStartTime: computed(() => todaysGame.value?.startTimeUTC),
   cupGameId,
   selectedGameId,
   isGameToday,
@@ -732,7 +734,9 @@ const homeErrorMessage = computed(() => {
 
 const preview = previewEnabled;
 const previewRefresh = () => getGameInfo(cupGameId.value);
+let homeDisposed = false;
 onBeforeUnmount(() => {
+  homeDisposed = true;
   if (preview)
     window.removeEventListener('arcade-preview-refresh', previewRefresh);
 });
@@ -741,6 +745,7 @@ onMounted(async () => {
     window.addEventListener('arcade-preview-refresh', previewRefresh);
   // Resolve season status and the matchup together; history is secondary.
   await Promise.all([refreshSeasonMeta(), refreshChampionAndGameState()]);
+  if (homeDisposed) return;
 
   if (isSeasonOver.value) {
     loading.value = false;
@@ -754,6 +759,7 @@ onMounted(async () => {
   isGameToday.value = gameID.value !== null;
   if (isGameToday.value) {
     await getGameInfo(cupGameId.value);
+    if (homeDisposed) return;
     initLiveFeed();
     startPolling();
     loadMatchupOptions();

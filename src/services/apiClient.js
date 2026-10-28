@@ -18,7 +18,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildUrl(path, { baseURL, query, bustCache }) {
+function buildUrl(path, { baseURL, query }) {
   const normalizedBase = baseURL.endsWith('/') ? baseURL : `${baseURL}/`;
   const normalizedPath = String(path || '').replace(/^\/+/, '');
   const url = new URL(normalizedPath, normalizedBase);
@@ -28,10 +28,6 @@ function buildUrl(path, { baseURL, query, bustCache }) {
       if (value === null || value === undefined || value === '') return;
       url.searchParams.set(key, String(value));
     });
-  }
-
-  if (bustCache) {
-    url.searchParams.set('_ts', String(Date.now()));
   }
 
   return url;
@@ -101,7 +97,7 @@ export async function apiRequest(path, options = {}) {
           options.body !== undefined && options.body !== null
             ? JSON.stringify(options.body)
             : undefined,
-        cache: options.cache || (options.bustCache ? 'no-store' : 'default'),
+        cache: options.cache || (options.bustCache ? 'no-cache' : 'default'),
         signal: controller.signal,
       });
 

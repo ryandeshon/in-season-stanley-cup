@@ -7,10 +7,12 @@ vi.mock('@/services/socketClient', async () => {
     isConnected: vueRef(true),
     lastMessage: vueRef(null),
     initSocket: vi.fn(),
+    closeSocket: vi.fn(),
   };
 
   return {
     initSocket: socketState.initSocket,
+    closeSocket: socketState.closeSocket,
     useSocket: () => ({
       isConnected: socketState.isConnected,
       lastMessage: socketState.lastMessage,
@@ -138,10 +140,14 @@ describe('useLiveGameFeed', () => {
     expect(deps.getGameInfo).not.toHaveBeenCalled();
   });
 
-  it('refreshes champion state on tab visibility event', () => {
+  it('throttles visibility refreshes and catches up after a minute away', () => {
+    vi.useFakeTimers();
     const { composable, deps } = createComposable();
 
     composable.setupVisibilityRefresh();
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(deps.refreshChampionAndGameState).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60000);
     document.dispatchEvent(new Event('visibilitychange'));
     composable.clearVisibilityRefresh();
     document.dispatchEvent(new Event('visibilitychange'));
@@ -150,6 +156,59 @@ describe('useLiveGameFeed', () => {
     expect(deps.refreshChampionAndGameState).toHaveBeenCalledWith({
       bustCache: true,
     });
+  });
+
+  it('makes no hidden-tab HTTP requests for an hour', async () => {
+    vi.useFakeTimers();
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('hidden');
+    const { composable, deps } = createComposable();
+    composable.startPolling();
+    composable.startChampionRefresh();
+    await vi.advanceTimersByTimeAsync(3600000);
+    expect(deps.getGameInfo).not.toHaveBeenCalled();
+    expect(deps.refreshChampionAndGameState).not.toHaveBeenCalled();
+    composable.stopPolling();
+    composable.stopChampionRefresh();
+    visibility.mockRestore();
+  });
+  it('allows minute-by-minute socket updates without duplicate polling', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-27T00:00:00Z'));
+    const { composable, deps } = createComposable();
+    deps.lastLiveUpdateAt.value = Date.now();
+    composable.startPolling();
+    for (let minute = 0; minute < 60; minute++) {
+      await vi.advanceTimersByTimeAsync(60000);
+      deps.lastLiveUpdateAt.value = Date.now();
+    }
+    expect(deps.getGameInfo).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(120000);
+    expect(deps.getGameInfo).toHaveBeenCalledTimes(1);
+    composable.stopPolling();
+  });
+  it('refreshes visible off-day state four times an hour, without boxscores', async () => {
+    vi.useFakeTimers();
+    const { composable, deps } = createComposable({ isGameToday: ref(false) });
+    composable.startChampionRefresh();
+    composable.startPolling();
+    await vi.advanceTimersByTimeAsync(3600000);
+    expect(deps.refreshChampionAndGameState).toHaveBeenCalledTimes(4);
+    expect(deps.getGameInfo).not.toHaveBeenCalled();
+    composable.stopChampionRefresh();
+    composable.stopPolling();
+  });
+  it('does not poll boxscores before the scheduled start', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-27T00:00:00Z'));
+    const { composable, deps } = createComposable({
+      gameStartTime: ref('2026-10-28T00:00:00Z'),
+    });
+    composable.startPolling();
+    await vi.advanceTimersByTimeAsync(3600000);
+    expect(deps.getGameInfo).not.toHaveBeenCalled();
+    composable.stopPolling();
   });
 
   it('runs champion refresh interval on schedule', () => {

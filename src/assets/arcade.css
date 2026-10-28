@@ -317,7 +317,7 @@
   overflow: hidden;
   background:
     linear-gradient(#060d0899, #08120999),
-    var(--arena-background, url('./arcade/black-rink-arena-v2.png'))
+    var(--arena-background, url('./arcade/black-rink-arena-v2.webp'))
       center/cover;
 }
 .fighter {

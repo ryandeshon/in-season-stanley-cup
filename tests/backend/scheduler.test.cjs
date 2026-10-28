@@ -82,3 +82,41 @@ test('cleanup tolerates a deleted schedule and invalidates only configured paths
     '/gameid',
   ]);
 });
+
+test('retries across invocations use one invalidation identity per game and path set', async () => {
+  const requests = [];
+  const make = (paths) =>
+    createScheduler({
+      ...base,
+      API_CACHE_DISTRIBUTION_ID: 'api',
+      API_CACHE_INVALIDATION_PATHS: paths,
+      cloudFront: {
+        createInvalidation: (p) => ({
+          promise: async () => {
+            requests.push(p);
+            return {};
+          },
+        }),
+      },
+    });
+  await make(['/champion', '/gameid']).invalidateApiCache(123, 'finalized');
+  await make(['/champion', '/gameid']).invalidateApiCache(123, 'finalized');
+  await make(['/champion', '/gameid']).invalidateApiCache(124, 'finalized');
+  await make(['/champion']).invalidateApiCache(123, 'finalized');
+  const refs = requests.map((r) => r.InvalidationBatch.CallerReference);
+  assert.equal(refs[0], refs[1]);
+  assert.notEqual(refs[0], refs[2]);
+  assert.notEqual(refs[0], refs[3]);
+});
+test('disabled API invalidation configuration makes no CloudFront request', async () => {
+  const service = createScheduler({
+    ...base,
+    API_CACHE_DISTRIBUTION_ID: null,
+    cloudFront: {
+      createInvalidation: () => {
+        throw new Error('unexpected invalidation');
+      },
+    },
+  });
+  await service.invalidateApiCache(123, 'finalized');
+});

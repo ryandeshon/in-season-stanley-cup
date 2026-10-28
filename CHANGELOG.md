@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.0
+
+### Minor Changes
+
+- Stop completed-draft polling and hidden-tab refreshes; use WebSocket updates with a 30-second disconnected draft fallback.
+- Reduce off-day refreshes to every 15 minutes, throttle tab-return refreshes, and avoid duplicate boxscore polling between minute-by-minute broadcasts. Revalidate forced reads without timestamp URLs.
+- Compress the five arena backgrounds to versioned WebP assets, reducing their combined size by 88%, with immutable browser caching.
+- Make optional game-result invalidations idempotent. Disable the production checker's invalidation configuration because the API distribution's cache policy is already CachingDisabled.
+
 ## 3.0.7
 
 ### Patch Changes
