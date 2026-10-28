@@ -143,7 +143,11 @@ export function useLiveGameFeed({
         return;
       }
       if (socketStarted) initSocket();
-      if (homeError?.value || Date.now() - lastChampionRefreshAt >= 60000)
+      if (
+        isGameOver?.value ||
+        homeError?.value ||
+        Date.now() - lastChampionRefreshAt >= 60000
+      )
         refreshChampion();
       if (
         shouldPollGame() &&
