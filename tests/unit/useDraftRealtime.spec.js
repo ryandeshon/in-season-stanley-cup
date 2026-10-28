@@ -1,4 +1,4 @@
-import { nextTick } from 'vue';
+import { nextTick, ref } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/socketClient', async () => {
@@ -35,22 +35,75 @@ describe('useDraftRealtime', () => {
     __socketState.lastMessage.value = null;
   });
 
-  it('polls even when connected, refreshes on reconnect and stops on unmount', async () => {
+  it('polls only disconnected drafts every 30 seconds and catches up on reconnect', async () => {
     vi.useFakeTimers();
     __socketState.isConnected.value = false;
     const onRefresh = vi.fn().mockResolvedValue();
     const mounted = await mountComposable(() =>
       useDraftRealtime({ onRefresh })
     );
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(30000);
     expect(onRefresh).toHaveBeenCalledTimes(1);
     __socketState.isConnected.value = true;
     await nextTick();
     expect(onRefresh).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onRefresh).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(onRefresh).toHaveBeenCalledTimes(2);
     await mounted.unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('repairs a missed browser-originated broadcast after two minutes when connected', async () => {
+    vi.useFakeTimers();
+    const onRefresh = vi.fn().mockResolvedValue();
+    const mounted = await mountComposable(() =>
+      useDraftRealtime({ onRefresh })
+    );
+    await vi.advanceTimersByTimeAsync(119000);
+    expect(onRefresh).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await mounted.unmount();
+  });
+
+  it('makes no polling requests during an hour of a completed draft, and resumes after undo', async () => {
+    vi.useFakeTimers();
+    __socketState.isConnected.value = false;
+    const complete = ref(true);
+    const onRefresh = vi.fn().mockResolvedValue();
+    const mounted = await mountComposable(() =>
+      useDraftRealtime({ onRefresh, complete })
+    );
+    await vi.advanceTimersByTimeAsync(3600000);
+    expect(onRefresh).not.toHaveBeenCalled();
+    complete.value = false;
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await mounted.unmount();
+  });
+  it('pauses hidden drafts, catches up on return, and does not poll non-draft seasons', async () => {
+    vi.useFakeTimers();
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('hidden');
+    __socketState.isConnected.value = false;
+    const enabled = ref(true);
+    const onRefresh = vi.fn().mockResolvedValue();
+    const mounted = await mountComposable(() =>
+      useDraftRealtime({ onRefresh, enabled })
+    );
+    await vi.advanceTimersByTimeAsync(3600000);
+    expect(onRefresh).not.toHaveBeenCalled();
+    visibility.mockReturnValue('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+    await nextTick();
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    enabled.value = false;
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(3600000);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await mounted.unmount();
+    visibility.mockRestore();
   });
 
   it('initializes socket on mount and tracks disconnect state', async () => {

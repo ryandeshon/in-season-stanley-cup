@@ -442,6 +442,8 @@ const orderedPlayers = computed(() => {
 });
 
 const { isDisconnected } = useDraftRealtime({
+  enabled: () => seasonStore.canDraft,
+  complete: () => Boolean(draftState.value?.draftStarted && isDraftOver.value),
   onRefresh: () => loadInitialData({ showLoading: false }),
   onDraftUpdate(payload) {
     if (!seasonStore.canDraft) return;

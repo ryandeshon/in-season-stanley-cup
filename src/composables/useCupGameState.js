@@ -364,10 +364,10 @@ export function useCupGameState({ findPlayerByTeam } = {}) {
       if (retainedFinal?.until <= Date.now()) retainedFinal = null;
       clearTimeout(postgameTimer);
       postgameTimer = retainedFinal
-        ? setTimeout(
-            () => refreshChampionAndGameState({ bustCache: true }),
-            retainedFinal.until - Date.now()
-          )
+        ? setTimeout(() => {
+            if (document.visibilityState !== 'hidden')
+              refreshChampionAndGameState({ bustCache: true });
+          }, retainedFinal.until - Date.now())
         : null;
       const presentationId = retainedFinal?.id || activeGameId;
       const identityChanged =

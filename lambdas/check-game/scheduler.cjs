@@ -1,3 +1,4 @@
+const { createHash } = require('node:crypto');
 function createScheduler({
   API_CACHE_DISTRIBUTION_ID,
   API_CACHE_INVALIDATION_PATHS,
@@ -142,7 +143,14 @@ function createScheduler({
       ? API_CACHE_INVALIDATION_PATHS
       : ['/champion', '/gameid'];
 
-    const callerReference = `check-game-${gameID}-${Date.now()}`;
+    paths.sort();
+    // Retrying a completed game must reuse the same invalidation, including
+    // after a process restart. Include paths so configuration changes are safe.
+    const digest = createHash('sha256')
+      .update(JSON.stringify([...paths].sort()))
+      .digest('hex')
+      .slice(0, 16);
+    const callerReference = `check-game-${env.CHECK_SEASON || env.DEFAULT_SEASON || 'legacy'}-${gameID}-${digest}`;
     const params = {
       DistributionId: API_CACHE_DISTRIBUTION_ID,
       InvalidationBatch: {
